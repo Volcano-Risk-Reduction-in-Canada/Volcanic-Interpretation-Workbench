@@ -1,5 +1,6 @@
 dash
 dash_bootstrap_components
+dash_bootstrap_templates
 dash-renderer
 dash-core-components
 dash-html-components

@@ -1,5 +1,12 @@
 FROM python:3.9-slim
-COPY requirements.txt ./requirements.txt
-RUN pip install -r requirements.txt
-COPY . ./
-CMD gunicorn -b 0.0.0.0:80 app.app:server
+
+COPY requirements.txt /tmp/
+COPY ./app /app
+WORKDIR "/app"
+
+RUN pip install -r /tmp/requirements.txt
+
+EXPOSE 8050
+
+ENTRYPOINT [ "python3" ]
+CMD [ "dash_app.py" ]
