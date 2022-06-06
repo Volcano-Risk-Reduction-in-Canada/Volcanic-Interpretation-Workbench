@@ -28,27 +28,49 @@ from dash_bootstrap_templates import load_figure_template
 # adds it to plotly.io and makes it the default figure template.
 load_figure_template("darkly")
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+#app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = dash.Dash(__name__)
+
+# NorthSlide_3M14D
+# workspace=Meager_5M3A
+# workspace="Garibaldi_3M23"
+workspace="Tseax_3M19"
+stackList = ['Garibaldi_3M23', 'Meager_5M3', 'Cayley', 'Tseax_3M19', 'LavaFork_3M41']
+siteDict={'Garibaldi_3M23':[49.90, -122.99],
+                'Meager_5M3':[50.64, -123.60],
+                'Cayley':[50.12, -123.29],
+                'Tseax_3M19':[55.11, -128.90],
+                'LavaFork_3M41':[56.42, -130.85]}
 
 #Dummy Coherence Pair Data
-dfCohFull = pd.read_csv('app/Data/coherenceMatrixMeagerCompleteNan.csv')
-fig2 = px.imshow(np.rot90(np.fliplr(dfCohFull['Coherence'].to_numpy().reshape(70,70))),
+# dfCohFull2 = pd.read_csv('Data/coherenceMatrixMeagerCompleteNan.csv')
+# dfCohFull = pd.read_csv('Data/Garibaldi/3M23/CoherenceMatrix.csv')
+dfCohFull = pd.read_csv('Data/Tseax/3M19/CoherenceMatrix.csv')
+
+fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),len(dfCohFull['Reference Date'].unique())))),
                  x=dfCohFull['Reference Date'].unique(),
                  y=dfCohFull['Pair Date'].unique(),
                  color_continuous_scale='RdBu_r'
                 )
-fig2.update_yaxes(autorange=True) 
+fig.update_yaxes(autorange=True) 
 
 
 app.layout = html.Div(id = 'parent', children = [
     html.H1(id='H1', children='Volcano InSAR Interpretation Workbench', style = {'textAlign':'center',\
                                             'marginTop':40,'marginBottom':40}),
     html.Div(style={'width': '5%','display': 'inline-block'}),
+
     html.Div(
-        dcc.Graph(id='graph', figure=fig2), #style={'width': '500px', 'height': '500px'}),
-        style={'width': '35%', 'display': 'inline-block', 'height': '450px'}),
+        dcc.Dropdown(stackList, stackList[3], id='site-dropdown'),
+            style={'width': '25%','display': 'inline-block'}),
+
+    html.Div(),
 
     html.Div(style={'width': '5%','display': 'inline-block'}),
+
+    html.Div(
+        dcc.Graph(id='graph', figure=fig),
+        style={'width': '35%', 'display': 'inline-block', 'height': '550px'}),
 
     html.Div(
         dl.Map([dl.TileLayer(), 
@@ -70,24 +92,29 @@ app.layout = html.Div(id = 'parent', children = [
                             checked=True
                             ),
                         ),
-                dl.WMSTileLayer(url="http://localhost:8080/geoserver/Meager_5M3A/wms?",
+                dl.WMSTileLayer(url="http://localhost:8080/geoserver/{}/wms?".format(workspace),
                                 layers="cite:meager_bedem_subset_10N_hs",
                                 format="image/png",
                                 transparent=True,
                                 opacity=1.0),
                 dl.WMSTileLayer(id='map',
-                                url="http://localhost:8080/geoserver/Meager_5M3A/wms?",
-                                layers="cite:20210717_HH_20210903_HH.adf.wrp.geo.crop",
+                                url="http://localhost:8080/geoserver/{}/wms?".format(workspace),
+                                layers="cite:20210717_HH_20210903_HH.adf.wrp.geo",
                                 format="image/png",
                                 transparent=True,
-                                opacity=0.6),
+                                opacity=0.75),
                     ],
+                id='leafletMap',
                 center=[50.64, -123.6],
-                zoom=12,
-                # style={'width': '45%','display': 'inline-block', 'height': '450px'}
+                zoom=12
                 ),
-        style={'width': '50%','display': 'inline-block', 'height': '450px'}
+        style={'width': '55%','display': 'inline-block', 'height': '550px'}
         ),
+    html.Div(),
+    html.Div(
+        html.H1(id='output', children='Selected Site', style = {'textAlign':'center',\
+                                            'marginTop':40,'marginBottom':40})
+        )
     ])
 
 
@@ -97,12 +124,48 @@ app.layout = html.Div(id = 'parent', children = [
     Input(component_id="graph", component_property="clickData"))
 def update_datepair(clickData):
     if not clickData:
-        return 'cite:20210717_HH_20210903_HH.adf.wrp.geo.crop'
+        return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
     dates='{}_HH_{}_HH'.format(json.dumps(clickData['points'][0]['x'], indent=2),
                                json.dumps(clickData['points'][0]['y'], indent=2))
     dates = dates.replace('-','').replace('"','')
-    return'cite:{}.adf.wrp.geo.crop'.format(dates)
+    print(dates)
+    return'cite:{}.adf.wrp.geo'.format(dates)
 
+
+@app.callback(
+    # Output(component_id="output", component_property="children"),
+    Output(component_id="map", component_property="url"),
+    Input(component_id="site-dropdown", component_property="value"))
+def updateSite(value):
+    return "http://localhost:8080/geoserver/{}/wms?".format(value)
+
+
+@app.callback(
+    Output(component_id="graph", component_property="figure"),
+    Input(component_id="site-dropdown", component_property="value"))
+def updateSite(value):
+    dfCohFull = pd.read_csv('Data/{}/{}/CoherenceMatrix.csv'.format(value.split('_')[0], value.split('_')[1]))
+
+    fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),len(dfCohFull['Reference Date'].unique())))),
+                    x=dfCohFull['Reference Date'].unique(),
+                    y=dfCohFull['Pair Date'].unique(),
+                    color_continuous_scale='RdBu_r'
+                    )
+    fig.update_yaxes(autorange=True) 
+    return fig
+
+
+@app.callback(
+    Output(component_id="leafletMap", component_property="center"),
+    Input(component_id="site-dropdown", component_property="value"))
+def updateCenter(value):
+    centerDict={'Garibaldi_3M23':[49.90, -122.99],
+                'Meager_5M3':[50.64, -123.60],
+                'Cayley':[50.12, -123.29],
+                'Tseax_3M19':[55.11, -128.90],
+                'LavaFork_3M41':[56.42, -130.85]}
+    print(centerDict[value])
+    return centerDict[value]
 
 if __name__ == '__main__': 
-    app.run_server(host='0.0.0.0', port=8050, debug=True)
+    app.run_server(host='0.0.0.0', port=8050, debug=False)

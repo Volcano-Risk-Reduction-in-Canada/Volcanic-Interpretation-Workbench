@@ -5,9 +5,10 @@ import pandas as pd
 import numpy as np
 
 
-os.chdir('/Users/drotheram/Projects/Volcano_InSAR/Meager/5M3/insar/cropped/')
+# os.chdir('/Users/drotheram/Projects/Volcano_InSAR/Meager/5M3/insar/cropped/')
+os.chdir('/Users/drotheram/Projects/Volcano_InSAR/Garibaldi/3M23/')
 
-wrapTifs=glob.glob('*wrp.geo.crop.tif')
+wrapTifs=glob.glob('*wrp.geo.tif')
 
 dates = []
 
@@ -27,12 +28,12 @@ datelist2 = datelist
 
 c = []
 
-for x in datelist:
-    for y in datelist2:
-        if x==y:
-            print('Same Date')
-        else:
-            c.append([x,y])
+# for x in datelist:
+#     for y in datelist2:
+#         if x==y:
+#             print('Same Date')
+#         else:
+#             c.append([x,y])
 
 for x in datelist:
     for y in datelist2:
@@ -62,6 +63,22 @@ for index, row in cohDf2.iterrows():
 
 
 cohDf3= cohDf2[cohDf2['Reference Date']<cohDf2['Pair Date']]
+cohDf3['Reference Date']= cohDf3['Reference Date'].dt.strftime('%Y-%m-%d').astype('object')
+cohDf3['Pair Date']= cohDf3['Pair Date'].dt.strftime('%Y-%m-%d').astype('object')
+
+cohDf4 = pd.read_csv('/Users/drotheram/Projects/Volcano_InSAR/Garibaldi/3M23/avgCC.csv')
+
+cohDf5 = pd.merge(cohDf3, cohDf4,  how='left', left_on=['Reference Date', 'Pair Date'], right_on = ['Master', 'Slave'])
+# cohDf5 = cohDf5['Reference Date', 'Pair Date', 'Average Coherence']
+cohDf5 = cohDf5.drop(columns=['Master', 'Slave'])
+cohDf5.to_csv('CoherenceMatrixComplete.csv', index=False)
+
+cohDf2['Reference Date']= cohDf2['Reference Date'].dt.strftime('%Y-%m-%d').astype('object')
+cohDf2['Pair Date']= cohDf2['Pair Date'].dt.strftime('%Y-%m-%d').astype('object')
+cohDf6 = pd.merge(cohDf2, cohDf4,  how='left', left_on=['Reference Date', 'Pair Date'], right_on = ['Master', 'Slave'])
+cohDf6 = cohDf6.drop(columns=['Master', 'Slave'])
+cohDf6.to_csv('CoherenceMatrix.csv', index=False)
+
 
 cohDf2.to_csv('/Users/drotheram/GitHub/Volcanic-Interpretation-Workbench/app/Data/coherenceMatrixMeagerCompleteNan.csv', index=False)
 
