@@ -28,13 +28,13 @@ from dash_bootstrap_templates import load_figure_template
 # adds it to plotly.io and makes it the default figure template.
 load_figure_template("darkly")
 
-#app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+# app = dash.Dash(__name__)
 
 # NorthSlide_3M14D
-# workspace=Meager_5M3A
+workspace="Meager_5M3"
 # workspace="Garibaldi_3M23"
-workspace="Tseax_3M19"
+# workspace="Tseax_3M19"
 stackList = ['Garibaldi_3M23', 'Meager_5M3', 'Cayley', 'Tseax_3M19', 'LavaFork_3M41']
 siteDict={'Garibaldi_3M23':[49.90, -122.99],
                 'Meager_5M3':[50.64, -123.60],
@@ -43,9 +43,9 @@ siteDict={'Garibaldi_3M23':[49.90, -122.99],
                 'LavaFork_3M41':[56.42, -130.85]}
 
 #Dummy Coherence Pair Data
-# dfCohFull2 = pd.read_csv('Data/coherenceMatrixMeagerCompleteNan.csv')
+dfCohFull = pd.read_csv('Data/Meager/5M3/coherenceMatrix.csv')
 # dfCohFull = pd.read_csv('Data/Garibaldi/3M23/CoherenceMatrix.csv')
-dfCohFull = pd.read_csv('Data/Tseax/3M19/CoherenceMatrix.csv')
+# dfCohFull = pd.read_csv('Data/Tseax/3M19/CoherenceMatrix.csv')
 
 fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),len(dfCohFull['Reference Date'].unique())))),
                  x=dfCohFull['Reference Date'].unique(),
@@ -56,13 +56,19 @@ fig.update_yaxes(autorange=True)
 
 
 app.layout = html.Div(id = 'parent', children = [
-    html.H1(id='H1', children='Volcano InSAR Interpretation Workbench', style = {'textAlign':'center',\
-                                            'marginTop':40,'marginBottom':40}),
+    html.Div(style={'width': '5%','display': 'inline-block'}),
+    html.Img(src=app.get_asset_url('Seal_of_the_Geological_Survey_of_Canada.png'),
+                      style={'width': '10%','display': 'inline-block'}),
+    html.Div(style={'width': '5%','display': 'inline-block'}),
+    html.H1(id='H1',
+            children='Volcano InSAR Interpretation Workbench',
+            style = {'textAlign':'center', 'marginTop':40, 'marginBottom':40, 'display': 'inline-block'}),
+    html.Div(style={'height': '10px'}),
     html.Div(style={'width': '5%','display': 'inline-block'}),
 
     html.Div(
-        dcc.Dropdown(stackList, stackList[3], id='site-dropdown'),
-            style={'width': '25%','display': 'inline-block'}),
+        dcc.Dropdown(stackList, stackList[1], id='site-dropdown'),
+            style={'width': '35%','display': 'inline-block', 'color': 'black'}),
 
     html.Div(),
 
@@ -70,7 +76,7 @@ app.layout = html.Div(id = 'parent', children = [
 
     html.Div(
         dcc.Graph(id='graph', figure=fig),
-        style={'width': '35%', 'display': 'inline-block', 'height': '550px'}),
+        style={'width': '35%', 'display': 'inline-block', 'height': '450px'}),
 
     html.Div(
         dl.Map([dl.TileLayer(), 
@@ -108,13 +114,52 @@ app.layout = html.Div(id = 'parent', children = [
                 center=[50.64, -123.6],
                 zoom=12
                 ),
-        style={'width': '55%','display': 'inline-block', 'height': '550px'}
+        style={'width': '55%','display': 'inline-block', 'height': '450px'}
         ),
     html.Div(),
+    # html.Div(
+    #     html.H1(id='output', children='Selected Site', style = {'textAlign':'center',\
+    #                                         'marginTop':40,'marginBottom':40})
+    #     ),
+    html.Div(style={'width': '5%','display': 'inline-block'}),
     html.Div(
-        html.H1(id='output', children='Selected Site', style = {'textAlign':'center',\
-                                            'marginTop':40,'marginBottom':40})
-        )
+        dl.Map([dl.TileLayer(), 
+                dl.LayersControl(
+                    dl.BaseLayer(
+                            dl.TileLayer(
+                                #Selection of Basemaps 
+                                url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
+                                attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
+                            ),
+                            name="USGS Topo",
+                            checked=True
+                            ),
+                        ),
+                dl.WMSTileLayer(id='rmlimap',
+                                url="http://localhost:8080/geoserver/{}/wms?".format("Meager_5M3"),
+                                layers="cite:20210114_HH.rmli.geo.db",
+                                format="image/png",
+                                transparent=True,
+                                opacity=1.0),
+                    ],
+                id='leafletMapRMLI',
+                center=[50.64, -123.6],
+                zoom=12
+                ),
+        style={'width': '90%', 'height': '550px', 'display': 'inline-block'}
+        ),
+    html.Div([
+        dcc.Slider(min=0,
+               max=len(dfCohFull.dropna()['Reference Date'].unique()),
+               step=1,
+               marks={i: dfCohFull.dropna()['Reference Date'].unique()[i] for i in range(0, len(dfCohFull.dropna()['Reference Date'].unique()), 10)},
+            #    marks={i: dfCohFull['Reference Date'].unique()[i] for i in np.linspace(0, len(dfCohFull['Reference Date'].unique()), 10)},
+               value=0,
+               id='my-slider'
+        ),
+    html.Div(id='slider-output-container')
+        ]),
+    html.Div(),
     ])
 
 
@@ -166,6 +211,21 @@ def updateCenter(value):
                 'LavaFork_3M41':[56.42, -130.85]}
     print(centerDict[value])
     return centerDict[value]
+
+
+@app.callback(
+    Output('slider-output-container', 'children'),
+    Input('my-slider', 'value'))
+def update_output(value):
+    return 'Date: "{}"'.format(dfCohFull.dropna()['Reference Date'].unique()[value])
+
+@app.callback(
+    Output('rmlimap', 'layers'),
+    Input('my-slider', 'value'))
+def update_output(value):
+    date = dfCohFull.dropna()['Reference Date'].unique()[value].replace('-','')
+    print('cite:{}_HH.rmli.geo.db'.format(date))
+    return 'cite:{}_HH.rmli.geo.db'.format(date)
 
 if __name__ == '__main__': 
     app.run_server(host='0.0.0.0', port=8050, debug=False)
