@@ -35,9 +35,10 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 workspace="Meager_5M3"
 # workspace="Garibaldi_3M23"
 # workspace="Tseax_3M19"
-stackList = ['Garibaldi_3M23', 'Meager_5M3', 'Cayley', 'Tseax_3M19', 'LavaFork_3M41']
+stackList = ['Garibaldi_3M23', 'Meager_5M3', 'Meager_5M21','Cayley', 'Tseax_3M19', 'LavaFork_3M41']
 siteDict={'Garibaldi_3M23':[49.90, -122.99],
                 'Meager_5M3':[50.64, -123.60],
+                'Meager_5M21':[50.64, -123.60],
                 'Cayley':[50.12, -123.29],
                 'Tseax_3M19':[55.11, -128.90],
                 'LavaFork_3M41':[56.42, -130.85]}
