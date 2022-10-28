@@ -58,7 +58,7 @@ siteDict={'Garibaldi_3M23':[49.90, -122.99],
           'LavaFork_3M41':[56.42, -130.85]}
 
 # Coherence Pair Data
-dfCohFull = pd.read_csv('Data/Meager/5M3/coherenceMatrix.csv')
+dfCohFull = pd.read_csv('Data/Meager/5M3/CoherenceMatrix.csv')
 
 fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),len(dfCohFull['Reference Date'].unique())))),
                  x=dfCohFull['Reference Date'].unique(),
