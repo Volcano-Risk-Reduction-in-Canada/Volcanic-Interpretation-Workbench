@@ -45,6 +45,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 workspace="Meager_5M3"
 stackList = ['Garibaldi_3M23',
              'Meager_5M3',
+             'Meager_5M10',
              'Meager_5M21',
              'Cayley',
              'Tseax_3M19',
