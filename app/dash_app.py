@@ -34,6 +34,7 @@ def get_config_params(args):
     configParseObj.read(args)
     return configParseObj
 
+
 config = get_config_params("config.ini")
 
 # This loads the "darkly" themed figure template from dash-bootstrap-templates library,
@@ -42,37 +43,116 @@ load_figure_template("darkly")
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
-workspace="Meager_5M3"
-stackList = ['Garibaldi_3M23',
+workspace = "Meager_5M3"
+stackList = ['Meager_5M2',
              'Meager_5M3',
+             'Meager_5M8',
              'Meager_5M10',
+             'Meager_5M15',
              'Meager_5M21',
-             'Cayley',
-             'Tseax_3M19',
+             'Garibaldi_3M6',
+             'Garibaldi_3M7',
+             'Garibaldi_3M18',
+             'Garibaldi_3M23',
+             'Garibaldi_3M30',
+             'Garibaldi_3M34',
+             'Garibaldi_3M42',
+             'Cayley_3M1',
+             'Cayley_3M6',
+             'Cayley_3M13',
+             'Cayley_3M14',
+             'Cayley_3M17',
+             'Cayley_3M24',
+             'Cayley_3M30',
+             'Cayley_3M36',
+             'Edziza_North_3M13',
+             'Edziza_North_3M41',
+             'Edziza_South_3M12',
+             'Edziza_South_3M31',
+             'Edziza_South_3M42',
+             'Tseax_3M7',
+             'Tseax_3M9',
+             'Tseax_ 3M19',
+             'Tseax_3M40',
+             'Nazko_3M9',
+             'Nazko_3M20',
+             'Nazko_3M31',
+             'Hoodoo_3M8',
+             'Hoodoo_3M11',
+             'Hoodoo_3M14',
+             'Hoodoo_3M38',
+             'Hoodoo_3M41',
+             'LavaFork_3M11',
+             'LavaFork_3M20',
+             'LavaFork_3M21',
+             'LavaFork_3M29',
+             'LavaFork_3M31',
              'LavaFork_3M41']
 
-siteDict={'Garibaldi_3M23':[49.90, -122.99],
-          'Meager_5M3':[50.64, -123.60],
-          'Meager_5M21':[50.64, -123.60],
-          'Cayley':[50.12, -123.29],
-          'Tseax_3M19':[55.11, -128.90],
-          'LavaFork_3M41':[56.42, -130.85]}
+siteDict = {'Meager_5M2': [50.64, -123.60],
+            'Meager_5M3': [50.64, -123.60],
+            'Meager_5M8': [50.64, -123.60],
+            'Meager_5M10': [50.64, -123.60],
+            'Meager_5M15': [50.64, -123.60],
+            'Meager_5M21': [50.64, -123.60],
+            'Garibaldi_3M6': [49.90, -122.99],
+            'Garibaldi_3M7': [49.90, -122.99],
+            'Garibaldi_3M18': [49.90, -122.99],
+            'Garibaldi_3M23': [49.90, -122.99],
+            'Garibaldi_3M30': [49.90, -122.99],
+            'Garibaldi_3M34': [49.90, -122.99],
+            'Garibaldi_3M42': [49.90, -122.99],
+            'Cayley': [50.12, -123.29],
+            'Cayley_3M1': [50.12, -123.29],
+            'Cayley_3M6': [50.12, -123.29],
+            'Cayley_3M13': [50.12, -123.29],
+            'Cayley_3M14': [50.12, -123.29],
+            'Cayley_3M17': [50.12, -123.29],
+            'Cayley_3M24': [50.12, -123.29],
+            'Cayley_3M30': [50.12, -123.29],
+            'Cayley_3M36': [50.12, -123.29],
+            'Edziza_North_3M13': [57.74, -130.64],
+            'Edziza_North_3M41': [57.74, -130.64],
+            'Edziza_South_3M12': [57.64, -130.64],
+            'Edziza_South_3M31': [57.64, -130.64],
+            'Edziza_South_3M42': [57.64, -130.64],
+            'Tseax_3M7': [55.11, -128.90],
+            'Tseax_3M9': [55.11, -128.90],
+            'Tseax_ 3M19': [55.11, -128.90],
+            'Tseax_3M40': [55.11, -128.90],
+            'Nazko_3M9': [52.93, -123.73],
+            'Nazko_3M20': [52.93, -123.73],
+            'Nazko_3M31': [52.93, -123.73],
+            'Hoodoo_3M8': [56.77, -131.29],
+            'Hoodoo_3M11': [56.77, -131.29],
+            'Hoodoo_3M14': [56.77, -131.29],
+            'Hoodoo_3M38': [56.77, -131.29],
+            'Hoodoo_3M41': [56.77, -131.29],
+            'LavaFork_3M11': [56.42, -130.85],
+            'LavaFork_3M20': [56.42, -130.85],
+            'LavaFork_3M21': [56.42, -130.85],
+            'LavaFork_3M29': [56.42, -130.85],
+            'LavaFork_3M31': [56.42, -130.85],
+            'LavaFork_3M41': [56.42, -130.85]}
 
 # Coherence Pair Data
 dfCohFull = pd.read_csv('Data/Meager/5M3/CoherenceMatrix.csv')
 
-fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),len(dfCohFull['Reference Date'].unique())))),
-                 x=dfCohFull['Reference Date'].unique(),
-                 y=dfCohFull['Pair Date'].unique(),
-                 color_continuous_scale='RdBu_r'
+fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),
+                                                                                     len(dfCohFull['Reference Date'].unique())))),
+                x=dfCohFull['Reference Date'].unique(),
+                y=dfCohFull['Pair Date'].unique(),
+                color_continuous_scale='RdBu_r'
                 )
 fig.update_yaxes(autorange=True) 
 
-app.layout = html.Div(id = 'parent', children = [
-    html.Div(style={'width': '5%','display': 'inline-block'}),
+app.layout = html.Div(id='parent', children=[
+    html.Div(style={'width': '5%', 'display': 'inline-block'}),
     html.Img(src=app.get_asset_url('Seal_of_the_Geological_Survey_of_Canada.png'),
-                      style={'width': '10%','display': 'inline-block'}),
-    html.Div(style={'width': '5%','display': 'inline-block'}),
+             style={'width': '10%',
+                    'display': 'inline-block'}),
+    html.Div(style={'width': '5%',
+                    'display': 'inline-block'}),
     html.H1(id='H1',
             children='Volcano InSAR Interpretation Workbench',
             style = {'textAlign':'center', 'marginTop':40, 'marginBottom':40, 'display': 'inline-block'}),
