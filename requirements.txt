@@ -1,3 +1,4 @@
+boto3
 dash
 dash_bootstrap_components
 dash_bootstrap_templates

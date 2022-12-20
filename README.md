@@ -7,3 +7,6 @@ A Docker-Dash application for interpreting InSAR measurements of Canadian Volcan
 
 Build the Docker image with a command simmilar to
 docker build volcanic-interpretation-workbench .
+
+Start Docker container with a command like:
+`sudo docker run -p 8050:8050/tcp --name volc_interp_wb volc_interp_wb &
