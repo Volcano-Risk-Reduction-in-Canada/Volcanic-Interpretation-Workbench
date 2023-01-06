@@ -1,3 +1,4 @@
 virtualenv/*
 .vscode/settings.json
 config.ini
+coherenceMatrix.csv
