@@ -23,6 +23,8 @@
    - 3M24
    - 3M30
    - 3M36
+ Edgecumbe:
+   - 3M36D
  Edziza_North:
    - 3M13
    - 3M41
@@ -45,7 +47,7 @@
    - 3M14
    - 3M38
    - 3M41
- LavaFork:
+ Lava_Fork:
    - 3M11
    - 3M20
    - 3M21
