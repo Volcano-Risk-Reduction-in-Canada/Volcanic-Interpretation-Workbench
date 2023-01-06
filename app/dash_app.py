@@ -170,65 +170,23 @@ app.layout = html.Div(id='parent', children=[
                'display': 'inline-block',
                'color': 'black'}),
 
-    html.Div(),
-
     html.Div(style={'width': '5%',
                     'display': 'inline-block'}),
 
-    html.Div(children=[
+    html.Div([
         dcc.Graph(id='graph', figure=fig,
-                  style={'width': '100%',
-                         'display': 'inline-block',
-                         'height': '450px'}),
-        dcc.Graph(id='baselinePlot', figure=fig,
-                  style={'width': '100%',
-                         'height': '450px'})
-        ],
-        style={'width': '25%',
-               'display': 'inline-block',
-               'vertical-align': 'top'}
-        ),
-
-    html.Div(
+                  style={'position': 'absolute',
+                         'width': '25%',
+                         'height': '45%',
+                         'margin-left': '69.5%',
+                         'margin-top': '0.5%',
+                         'zIndex': 2}
+                         ),
         dl.Map([dl.TileLayer(),
                 dl.LayersControl(
                     dl.BaseLayer(
                             dl.TileLayer(
                                 # Basemaps
-                                 url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-                                attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
-                            ),
-                            name="USGS Topo",
-                            checked=True
-                            ),
-                        ),
-                dl.WMSTileLayer(url=f"{config.get('geoserver', 'geoserverEndpoint')}/{workspace}/wms?",
-                                layers="cite:meager_bedem_subset_10N_hs",
-                                format="image/png",
-                                transparent=True,
-                                opacity=1.0),
-                dl.WMSTileLayer(id='map',
-                                url=f"{config.get('geoserver', 'geoserverEndpoint')}/{workspace}/wms?",
-                                layers="cite:20210717_HH_20210903_HH.adf.wrp.geo",
-                                format="image/png",
-                                transparent=True,
-                                opacity=0.75),
-                ],
-               id='leafletMap',
-               center=[50.64, -123.6],
-               zoom=12
-               ),
-        style={'width': '65%', 'display': 'inline-block', 'height': '900px'}
-        ),
-    html.Div(),
-
-    html.Div(style={'width': '5%', 'display': 'inline-block'}),
-    html.Div(
-        dl.Map([dl.TileLayer(),
-                dl.LayersControl(
-                    dl.BaseLayer(
-                            dl.TileLayer(
-                                # Selection of Basemaps
                                 url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
                                 attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
                             ),
@@ -236,30 +194,72 @@ app.layout = html.Div(id='parent', children=[
                             checked=True
                             ),
                         ),
-                dl.WMSTileLayer(id='rmlimap',
-                                url=f"{config.get('geoserver', 'geoserverEndpoint')}/Meager_5M3/wms?",
-                                layers="cite:20210114_HH.rmli.geo.db",
+                dl.WMSTileLayer(id='map',
+                                url=f"{config.get('geoserver', 'geoserverEndpoint')}/{workspace}/wms?",
+                                layers="cite:20210717_HH_20210903_HH.adf.wrp.geo",
+                                format="image/png",
+                                transparent=True,
+                                opacity=0.75),
+                dl.WMSTileLayer(url=f"{config.get('geoserver', 'geoserverEndpoint')}/vectorLayers/wms?",
+                                layers="cite:permanent_snow_and_ice_2",
                                 format="image/png",
                                 transparent=True,
                                 opacity=1.0),
-                    ],
-               id='leafletMapRMLI',
+                ],
+               id='leafletMap',
                center=[50.64, -123.6],
-               zoom=12
-               ),
-        style={'width': '90%', 'height': '550px', 'display': 'inline-block'}
+               zoom=12,
+               style={'position': 'absolute',
+                      'width': '90%',
+                      'height': '900px',
+                      'margin-left': '5%',
+                      'zIndex': 1}
+               )],
+        style={'width': '90%',
+               'height': '900px',
+               'left-margin': '5%'}
         ),
-    html.Div([
-        dcc.Slider(min=0,
-                   max=len(dfCohFull.dropna()['Reference Date'].unique()),
-                   step=1,
-                   marks={i: dfCohFull.dropna()['Reference Date'].unique()[i] for i in range(0, len(dfCohFull.dropna()['Reference Date'].unique()), 10)},
-                   value=0,
-                   id='my-slider'
-                   ),
-        html.Div(id='slider-output-container')
-            ]),
-    html.Div(),
+
+    # html.Div(),
+
+    # html.Div(style={'width': '5%', 'display': 'inline-block'}),
+    # html.Div(
+    #     dl.Map([dl.TileLayer(),
+    #             dl.LayersControl(
+    #                 dl.BaseLayer(
+    #                         dl.TileLayer(
+    #                             # Selection of Basemaps
+    #                             url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
+    #                             attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
+    #                         ),
+    #                         name="USGS Topo",
+    #                         checked=True
+    #                         ),
+    #                     ),
+    #             dl.WMSTileLayer(id='rmlimap',
+    #                             url=f"{config.get('geoserver', 'geoserverEndpoint')}/Meager_5M3/wms?",
+    #                             layers="cite:20210114_HH.rmli.geo.db",
+    #                             format="image/png",
+    #                             transparent=True,
+    #                             opacity=1.0),
+    #                 ],
+    #            id='leafletMapRMLI',
+    #            center=[50.64, -123.6],
+    #            zoom=12
+    #            ),
+    #     style={'width': '90%', 'height': '550px', 'display': 'inline-block'}
+    #     ),
+    # html.Div([
+    #     dcc.Slider(min=0,
+    #                max=len(dfCohFull.dropna()['Reference Date'].unique()),
+    #                step=1,
+    #                marks={i: dfCohFull.dropna()['Reference Date'].unique()[i] for i in range(0, len(dfCohFull.dropna()['Reference Date'].unique()), 10)},
+    #                value=0,
+    #                id='my-slider'
+    #                ),
+    #     html.Div(id='slider-output-container')
+    #         ]),
+    # html.Div(),
     ])
 
 
@@ -321,7 +321,6 @@ def updateCenter(value):
                   'Garibaldi_3M30': [49.90, -122.99],
                   'Garibaldi_3M34': [49.90, -122.99],
                   'Garibaldi_3M42': [49.90, -122.99],
-                  'Cayley': [50.12, -123.29],
                   'Cayley_3M1': [50.12, -123.29],
                   'Cayley_3M6': [50.12, -123.29],
                   'Cayley_3M13': [50.12, -123.29],
