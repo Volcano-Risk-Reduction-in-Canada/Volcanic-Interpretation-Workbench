@@ -36,6 +36,7 @@ def get_config_params(args):
 
 
 config = get_config_params("config.ini")
+geoserverEndpoint = config.get('geoserver', 'geoserverEndpoint')
 
 # This loads the "darkly" themed figure template from dash-bootstrap-templates
 #  library, adds it to plotly.io and makes it the default figure template.
@@ -112,7 +113,7 @@ siteDict = {'Meager_5M2': [50.64, -123.60],
             'Cayley_3M24': [50.12, -123.29],
             'Cayley_3M30': [50.12, -123.29],
             'Cayley_3M36': [50.12, -123.29],
-            'Edgecumbe_3M36D': [50.05, -135.75],
+            'Edgecumbe_3M36D': [57.05, -135.75],
             'Edziza_North_3M13': [57.74, -130.64],
             'Edziza_North_3M41': [57.74, -130.64],
             'Edziza_South_3M12': [57.64, -130.64],
@@ -140,8 +141,12 @@ siteDict = {'Meager_5M2': [50.64, -123.60],
 # Coherence Pair Data
 dfCohFull = pd.read_csv('Data/Meager/5M3/CoherenceMatrix.csv')
 
-fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),
-                                                                                     len(dfCohFull['Reference Date'].unique())))),
+cohImgSize = len(dfCohFull['Reference Date'].unique())
+cohImg = dfCohFull['Average Coherence'].to_numpy().reshape(cohImgSize,
+                                                           cohImgSize)
+cohImg = np.rot90(np.fliplr(cohImg))
+
+fig = px.imshow(cohImg,
                 x=dfCohFull['Reference Date'].unique(),
                 y=dfCohFull['Pair Date'].unique(),
                 color_continuous_scale='RdBu_r'
@@ -183,26 +188,31 @@ app.layout = html.Div(id='parent', children=[
                          'margin-left': '69.5%',
                          'margin-top': '0.5%',
                          'zIndex': 2}
-                         ),
+                  ),
         dl.Map([dl.TileLayer(),
                 dl.LayersControl(
                     dl.BaseLayer(
                             dl.TileLayer(
                                 # Basemaps
-                                url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-                                attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
+                                url=("https://basemap.nationalmap.gov/arcgis/"
+                                     "rest/services/USGSTopo/MapServer/tile/"
+                                     "{z}/{y}/{x}"),
+                                attribution=("Tiles courtesy of the "
+                                             "<a href='https://usgs.gov/'>"
+                                             "U.S. Geological Survey</a>")
                             ),
                             name="USGS Topo",
                             checked=True
                             ),
                         ),
                 dl.WMSTileLayer(id='map',
-                                url=f"{config.get('geoserver', 'geoserverEndpoint')}/{workspace}/wms?",
-                                layers="cite:20210717_HH_20210903_HH.adf.wrp.geo",
+                                url=f"{geoserverEndpoint}/{workspace}/wms?",
+                                layers=("cite:"
+                                        "20210717_HH_20210903_HH.adf.wrp.geo"),
                                 format="image/png",
                                 transparent=True,
                                 opacity=0.75),
-                dl.WMSTileLayer(url=f"{config.get('geoserver', 'geoserverEndpoint')}/vectorLayers/wms?",
+                dl.WMSTileLayer(url=f"({geoserverEndpoint}/vectorLayers/wms?",
                                 layers="cite:permanent_snow_and_ice_2",
                                 format="image/png",
                                 transparent=True,
@@ -217,51 +227,10 @@ app.layout = html.Div(id='parent', children=[
                       'margin-left': '5%',
                       'zIndex': 1}
                )],
-        style={'width': '90%',
-               'height': '900px',
-               'left-margin': '5%'}
-        ),
-
-    # html.Div(),
-
-    # html.Div(style={'width': '5%', 'display': 'inline-block'}),
-    # html.Div(
-    #     dl.Map([dl.TileLayer(),
-    #             dl.LayersControl(
-    #                 dl.BaseLayer(
-    #                         dl.TileLayer(
-    #                             # Selection of Basemaps
-    #                             url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-    #                             attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
-    #                         ),
-    #                         name="USGS Topo",
-    #                         checked=True
-    #                         ),
-    #                     ),
-    #             dl.WMSTileLayer(id='rmlimap',
-    #                             url=f"{config.get('geoserver', 'geoserverEndpoint')}/Meager_5M3/wms?",
-    #                             layers="cite:20210114_HH.rmli.geo.db",
-    #                             format="image/png",
-    #                             transparent=True,
-    #                             opacity=1.0),
-    #                 ],
-    #            id='leafletMapRMLI',
-    #            center=[50.64, -123.6],
-    #            zoom=12
-    #            ),
-    #     style={'width': '90%', 'height': '550px', 'display': 'inline-block'}
-    #     ),
-    # html.Div([
-    #     dcc.Slider(min=0,
-    #                max=len(dfCohFull.dropna()['Reference Date'].unique()),
-    #                step=1,
-    #                marks={i: dfCohFull.dropna()['Reference Date'].unique()[i] for i in range(0, len(dfCohFull.dropna()['Reference Date'].unique()), 10)},
-    #                value=0,
-    #                id='my-slider'
-    #                ),
-    #     html.Div(id='slider-output-container')
-    #         ]),
-    # html.Div(),
+             style={'width': '90%',
+                    'height': '900px',
+                    'left-margin': '5%'}
+             ),
     ])
 
 
@@ -293,10 +262,17 @@ def updateSite(value):
 @app.callback(
     Output(component_id="graph", component_property="figure"),
     Input(component_id="site-dropdown", component_property="value"))
-def updateSite(value):
-    dfCohFull = pd.read_csv('Data/{}/{}/CoherenceMatrix.csv'.format('_'.join(value.split('_')[:-1]), value.split('_')[-1]))
+def updateSiteCohMatrix(value):
+    site = '_'.join(value.split('_')[:-1])
+    beam = value.split('_')[-1]
+    dfCohFull = pd.read_csv(f'Data/{site}/{beam}/CoherenceMatrix.csv')
 
-    fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),len(dfCohFull['Reference Date'].unique())))),
+    cohImgSize = len(dfCohFull['Reference Date'].unique())
+    cohImg = dfCohFull['Average Coherence'].to_numpy().reshape(cohImgSize,
+                                                               cohImgSize)
+    cohImg = np.rot90(np.fliplr(cohImg))
+
+    fig = px.imshow(cohImg,
                     x=dfCohFull['Reference Date'].unique(),
                     y=dfCohFull['Pair Date'].unique(),
                     color_continuous_scale='RdBu_r'
@@ -372,7 +348,7 @@ def update_output(value):
 @app.callback(
     Output('rmlimap', 'layers'),
     Input('my-slider', 'value'))
-def update_output(value):
+def update_backscatterMap(value):
     date = dfCohFull.dropna()['Reference Date'].unique()[value].replace('-',
                                                                         '')
     print('cite:{}_HH.rmli.geo.db'.format(date))
