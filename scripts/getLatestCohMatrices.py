@@ -20,8 +20,9 @@ def main():
                 os.makedirs(f'{site}/{beam}')
 
             s3.download_file(Bucket=config.get('AWS', 'bucketName'),
-                     Key=f'{site}/{beam}/CoherenceMatrix.csv',
-                     Filename=f'{site}/{beam}/CoherenceMatrix.csv')
+                             Key=f'{site}/{beam}/CoherenceMatrix.csv',
+                             Filename=f'{site}/{beam}/CoherenceMatrix.csv')
+
 
 def get_config_params(args):
     """
