@@ -16,6 +16,7 @@ import dash_html_components as html
 import dash_leaflet as dl
 
 import plotly.express as px
+import plotly.graph_objects as go
 
 import configparser
 import json
@@ -153,6 +154,70 @@ fig = px.imshow(cohImg,
                 )
 fig.update_yaxes(autorange=True)
 
+# Baseline Pair Data
+dfBaseline = pd.read_csv('Data/Meager/5M3/bperp_file_all',
+                         delim_whitespace=True,
+                         header=None,
+                         names=['Reference Date',
+                                'Pair Date',
+                                'bperp',
+                                'btemp',
+                                'bperp2',
+                                'NA'])
+dfBaseline['Reference Date'] = pd.to_datetime(dfBaseline['Reference Date'],
+                                              format="%Y%m%d")
+dfBaseline['Pair Date'] = pd.to_datetime(dfBaseline['Pair Date'],
+                                         format="%Y%m%d")
+bperpScatterfig = go.Scatter(x=dfBaseline['Pair Date'],
+                             y=dfBaseline['bperp'],
+                             mode='markers')
+
+dfBaseLineEdge = dfCohFull[dfCohFull['Average Coherence'].notna()]
+dfBaseLineEdge = dfBaseLineEdge.drop(columns=['Average Coherence'])
+dfBaseLineEdge['Reference Date'] = \
+    pd.to_datetime(dfBaseLineEdge['Reference Date'],
+                   format="%Y-%m-%d")
+
+dfBaseLineEdge['Pair Date'] = \
+    pd.to_datetime(dfBaseLineEdge['Pair Date'],
+                   format="%Y-%m-%d")
+
+dfBaseLineEdge = pd.merge(dfBaseLineEdge,
+                          dfBaseline[['Pair Date', 'bperp']],
+                          right_on='Pair Date',
+                          left_on='Reference Date',
+                          how='left')
+dfBaseLineEdge = dfBaseLineEdge.drop(columns=['Pair Date_y'])
+dfBaseLineEdge = \
+    dfBaseLineEdge.rename(columns={"Pair Date_x": "Pair Date",
+                                   "bperp": "bperp_reference_date"})
+dfBaseLineEdge = pd.merge(dfBaseLineEdge,
+                          dfBaseline[['Pair Date', 'bperp']],
+                          right_on='Pair Date',
+                          left_on='Pair Date',
+                          how='left')
+
+dfBaseLineEdge = dfBaseLineEdge.rename(columns={"bperp": "bperp_pair_date"})
+dfBaseLineEdge = dfBaseLineEdge[dfBaseLineEdge['bperp_reference_date'].notna()]
+
+edge_x = []
+edge_y = []
+
+for idx, edge in dfBaseLineEdge.iterrows():
+    edge_x.append(edge['Reference Date'])
+    edge_x.append(edge['Pair Date'])
+    edge_y.append(edge['bperp_reference_date'])
+    edge_y.append(edge['bperp_pair_date'])
+
+bperpLinefig = go.Scatter(x=edge_x, y=edge_y,
+                          line=dict(width=0.5, color='#888'),
+                          mode='lines')
+
+bperpCombinedFig = go.Figure(data=[bperpLinefig, bperpScatterfig])
+bperpCombinedFig.update_layout(yaxis_title="Perpendicular Baseline (m)")
+bperpCombinedFig.update(layout_showlegend=False)
+
+
 app.layout = html.Div(id='parent', children=[
     html.Div(style={'width': '5%', 'display': 'inline-block'}),
     html.Img(src=app.get_asset_url(
@@ -189,6 +254,14 @@ app.layout = html.Div(id='parent', children=[
                          'margin-top': '0.5%',
                          'zIndex': 2}
                   ),
+        dcc.Graph(id='baseline_plot',
+                  figure=bperpCombinedFig,
+                  style={'position': 'absolute',
+                         'width': '25%',
+                         'height': '45%',
+                         'margin-left': '69.5%',
+                         'margin-top': '27%',
+                         'zIndex': 2}),
         dl.Map([dl.TileLayer(),
                 dl.LayersControl(
                     dl.BaseLayer(
