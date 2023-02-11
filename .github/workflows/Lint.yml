@@ -15,6 +15,5 @@ jobs:
         uses: julianwachholz/flake8-action@v2
         with:
           checkName: "Python Lint"
-          plugins: flake8-spellcheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
