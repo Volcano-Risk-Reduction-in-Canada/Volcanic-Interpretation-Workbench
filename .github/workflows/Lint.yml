@@ -7,13 +7,11 @@ jobs:
     name: Python Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Check out source repository
+        uses: actions/checkout@v3
+      - name: Set up Python environment
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
-      - name: Run flake8
-        uses: julianwachholz/flake8-action@v2
-        with:
-          checkName: "Python Lint"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          python-version: "3.11"
+      - name: flake8 Lint
+        uses: py-actions/flake8@v2
