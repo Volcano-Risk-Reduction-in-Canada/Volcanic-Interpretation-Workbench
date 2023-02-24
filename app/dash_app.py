@@ -9,10 +9,10 @@
 # =================================================================
 
 
-import dash
+from dash import Dash, dcc, html
+from dash.dependencies import Input, Output
+from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-import dash_core_components as dcc
-import dash_html_components as html
 import dash_leaflet as dl
 
 import plotly.express as px
@@ -21,9 +21,6 @@ import configparser
 import json
 import numpy as np
 import pandas as pd
-
-from dash.dependencies import Input, Output
-from dash_bootstrap_templates import load_figure_template
 
 
 def get_config_params(args):
@@ -41,7 +38,7 @@ config = get_config_params("config.ini")
 #  library, adds it to plotly.io and makes it the default figure template.
 load_figure_template("darkly")
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
 workspace = "Meager_5M3"
 stackList = ['Meager_5M2',
