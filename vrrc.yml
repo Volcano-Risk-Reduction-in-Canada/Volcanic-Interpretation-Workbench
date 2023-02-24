@@ -1,0 +1,19 @@
+name: vrrc
+channels:
+- conda-forge
+dependencies:
+- python=3.9
+- pandas
+- scipy
+- matplotlib
+- boto3
+- dash
+- dash-bootstrap-components
+- dash-bootstrap-templates
+- dash-renderer
+- dash-core-components
+- dash-html-components
+- dash-table
+- dash-leaflet
+- plotly
+- seaborn
