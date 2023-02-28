@@ -118,15 +118,17 @@ def _coherence_csv(target_id):
     return f'Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
-# Construct dashboard
-coherence = pd.read_csv(_coherence_csv(INITIAL_TARGET))
-initial_data, initial_ref, initial_pair = extract_data(coherence)
+def _plot_coherence(coherence_df):
+    data, ref_dates, pair_dates = extract_data(coherence_df)
 
-fig = px.imshow(
-    initial_data, x=initial_ref, y=initial_pair,
-    color_continuous_scale='RdBu_r')
-fig.update_yaxes(autorange=True)
+    fig = px.imshow(
+        data, x=ref_dates, y=pair_dates,
+        color_continuous_scale='RdBu_r')
+    fig.update_yaxes(autorange=True)
+    return fig
 
+
+# construct dashboard
 app.layout = html.Div(
     id='parent',
     children=[
@@ -188,7 +190,8 @@ app.layout = html.Div(
                     }),
                 dcc.Graph(
                     id='date-graph',
-                    figure=fig,
+                    figure=_plot_coherence(
+                        pd.read_csv(_coherence_csv(INITIAL_TARGET))),
                     style={
                         'height': '30%',
                     }),
@@ -199,9 +202,7 @@ app.layout = html.Div(
                 'marginLeft': '2%',
             }
         ),
-        # html.Div(),
 
-        # html.Div(style={'width': '5%', 'display': 'inline-block'}),
         # html.Div(
         #     dl.Map([
         #         dl.TileLayer(),
@@ -228,7 +229,7 @@ app.layout = html.Div(
         #         zoom=12,
         #     ),
         #     style={
-        #         'width': '90%',
+        #         'width': '96%',
         #         'height': '550px',
         #         'display': 'inline-block'}
         #     ),
@@ -281,18 +282,11 @@ def update_site(value):
     Input(component_id='site-dropdown', component_property='value'))
 def update_coherence(target_id):
     """Display new coherence matrix."""
-    # FIXME: See https://dash.plotly.com/sharing-data-between-callbacks.
     coherence_csv = _coherence_csv(target_id)
     print(f'Loading: {coherence_csv}')
     coherence = pd.read_csv(coherence_csv)
 
-    new_data, new_ref, new_pair = extract_data(coherence)
-
-    new_fig = px.imshow(
-        new_data, x=new_ref, y=new_pair,
-        color_continuous_scale='RdBu_r')
-    new_fig.update_yaxes(autorange=True)
-    return new_fig
+    return _plot_coherence(coherence)
 
 
 @app.callback(
