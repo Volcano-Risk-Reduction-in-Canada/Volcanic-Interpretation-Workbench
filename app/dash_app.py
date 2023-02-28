@@ -37,12 +37,16 @@ GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 load_figure_template('darkly')
 app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
+TITLE = 'Volcano InSAR Interpretation Workbench'
+LOGO = 'Seal_of_the_Geological_Survey_of_Canada.png'
+
 BASEMAP_URL = (
     'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
     '/tile/{z}/{y}/{x}')
 BASEMAP_ATTRIBUTION = (
     'Tiles courtesy of the '
     '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
+BASEMAP_NAME = 'USGS Topo'
 
 INITIAL_TARGET = 'Meager_5M3'
 TARGET_CENTRES = {
@@ -94,20 +98,28 @@ TARGET_CENTRES = {
     'LavaFork_3M41': [56.42, -130.85],
 }
 
-# Coherence Pair Data
-coherence = pd.read_csv('Data/Meager/5M3/CoherenceMatrix.csv')
-
 
 def extract_data(coherence_df):
     """Extract data for plotting."""
-    ref_dates = coherence_df['Reference Date'].unique()
+    all_dates = coherence_df['Reference Date'].unique()
     pair_dates = coherence_df['Pair Date'].unique()
     data = np.rot90(np.fliplr(coherence_df['Average Coherence'].to_numpy()
-                              .reshape(len(ref_dates), len(pair_dates))))
+                              .reshape(len(all_dates), len(pair_dates))))
 
-    return data, ref_dates, pair_dates
+    return data, all_dates, pair_dates
 
 
+def _valid_dates(coherence_df):
+    return coherence_df['Reference Date'].dropna().unique()
+
+
+def _coherence_csv(target_id):
+    site, beam = target_id.split('_', 1)
+    return f'Data/{site}/{beam}/CoherenceMatrix.csv'
+
+
+# Construct dashboard
+coherence = pd.read_csv(_coherence_csv(INITIAL_TARGET))
 initial_data, initial_ref, initial_pair = extract_data(coherence)
 
 fig = px.imshow(
@@ -115,95 +127,133 @@ fig = px.imshow(
     color_continuous_scale='RdBu_r')
 fig.update_yaxes(autorange=True)
 
-app.layout = html.Div(id='parent', children=[
-    html.Div(style={'width': '5%', 'display': 'inline-block'}),
-    # FIXME: This is not just a project of the GSC ...
-    html.Img(src=app.get_asset_url(
-                'Seal_of_the_Geological_Survey_of_Canada.png'),
-             style={'width': '10%',
-                    'display': 'inline-block'}),
-    html.Div(style={'width': '5%',
-                    'display': 'inline-block'}),
-    html.H1(id='H1',
-            children='Volcano InSAR Interpretation Workbench',
-            style={'textAlign': 'center',
-                   'marginTop': 40,
-                   'marginBottom': 40,
-                   'display': 'inline-block'}),
-    html.Div(style={'height': '10px'}),
-    html.Div(style={'width': '5%',
-                    'display': 'inline-block'}),
-
-    html.Div(
-        dcc.Dropdown(list(TARGET_CENTRES.keys()), INITIAL_TARGET,
-                     id='site-dropdown'),
-        style={'width': '35%',
-               'display': 'inline-block',
-               'color': 'black'}),
-
-    html.Div(style={'width': '5%',
-                    'display': 'inline-block'}),
-
-    html.Div([
-        dcc.Graph(
-            id='graph',
-            figure=fig,
+app.layout = html.Div(
+    id='parent',
+    children=[
+        html.H1(
+            children=TITLE,
             style={
-                'position': 'absolute',
-                'width': '25%',
-                'height': '45%',
-                'margin-left': '69.5%',
-                'margin-top': '0.5%',
-                'zIndex': 2}),
-        dl.Map([
-            dl.TileLayer(),
-            dl.LayersControl(
-                dl.BaseLayer(
-                    dl.TileLayer(
-                        # Basemaps
-                        url=BASEMAP_URL,
-                        attribution=BASEMAP_ATTRIBUTION
+                'textAlign': 'center',
+                'marginTop': 5,
+                'marginBottom': 5,
+            }),
+
+        html.Div(
+            children=[
+                html.Label('Target_Beam:'),
+                dcc.Dropdown(
+                    id='site-dropdown',
+                    options=list(TARGET_CENTRES.keys()),
+                    value=INITIAL_TARGET,
+                    style={'color': 'black'})],
+            style={
+                'width': 200,
+                'marginLeft': '2%',
+                'marginTop': 5,
+                'marginBottom': 5,
+            }),
+
+        html.Div(
+            children=[
+                dl.Map([
+                    dl.TileLayer(),
+                    dl.LayersControl(
+                        dl.BaseLayer(
+                            dl.TileLayer(
+                                url=BASEMAP_URL,
+                                attribution=BASEMAP_ATTRIBUTION
+                            ),
+                            name=BASEMAP_NAME,
+                            checked=True
+                        ),
                     ),
-                    name='USGS Topo',
-                    checked=True
-                ),
-            ),
-            dl.WMSTileLayer(
-                id='map',
-                url=f"{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?",
-                layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
-                format='image/png',
-                transparent=True,
-                opacity=0.75),
-            dl.WMSTileLayer(
-                url=f"{GEOSERVER_ENDPOINT}/vectorLayers/wms?",
-                layers='cite:permanent_snow_and_ice_2',
-                format='image/png',
-                transparent=True,
-                opacity=1.0)],
-            id='leafletMap',
-            center=[50.64, -123.6],
-            zoom=12,
+                    dl.WMSTileLayer(
+                        id='interferogram',
+                        url=f"{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?",
+                        layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
+                        format='image/png',
+                        transparent=True,
+                        opacity=0.75),
+                    dl.WMSTileLayer(
+                        url=f"{GEOSERVER_ENDPOINT}/vectorLayers/wms?",
+                        layers='cite:permanent_snow_and_ice_2',
+                        format='image/png',
+                        transparent=True,
+                        opacity=1.0)],
+                    id='interferogram-bg',
+                    center=TARGET_CENTRES[INITIAL_TARGET],
+                    zoom=12,
+                    style={
+                        'height': '70%',
+                    }),
+                dcc.Graph(
+                    id='date-graph',
+                    figure=fig,
+                    style={
+                        'height': '30%',
+                    }),
+            ],
             style={
-                'position': 'absolute',
-                'width': '90%',
-                'height': '900px',
-                'margin-left': '5%',
-                'zIndex': 1},
-            )],
-        style={
-            'width': '90%',
-            'height': '900px',
-            'left-margin': '5%'}
-    ),
-])
+                'height': '800px',
+                'width': '96%',
+                'marginLeft': '2%',
+            }
+        ),
+        # html.Div(),
+
+        # html.Div(style={'width': '5%', 'display': 'inline-block'}),
+        # html.Div(
+        #     dl.Map([
+        #         dl.TileLayer(),
+        #         dl.LayersControl(
+        #             dl.BaseLayer(
+        #                 dl.TileLayer(
+        #                     url=BASEMAP_URL,
+        #                     attribution=BASEMAP_ATTRIBUTION
+        #                 ),
+        #                 name=BASEMAP_NAME,
+        #                 checked=True
+        #             ),
+        #         ),
+        #         dl.WMSTileLayer(
+        #             id='intensity-map',
+        #             url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
+        #             layers="cite:20210114_HH.rmli.geo.db",
+        #             format="image/png",
+        #             transparent=True,
+        #             opacity=1.0),
+        #         ],
+        #         id='intensity-background',
+        #         center=[50.64, -123.6],
+        #         zoom=12,
+        #     ),
+        #     style={
+        #         'width': '90%',
+        #         'height': '550px',
+        #         'display': 'inline-block'}
+        #     ),
+        # html.Div([
+        #     dcc.Slider(
+        #         min=0,
+        #         max=len(_valid_dates(coherence)),
+        #         step=1,
+        #         marks={
+        #             i: _valid_dates(coherence)[i] for i in range(
+        #                 0, len(_valid_dates(coherence)), 10)},
+        #         value=0,
+        #         id='date-slider'),
+        #     html.Div(id='date-display')
+        # ]),
+        # html.Div(),
+    ]
+)
 
 
 @app.callback(
-    Output(component_id='map', component_property='layers'),
-    Input(component_id='graph', component_property='clickData'))
+    Output(component_id='interferogram', component_property='layers'),
+    Input(component_id='date-graph', component_property='clickData'))
 def update_interferogram(click_data):
-    """Update interferogram selection displayed on leaflet map."""
+    """Update interferogram display."""
     if not click_data:
         return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
     x_date = json.dumps(click_data['points'][0]['x'], indent=2)
@@ -211,26 +261,30 @@ def update_interferogram(click_data):
 
     dates = f'{x_date}_HH_{y_date}_HH'
     dates = dates.replace('-', '').replace('"', '')
-    print(dates)
-    return f'cite:{dates}.adf.wrp.geo'
+    layers = f'cite:{dates}.adf.wrp.geo'
+    print(f'Updating interferogram: {layers}')
+    return layers
 
 
 @app.callback(
-    Output(component_id='map', component_property='url'),
+    Output(component_id='interferogram', component_property='url'),
     Input(component_id='site-dropdown', component_property='value'))
 def update_site(value):
     """Switch between sites."""
-    return f"{GEOSERVER_ENDPOINT}/{value}/wms?"
+    url = f"{GEOSERVER_ENDPOINT}/{value}/wms?"
+    print(f'New site url: {url}')
+    return url
 
 
 @app.callback(
-    Output(component_id='graph', component_property='figure'),
+    Output(component_id='date-graph', component_property='figure'),
     Input(component_id='site-dropdown', component_property='value'))
-def update_coherence(value):
+def update_coherence(target_id):
     """Display new coherence matrix."""
-    site, beam = value.split('_', 1)
     # FIXME: See https://dash.plotly.com/sharing-data-between-callbacks.
-    coherence = pd.read_csv(f'Data/{site}/{beam}/CoherenceMatrix.csv')
+    coherence_csv = _coherence_csv(target_id)
+    print(f'Loading: {coherence_csv}')
+    coherence = pd.read_csv(coherence_csv)
 
     new_data, new_ref, new_pair = extract_data(coherence)
 
@@ -242,35 +296,39 @@ def update_coherence(value):
 
 
 @app.callback(
-    Output(component_id='leafletMap', component_property='center'),
+    Output(component_id='interferogram-bg', component_property='center'),
     Input(component_id='site-dropdown', component_property='value'))
-def recenter_map(value):
+def recenter_map(target_id):
     """Center map on new site."""
-    coords = TARGET_CENTRES[value]
-    print(coords)
+    coords = TARGET_CENTRES[target_id]
+    print(f'Recentering: {coords}')
     return coords
 
 
-@app.callback(
-    Output('slider-output-container', 'children'),
-    Input('my-slider', 'value'))
-def update_output(value):
-    "Update backscatter date text."
-    selected_date = coherence.dropna()['Reference Date'].unique()[value]
-    return f'Date: "{selected_date}"'
+# @app.callback(
+#     Output('date-display', 'children'),
+#     Input('date-slider', 'value'))
+# def update_output(value):
+#     "Update backscatter date text."
+#     date = _valid_dates(coherence)[value]
+#     title = f'Date: "{date}"'
+#     print(f'Slider title: {title}')
+#     return title
 
 
-@app.callback(
-    Output('rmlimap', 'layers'),
-    Input('my-slider', 'value'))
-def update_image(value):
-    "Update backscatter image on map"
-    date = coherence.dropna()['Reference Date'].unique()[value]
-    date = date.replace('-', '')
-    result = f'cite:{date}_HH.rmli.geo.db'
-    print(result)
-    return result
+# @app.callback(
+#     Output('intensity-map', 'layers'),
+#     Input('date-slider', 'value'))
+# def update_intensity(value):
+#     "Update backscatter image on map"
+#     date = _valid_dates(coherence)[value]
+#     date = date.replace('-', '')
+#     layers = f'cite:{date}_HH.rmli.geo.db'
+#     print(f'Updating backscatter: {layers}')
+#     return layers
 
 
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', port=8050, debug=False)
+    # TODO login and set up - or at least test - port forwarding
+    # See https://stackoverflow.com/questions/66222667/how-to-use-session-manager-plugin-command/70311671#70311671
+    app.run_server(host='0.0.0.0', port=8050, debug=True)
