@@ -25,9 +25,9 @@ conda env create --file vrrc.yml
 (If the correct version of python is already available on your system,
 this could instead be done using a virtualenv.)
 
-Periodically, the AWS environment variables for "Command line or programmatic access" must be updated, from https://nrcan-rncan.awsapps.com/start#/.
+Upon first run, and periodically thereafter, the AWS environment variables for "Command line or programmatic access" must be updated, from https://nrcan-rncan.awsapps.com/start#/.
 
-For each session with the workbench, the user must login to AWS using:
+For each session with the workbench, the user must complete the two-factor authentication to login to AWS using:
 ```bash
 aws sso login
 ```
