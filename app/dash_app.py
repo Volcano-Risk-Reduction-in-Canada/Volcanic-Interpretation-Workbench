@@ -10,7 +10,6 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
-import json
 import configparser
 
 import numpy as np
@@ -21,7 +20,9 @@ from dash.dependencies import Input, Output
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
-import plotly.express as px
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 def get_config_params(args):
@@ -31,15 +32,17 @@ def get_config_params(args):
     return config_obj
 
 
-config = get_config_params("config.ini")
+config = get_config_params('config.ini')
 GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 
-load_figure_template('darkly')
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+# TODO add support for some or all of the following parameters to config
 
+# dashboard configuration
+TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
-LOGO = 'Seal_of_the_Geological_Survey_of_Canada.png'
+INITIAL_TARGET = 'Meager_5M3'
 
+# basemap configuration
 BASEMAP_URL = (
     'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
     '/tile/{z}/{y}/{x}')
@@ -48,7 +51,12 @@ BASEMAP_ATTRIBUTION = (
     '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
 BASEMAP_NAME = 'USGS Topo'
 
-INITIAL_TARGET = 'Meager_5M3'
+# coherence plotting configuration
+GROUP_GAP_DAYS = 60
+CMAP_NAME = 'RdYlBu_r'
+COH_LIMS = (0.25, 0.65)
+
+# TODO read target configuration from database
 TARGET_CENTRES = {
     'Meager_5M2': [50.64, -123.60],
     'Meager_5M3': [50.64, -123.60],
@@ -98,19 +106,26 @@ TARGET_CENTRES = {
     'LavaFork_3M41': [56.42, -130.85],
 }
 
-
-def extract_data(coherence_df):
-    """Extract data for plotting."""
-    all_dates = coherence_df['Reference Date'].unique()
-    pair_dates = coherence_df['Pair Date'].unique()
-    data = np.rot90(np.fliplr(coherence_df['Average Coherence'].to_numpy()
-                              .reshape(len(all_dates), len(pair_dates))))
-
-    return data, all_dates, pair_dates
+# could this be handled instead with a style sheet?
+LR_MARGIN_PX = 10
+TB_MARGIN_PX = 5
 
 
-def _valid_dates(coherence_df):
-    return coherence_df['Reference Date'].dropna().unique()
+def _read_coherence(coherence_csv):
+    coh = pd.read_csv(
+        coherence_csv,
+        parse_dates=['Reference Date', 'Pair Date'])
+    coh.columns = ['first_date', 'second_date', 'coherence']
+    wrong_order = (coh.second_date < coh.first_date) & coh.coherence.notnull()
+    if wrong_order.any():
+        raise RuntimeError(
+            'Some intereferogram dates not ordered as expected:\n' +
+            coh[wrong_order].to_string())
+    return coh
+
+
+def _valid_dates(coh):
+    return coh.first_date.dropna().unique()
 
 
 def _coherence_csv(target_id):
@@ -118,17 +133,65 @@ def _coherence_csv(target_id):
     return f'Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
-def _plot_coherence(coherence_df):
-    data, ref_dates, pair_dates = extract_data(coherence_df)
+def _plot_coherence(coh_long):
+    coh_long['delta_days'] = (coh_long.second_date -
+                              coh_long.first_date).dt.days
+    coh_wide = coh_long.pivot(
+        index='delta_days',
+        columns='second_date',
+        values='coherence')
 
-    fig = px.imshow(
-        data, x=ref_dates, y=pair_dates,
-        color_continuous_scale='RdBu_r')
-    fig.update_yaxes(autorange=True)
+    coh_wide = coh_wide.loc[~(coh_wide.shift().isnull() &
+                              coh_wide.isnull()).all(axis=1)]
+    groups = (coh_wide.index.to_series().diff() > GROUP_GAP_DAYS).cumsum()
+    coh_wide.loc[0, :] = np.NaN
+    coh_wide.sort_index(inplace=True)
+
+    heights = [count/groups.value_counts().sum()
+               for count in reversed(groups.value_counts())]
+    fig = make_subplots(
+        rows=groups.nunique(), cols=1, shared_xaxes=True,
+        vertical_spacing=0.05, row_heights=heights,
+        x_title='Second',
+        y_title='Delta [days]')
+
+    for group, subset in coh_wide.groupby(groups):
+        row = int(groups.nunique() - group)
+        fig.add_trace(
+            go.Heatmap(
+                z=subset,
+                x=subset.columns,
+                y=subset.index,
+                coloraxis='coloraxis',
+                y0=0,
+                dy=24,
+            ),
+            row, 1)
+
+    fig.update_layout(
+        margin={
+            'l': LR_MARGIN_PX + 30,
+            'r': LR_MARGIN_PX,
+            't': TB_MARGIN_PX,
+            'b': TB_MARGIN_PX},
+        coloraxis={
+            'colorscale': CMAP_NAME,
+            'cmin': COH_LIMS[0],
+            'cmax': COH_LIMS[1],
+            'colorbar': {
+                'title': 'Coherence',
+                'dtick': 0.1,
+                'ticks': 'outside',
+                'tickcolor': 'white',
+            },
+        },
+        showlegend=False)
     return fig
 
 
 # construct dashboard
+load_figure_template('darkly')
+app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 app.layout = html.Div(
     id='parent',
     children=[
@@ -136,8 +199,8 @@ app.layout = html.Div(
             children=TITLE,
             style={
                 'textAlign': 'center',
-                'marginTop': 5,
-                'marginBottom': 5,
+                'marginTop': TB_MARGIN_PX,
+                'marginBottom': TB_MARGIN_PX,
             }),
 
         html.Div(
@@ -150,9 +213,9 @@ app.layout = html.Div(
                     style={'color': 'black'})],
             style={
                 'width': 200,
-                'marginLeft': '2%',
-                'marginTop': 5,
-                'marginBottom': 5,
+                'marginLeft': LR_MARGIN_PX,
+                'marginTop': TB_MARGIN_PX,
+                'marginBottom': TB_MARGIN_PX,
             }),
 
         html.Div(
@@ -186,20 +249,20 @@ app.layout = html.Div(
                     center=TARGET_CENTRES[INITIAL_TARGET],
                     zoom=12,
                     style={
-                        'height': '70%',
+                        'height': '60%',
                     }),
                 dcc.Graph(
-                    id='date-graph',
+                    id='coherence-matrix',
                     figure=_plot_coherence(
-                        pd.read_csv(_coherence_csv(INITIAL_TARGET))),
+                        _read_coherence(_coherence_csv(INITIAL_TARGET))),
                     style={
-                        'height': '30%',
+                        'height': '40%',
                     }),
             ],
             style={
-                'height': '800px',
-                'width': '96%',
-                'marginLeft': '2%',
+                'height': 800,
+                'marginLeft': LR_MARGIN_PX,
+                'marginRight': LR_MARGIN_PX,
             }
         ),
 
@@ -252,19 +315,20 @@ app.layout = html.Div(
 
 @app.callback(
     Output(component_id='interferogram', component_property='layers'),
-    Input(component_id='date-graph', component_property='clickData'))
+    Input(component_id='coherence-matrix', component_property='clickData'))
 def update_interferogram(click_data):
     """Update interferogram display."""
     if not click_data:
         return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
-    x_date = json.dumps(click_data['points'][0]['x'], indent=2)
-    y_date = json.dumps(click_data['points'][0]['y'], indent=2)
+    second = pd.to_datetime(click_data['points'][0]['x'])
+    delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
+    first = second - delta
 
-    dates = f'{x_date}_HH_{y_date}_HH'
-    dates = dates.replace('-', '').replace('"', '')
-    layers = f'cite:{dates}.adf.wrp.geo'
-    print(f'Updating interferogram: {layers}')
-    return layers
+    first_str = first.strftime('%Y%m%d')
+    second_str = second.strftime('%Y%m%d')
+    layer = f'cite:{first_str}_HH_{second_str}_HH.adf.wrp.geo'
+    print(f'Updating interferogram: {layer}')
+    return layer
 
 
 @app.callback(
@@ -278,13 +342,13 @@ def update_site(value):
 
 
 @app.callback(
-    Output(component_id='date-graph', component_property='figure'),
+    Output(component_id='coherence-matrix', component_property='figure'),
     Input(component_id='site-dropdown', component_property='value'))
 def update_coherence(target_id):
     """Display new coherence matrix."""
     coherence_csv = _coherence_csv(target_id)
     print(f'Loading: {coherence_csv}')
-    coherence = pd.read_csv(coherence_csv)
+    coherence = _read_coherence(coherence_csv)
 
     return _plot_coherence(coherence)
 
@@ -324,5 +388,5 @@ def recenter_map(target_id):
 
 if __name__ == '__main__':
     # TODO login and set up - or at least test - port forwarding
-    # See https://stackoverflow.com/questions/66222667/how-to-use-session-manager-plugin-command/70311671#70311671
+    # See https://shorturl.at/lnSY1
     app.run_server(host='0.0.0.0', port=8050, debug=True)
