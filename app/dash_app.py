@@ -15,13 +15,14 @@ import configparser
 import numpy as np
 import pandas as pd
 
-from dash import Dash, dcc, html
+from dash import Dash, html
+from dash.dcc import Graph, Dropdown
 from dash.dependencies import Input, Output
 from dash_bootstrap_templates import load_figure_template
-import dash_bootstrap_components as dbc
-import dash_leaflet as dl
+from dash_bootstrap_components import themes
+from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
 
-import plotly.graph_objects as go
+from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 
 
@@ -141,6 +142,9 @@ def _plot_coherence(coh_long):
         columns='second_date',
         values='coherence')
 
+    # because hovertemplate 'f' format doesn't handle NaN properly
+    coh_wide = coh_wide.round(2)
+
     coh_wide = coh_wide.loc[~(coh_wide.shift().isnull() &
                               coh_wide.isnull()).all(axis=1)]
     groups = (coh_wide.index.to_series().diff() > GROUP_GAP_DAYS).cumsum()
@@ -152,25 +156,26 @@ def _plot_coherence(coh_long):
     fig = make_subplots(
         rows=groups.nunique(), cols=1, shared_xaxes=True,
         vertical_spacing=0.05, row_heights=heights,
-        x_title='Second',
         y_title='Delta [days]')
 
     for group, subset in coh_wide.groupby(groups):
         row = int(groups.nunique() - group)
         fig.add_trace(
-            go.Heatmap(
-                z=subset,
+            Heatmap(
+                z=subset.values,
                 x=subset.columns,
                 y=subset.index,
+                hovertemplate=(
+                    'Second: %{x}<br>'
+                    'First: -%{y} days<br>'
+                    'Coherence: %{z}'),
                 coloraxis='coloraxis',
-                y0=0,
-                dy=24,
             ),
             row, 1)
 
     fig.update_layout(
         margin={
-            'l': LR_MARGIN_PX + 30,
+            'l': LR_MARGIN_PX + 60,
             'r': LR_MARGIN_PX,
             't': TB_MARGIN_PX,
             'b': TB_MARGIN_PX},
@@ -191,7 +196,7 @@ def _plot_coherence(coh_long):
 
 # construct dashboard
 load_figure_template('darkly')
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = Dash(__name__, external_stylesheets=[themes.DARKLY])
 app.layout = html.Div(
     id='parent',
     children=[
@@ -206,7 +211,7 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.Label('Target_Beam:'),
-                dcc.Dropdown(
+                Dropdown(
                     id='site-dropdown',
                     options=list(TARGET_CENTRES.keys()),
                     value=INITIAL_TARGET,
@@ -220,11 +225,11 @@ app.layout = html.Div(
 
         html.Div(
             children=[
-                dl.Map([
-                    dl.TileLayer(),
-                    dl.LayersControl(
-                        dl.BaseLayer(
-                            dl.TileLayer(
+                Map([
+                    TileLayer(),
+                    LayersControl(
+                        BaseLayer(
+                            TileLayer(
                                 url=BASEMAP_URL,
                                 attribution=BASEMAP_ATTRIBUTION
                             ),
@@ -232,15 +237,15 @@ app.layout = html.Div(
                             checked=True
                         ),
                     ),
-                    dl.WMSTileLayer(
+                    WMSTileLayer(
                         id='interferogram',
-                        url=f"{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?",
+                        url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
                         layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
                         format='image/png',
                         transparent=True,
                         opacity=0.75),
-                    dl.WMSTileLayer(
-                        url=f"{GEOSERVER_ENDPOINT}/vectorLayers/wms?",
+                    WMSTileLayer(
+                        url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
                         layers='cite:permanent_snow_and_ice_2',
                         format='image/png',
                         transparent=True,
@@ -251,7 +256,7 @@ app.layout = html.Div(
                     style={
                         'height': '60%',
                     }),
-                dcc.Graph(
+                Graph(
                     id='coherence-matrix',
                     figure=_plot_coherence(
                         _read_coherence(_coherence_csv(INITIAL_TARGET))),
@@ -267,11 +272,11 @@ app.layout = html.Div(
         ),
 
         # html.Div(
-        #     dl.Map([
-        #         dl.TileLayer(),
-        #         dl.LayersControl(
-        #             dl.BaseLayer(
-        #                 dl.TileLayer(
+        #     Map([
+        #         TileLayer(),
+        #         LayersControl(
+        #             BaseLayer(
+        #                 TileLayer(
         #                     url=BASEMAP_URL,
         #                     attribution=BASEMAP_ATTRIBUTION
         #                 ),
@@ -279,11 +284,11 @@ app.layout = html.Div(
         #                 checked=True
         #             ),
         #         ),
-        #         dl.WMSTileLayer(
+        #         WMSTileLayer(
         #             id='intensity-map',
         #             url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
-        #             layers="cite:20210114_HH.rmli.geo.db",
-        #             format="image/png",
+        #             layers='cite:20210114_HH.rmli.geo.db',
+        #             format='image/png',
         #             transparent=True,
         #             opacity=1.0),
         #         ],
@@ -297,7 +302,7 @@ app.layout = html.Div(
         #         'display': 'inline-block'}
         #     ),
         # html.Div([
-        #     dcc.Slider(
+        #     Slider(
         #         min=0,
         #         max=len(_valid_dates(coherence)),
         #         step=1,
@@ -336,7 +341,7 @@ def update_interferogram(click_data):
     Input(component_id='site-dropdown', component_property='value'))
 def update_site(value):
     """Switch between sites."""
-    url = f"{GEOSERVER_ENDPOINT}/{value}/wms?"
+    url = f'{GEOSERVER_ENDPOINT}/{value}/wms?'
     print(f'New site url: {url}')
     return url
 
@@ -367,7 +372,7 @@ def recenter_map(target_id):
 #     Output('date-display', 'children'),
 #     Input('date-slider', 'value'))
 # def update_output(value):
-#     "Update backscatter date text."
+#     """Update backscatter date text."""
 #     date = _valid_dates(coherence)[value]
 #     title = f'Date: "{date}"'
 #     print(f'Slider title: {title}')
@@ -378,7 +383,7 @@ def recenter_map(target_id):
 #     Output('intensity-map', 'layers'),
 #     Input('date-slider', 'value'))
 # def update_intensity(value):
-#     "Update backscatter image on map"
+#     """Update backscatter image on map"""
 #     date = _valid_dates(coherence)[value]
 #     date = date.replace('-', '')
 #     layers = f'cite:{date}_HH.rmli.geo.db'
