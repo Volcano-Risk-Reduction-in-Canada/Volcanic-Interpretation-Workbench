@@ -156,7 +156,7 @@ def _plot_coherence(coh_long):
     fig = make_subplots(
         rows=groups.nunique(), cols=1, shared_xaxes=True,
         vertical_spacing=0.05, row_heights=heights,
-        y_title='Delta [days]')
+        y_title='Temporal baseline [days]')
 
     for group, subset in coh_wide.groupby(groups):
         row = int(groups.nunique() - group)
