@@ -54,8 +54,8 @@ BASEMAP_NAME = 'USGS Topo'
 
 # coherence plotting configuration
 GROUP_GAP_DAYS = 60
-CMAP_NAME = 'RdYlBu_r'
-COH_LIMS = (0.25, 0.65)
+CMAP_NAME = 'plasma'
+COH_LIMS = (0.2, 0.5)
 
 # TODO read target configuration from database
 TARGET_CENTRES = {
@@ -199,14 +199,8 @@ load_figure_template('darkly')
 app = Dash(__name__, external_stylesheets=[themes.DARKLY])
 app.layout = html.Div(
     id='parent',
+
     children=[
-        html.H1(
-            children=TITLE,
-            style={
-                'textAlign': 'center',
-                'marginTop': TB_MARGIN_PX,
-                'marginBottom': TB_MARGIN_PX,
-            }),
 
         html.Div(
             children=[
@@ -215,13 +209,18 @@ app.layout = html.Div(
                     id='site-dropdown',
                     options=list(TARGET_CENTRES.keys()),
                     value=INITIAL_TARGET,
-                    style={'color': 'black'})],
+                    style={
+                        'color': 'black',
+                        'width': 200
+                    })],
             style={
-                'width': 200,
                 'marginLeft': LR_MARGIN_PX,
+                'marginRight': LR_MARGIN_PX,
                 'marginTop': TB_MARGIN_PX,
                 'marginBottom': TB_MARGIN_PX,
-            }),
+            },
+            title=TITLE,
+            ),
 
         html.Div(
             children=[
