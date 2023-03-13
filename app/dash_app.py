@@ -165,6 +165,8 @@ def _plot_coherence(coh_long):
                 z=subset.values,
                 x=subset.columns,
                 y=subset.index,
+                xgap=2,
+                ygap=2,
                 hovertemplate=(
                     'Second: %{x}<br>'
                     'First: -%{y} days<br>'
@@ -188,9 +190,18 @@ def _plot_coherence(coh_long):
                 'dtick': 0.1,
                 'ticks': 'outside',
                 'tickcolor': 'white',
-            },
-        },
+            }},
         showlegend=False)
+
+    for group in groups.unique():
+        suffix = '' if group == 0 else str(group + 1)
+        fig.update_layout(**{
+            f'yaxis{suffix}': {
+                'tick0': 0,
+                'dtick': 24},
+            # f'yaxis{suffix}_scaleanchor': 'x',
+        })
+
     return fig
 
 
