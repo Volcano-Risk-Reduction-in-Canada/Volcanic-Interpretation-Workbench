@@ -53,7 +53,10 @@ BASEMAP_ATTRIBUTION = (
 BASEMAP_NAME = 'USGS Topo'
 
 # coherence plotting configuration
-GROUP_GAP_DAYS = 60
+YEAR_AXES_COUNT = 2
+BASELINE_MAX = 90
+BASELINE_DTICK = 24
+YEARS_MAX = 5
 CMAP_NAME = 'plasma'
 COH_LIMS = (0.2, 0.5)
 
@@ -72,7 +75,6 @@ TARGET_CENTRES = {
     'Garibaldi_3M30': [49.90, -122.99],
     'Garibaldi_3M34': [49.90, -122.99],
     'Garibaldi_3M42': [49.90, -122.99],
-    'Cayley': [50.12, -123.29],
     'Cayley_3M1': [50.12, -123.29],
     'Cayley_3M6': [50.12, -123.29],
     'Cayley_3M13': [50.12, -123.29],
@@ -142,42 +144,53 @@ def _plot_coherence(coh_long):
         columns='second_date',
         values='coherence')
 
-    # because hovertemplate 'f' format doesn't handle NaN properly
-    coh_wide = coh_wide.round(2)
-
-    coh_wide = coh_wide.loc[~(coh_wide.shift().isnull() &
-                              coh_wide.isnull()).all(axis=1)]
-    groups = (coh_wide.index.to_series().diff() > GROUP_GAP_DAYS).cumsum()
+    # include zero baseline even though it will never be valid
     coh_wide.loc[0, :] = np.NaN
     coh_wide.sort_index(inplace=True)
 
-    heights = [count/groups.value_counts().sum()
-               for count in reversed(groups.value_counts())]
+    # because hovertemplate 'f' format doesn't handle NaN properly
+    coh_wide = coh_wide.round(2)
+
+    # trim empty edges
+    coh_wide = coh_wide.loc[
+        (coh_wide.index >= 0) &
+        (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index()),
+        (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index()) &
+        (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())]
+
     fig = make_subplots(
-        rows=groups.nunique(), cols=1, shared_xaxes=True,
-        vertical_spacing=0.05, row_heights=heights,
+        rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
+        start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
 
-    for group, subset in coh_wide.groupby(groups):
-        row = int(groups.nunique() - group)
+    for year in range(YEAR_AXES_COUNT):
         fig.add_trace(
-            Heatmap(
-                z=subset.values,
-                x=subset.columns,
-                y=subset.index,
-                xgap=2,
-                ygap=2,
+            trace=Heatmap(
+                z=coh_wide.values,
+                x=coh_wide.columns,
+                y=coh_wide.index,
+                xgap=1,
+                ygap=1,
                 hovertemplate=(
                     'Second: %{x}<br>'
                     'First: -%{y} days<br>'
                     'Coherence: %{z}'),
-                coloraxis='coloraxis',
-            ),
-            row, 1)
+                coloraxis='coloraxis'),
+            row=year + 1, col=1)
+        if year == 0:
+            baseline_limits = [0, BASELINE_MAX]
+        else:
+            baseline_limits = list(int(year*365.25) +
+                                   BASELINE_MAX/2*np.array([-1, 1]))
+        fig.update_yaxes(
+            range=baseline_limits,
+            dtick=BASELINE_DTICK,
+            scaleanchor='x',
+            row=year + 1, col=1)
 
     fig.update_layout(
         margin={
-            'l': LR_MARGIN_PX + 60,
+            'l': LR_MARGIN_PX + 50,
             'r': LR_MARGIN_PX,
             't': TB_MARGIN_PX,
             'b': TB_MARGIN_PX},
@@ -190,17 +203,9 @@ def _plot_coherence(coh_long):
                 'dtick': 0.1,
                 'ticks': 'outside',
                 'tickcolor': 'white',
+                'thickness': 20,
             }},
         showlegend=False)
-
-    for group in groups.unique():
-        suffix = '' if group == 0 else str(group + 1)
-        fig.update_layout(**{
-            f'yaxis{suffix}': {
-                'tick0': 0,
-                'dtick': 24},
-            # f'yaxis{suffix}_scaleanchor': 'x',
-        })
 
     return fig
 
