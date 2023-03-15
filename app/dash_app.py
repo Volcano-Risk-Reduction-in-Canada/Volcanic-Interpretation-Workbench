@@ -16,10 +16,10 @@ import numpy as np
 import pandas as pd
 
 from dash import Dash, html
-from dash.dcc import Graph, Dropdown
+from dash.dcc import Graph
 from dash.dependencies import Input, Output
 from dash_bootstrap_templates import load_figure_template
-from dash_bootstrap_components import themes
+import dash_bootstrap_components as dbc
 from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
 
 from plotly.graph_objects import Heatmap
@@ -59,6 +59,8 @@ BASELINE_DTICK = 24
 YEARS_MAX = 5
 CMAP_NAME = 'plasma'
 COH_LIMS = (0.2, 0.5)
+TEMPORAL_HEIGHT = 300
+MAX_YEARS = 3
 
 # TODO read target configuration from database
 TARGET_CENTRES = {
@@ -109,10 +111,6 @@ TARGET_CENTRES = {
     'LavaFork_3M41': [56.42, -130.85],
 }
 
-# could this be handled instead with a style sheet?
-LR_MARGIN_PX = 10
-TB_MARGIN_PX = 5
-
 
 def _read_coherence(coherence_csv):
     coh = pd.read_csv(
@@ -136,9 +134,8 @@ def _coherence_csv(target_id):
     return f'Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
-def _plot_coherence(coh_long):
-    coh_long['delta_days'] = (coh_long.second_date -
-                              coh_long.first_date).dt.days
+def pivot_and_clean(coh_long):
+    """Convert long-form coherence to wide-form and clean it up."""
     coh_wide = coh_long.pivot(
         index='delta_days',
         columns='second_date',
@@ -157,6 +154,15 @@ def _plot_coherence(coh_long):
         (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index()),
         (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index()) &
         (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())]
+
+    return coh_wide
+
+
+def plot_coherence(coh_long):
+    """Plot coherence for different baselines as a function of time."""
+    coh_long['delta_days'] = (coh_long.second_date -
+                              coh_long.first_date).dt.days
+    coh_wide = pivot_and_clean(coh_long)
 
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
@@ -189,11 +195,7 @@ def _plot_coherence(coh_long):
             row=year + 1, col=1)
 
     fig.update_layout(
-        margin={
-            'l': LR_MARGIN_PX + 50,
-            'r': LR_MARGIN_PX,
-            't': TB_MARGIN_PX,
-            'b': TB_MARGIN_PX},
+        margin={'l': 65, 'r': 0, 't': 5, 'b': 5},
         coloraxis={
             'colorscale': CMAP_NAME,
             'cmin': COH_LIMS[0],
@@ -212,124 +214,77 @@ def _plot_coherence(coh_long):
 
 # construct dashboard
 load_figure_template('darkly')
-app = Dash(__name__, external_stylesheets=[themes.DARKLY])
-app.layout = html.Div(
-    id='parent',
+app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
-    children=[
-
-        html.Div(
-            children=[
-                html.Label('Target_Beam:'),
-                Dropdown(
-                    id='site-dropdown',
-                    options=list(TARGET_CENTRES.keys()),
-                    value=INITIAL_TARGET,
-                    style={
-                        'color': 'black',
-                        'width': 200
-                    })],
-            style={
-                'marginLeft': LR_MARGIN_PX,
-                'marginRight': LR_MARGIN_PX,
-                'marginTop': TB_MARGIN_PX,
-                'marginBottom': TB_MARGIN_PX,
-            },
-            title=TITLE,
+selector = html.Div(
+    title=TITLE,
+    children=dbc.InputGroup(
+        [
+            dbc.InputGroupText('Target_Beam'),
+            dbc.Select(
+                id='site-dropdown',
+                options=list(TARGET_CENTRES.keys()),
+                value=INITIAL_TARGET,
             ),
+        ]
+    ),
+)
 
-        html.Div(
-            children=[
-                Map([
-                    TileLayer(),
-                    LayersControl(
-                        BaseLayer(
-                            TileLayer(
-                                url=BASEMAP_URL,
-                                attribution=BASEMAP_ATTRIBUTION
-                            ),
-                            name=BASEMAP_NAME,
-                            checked=True
-                        ),
+spatial_view = html.Div(
+    Map(
+        [
+            TileLayer(),
+            LayersControl(
+                BaseLayer(
+                    TileLayer(
+                        url=BASEMAP_URL,
+                        attribution=BASEMAP_ATTRIBUTION
                     ),
-                    WMSTileLayer(
-                        id='interferogram',
-                        url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
-                        layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
-                        format='image/png',
-                        transparent=True,
-                        opacity=0.75),
-                    WMSTileLayer(
-                        url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
-                        layers='cite:permanent_snow_and_ice_2',
-                        format='image/png',
-                        transparent=True,
-                        opacity=1.0)],
-                    id='interferogram-bg',
-                    center=TARGET_CENTRES[INITIAL_TARGET],
-                    zoom=12,
-                    style={
-                        'height': '60%',
-                    }),
-                Graph(
-                    id='coherence-matrix',
-                    figure=_plot_coherence(
-                        _read_coherence(_coherence_csv(INITIAL_TARGET))),
-                    style={
-                        'height': '40%',
-                    }),
-            ],
-            style={
-                'height': 800,
-                'marginLeft': LR_MARGIN_PX,
-                'marginRight': LR_MARGIN_PX,
-            }
-        ),
+                    name=BASEMAP_NAME,
+                    checked=True
+                ),
+            ),
+            WMSTileLayer(
+                id='interferogram',
+                url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
+                layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
+                format='image/png',
+                transparent=True,
+                opacity=0.75),
+            WMSTileLayer(
+                url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
+                layers='cite:permanent_snow_and_ice_2',
+                format='image/png',
+                transparent=True,
+                opacity=1.0)
+        ],
+        id='interferogram-bg',
+        center=TARGET_CENTRES[INITIAL_TARGET],
+        zoom=12,
+    ),
+    style={'height': '100%'},
+)
 
-        # html.Div(
-        #     Map([
-        #         TileLayer(),
-        #         LayersControl(
-        #             BaseLayer(
-        #                 TileLayer(
-        #                     url=BASEMAP_URL,
-        #                     attribution=BASEMAP_ATTRIBUTION
-        #                 ),
-        #                 name=BASEMAP_NAME,
-        #                 checked=True
-        #             ),
-        #         ),
-        #         WMSTileLayer(
-        #             id='intensity-map',
-        #             url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
-        #             layers='cite:20210114_HH.rmli.geo.db',
-        #             format='image/png',
-        #             transparent=True,
-        #             opacity=1.0),
-        #         ],
-        #         id='intensity-background',
-        #         center=[50.64, -123.6],
-        #         zoom=12,
-        #     ),
-        #     style={
-        #         'width': '96%',
-        #         'height': '550px',
-        #         'display': 'inline-block'}
-        #     ),
-        # html.Div([
-        #     Slider(
-        #         min=0,
-        #         max=len(_valid_dates(coherence)),
-        #         step=1,
-        #         marks={
-        #             i: _valid_dates(coherence)[i] for i in range(
-        #                 0, len(_valid_dates(coherence)), 10)},
-        #         value=0,
-        #         id='date-slider'),
-        #     html.Div(id='date-display')
-        # ]),
-        # html.Div(),
-    ]
+temporal_view = Graph(
+    id='coherence-matrix',
+    figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
+    style={'height': TEMPORAL_HEIGHT},
+)
+
+app.layout = dbc.Container(
+    [
+        dbc.Row(dbc.Col(selector, width='auto')),
+        dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
+        dbc.Row(dbc.Col(temporal_view)),
+    ],
+    fluid=True,
+    style={
+        'height': '100vh',
+        'display': 'flex',
+        'flexDirection': 'column',
+        'topMargin': 5,
+        'bottomMargin': 5,
+    }
 )
 
 
@@ -370,7 +325,7 @@ def update_coherence(target_id):
     print(f'Loading: {coherence_csv}')
     coherence = _read_coherence(coherence_csv)
 
-    return _plot_coherence(coherence)
+    return plot_coherence(coherence)
 
 
 @app.callback(
@@ -409,4 +364,4 @@ def recenter_map(target_id):
 if __name__ == '__main__':
     # TODO login and set up - or at least test - port forwarding
     # See https://shorturl.at/lnSY1
-    app.run_server(host='0.0.0.0', port=8050, debug=True)
+    app.run_server(host='0.0.0.0', port=8050, debug=False)
