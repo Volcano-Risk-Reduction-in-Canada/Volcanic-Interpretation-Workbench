@@ -61,6 +61,7 @@ CMAP_NAME = 'plasma'
 COH_LIMS = (0.2, 0.5)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
+DAYS_PER_YEAR = 365.25
 
 # TODO read target configuration from database
 TARGET_CENTRES = {
@@ -186,12 +187,21 @@ def plot_coherence(coh_long):
         if year == 0:
             baseline_limits = [0, BASELINE_MAX]
         else:
-            baseline_limits = list(int(year*365.25) +
+            baseline_limits = list(int(year*DAYS_PER_YEAR) +
                                    BASELINE_MAX/2*np.array([-1, 1]))
+        second_date_limits = [
+            max(coh_wide.columns.min(),
+                coh_wide.columns.max() -
+                pd.to_timedelta(DAYS_PER_YEAR*MAX_YEARS, 'days')) -
+            pd.to_timedelta(4, 'days'),
+            coh_wide.columns.max() + pd.to_timedelta(4, 'days')]
         fig.update_yaxes(
             range=baseline_limits,
             dtick=BASELINE_DTICK,
             scaleanchor='x',
+            row=year + 1, col=1)
+        fig.update_xaxes(
+            range=second_date_limits,
             row=year + 1, col=1)
 
     fig.update_layout(
@@ -336,29 +346,6 @@ def recenter_map(target_id):
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
     return coords
-
-
-# @app.callback(
-#     Output('date-display', 'children'),
-#     Input('date-slider', 'value'))
-# def update_output(value):
-#     """Update backscatter date text."""
-#     date = _valid_dates(coherence)[value]
-#     title = f'Date: "{date}"'
-#     print(f'Slider title: {title}')
-#     return title
-
-
-# @app.callback(
-#     Output('intensity-map', 'layers'),
-#     Input('date-slider', 'value'))
-# def update_intensity(value):
-#     """Update backscatter image on map"""
-#     date = _valid_dates(coherence)[value]
-#     date = date.replace('-', '')
-#     layers = f'cite:{date}_HH.rmli.geo.db'
-#     print(f'Updating backscatter: {layers}')
-#     return layers
 
 
 if __name__ == '__main__':
