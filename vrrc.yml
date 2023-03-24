@@ -4,8 +4,6 @@ channels:
 dependencies:
 - python=3.9
 - pandas
-- scipy
-- matplotlib
 # - boto3
 - dash
 - dash-bootstrap-components
@@ -13,7 +11,6 @@ dependencies:
 - dash-renderer
 - dash-leaflet
 - plotly
-# - seaborn
 # development
 - ipykernel
 - nbformat
