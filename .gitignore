@@ -1,4 +1,4 @@
 virtualenv/*
-.vscode/settings.json
+.venv
+*.pyc
 config.ini
-coherenceMatrix.csv

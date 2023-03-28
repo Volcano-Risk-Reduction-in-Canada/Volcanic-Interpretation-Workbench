@@ -1,15 +1,8 @@
-boto3
+pandas
+# boto3
 dash
-dash_bootstrap_components
-dash_bootstrap_templates
+dash-bootstrap-components
+dash-bootstrap-templates
 dash-renderer
-dash-core-components
-dash-html-components
-dash-table
 dash-leaflet
 plotly
-numpy
-pandas
-scipy
-matplotlib
-seaborn

@@ -1,4 +1,4 @@
-name: pylint
+name: PEP8
 
 on: [push]
 
@@ -18,7 +18,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install pylint
+        pip install flake8
     - name: Analyse code
       run: |
-        pylint --fail-under=9 app
+        flake8 --verbose --statistics app

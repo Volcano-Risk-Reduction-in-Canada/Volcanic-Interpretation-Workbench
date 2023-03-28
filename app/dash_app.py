@@ -1,383 +1,354 @@
 #!/usr/bin/python3
-# =================================================================
-# SPDX-License-Identifier: MIT
-#
-# Copyright (C) 2021-2022 Government of Canada
-#
-# Main Authors: Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
-#
-# =================================================================
+"""
+Volcano InSAR Interpretation Workbench
 
+SPDX-License-Identifier: MIT
 
-import dash
-import dash_bootstrap_components as dbc
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_leaflet as dl
+Copyright (C) 2021-2023 Government of Canada
 
-import plotly.express as px
-
+Authors:
+  - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
+  - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
+"""
 import configparser
-import json
+
 import numpy as np
 import pandas as pd
 
+from dash import Dash, html
+from dash.dcc import Graph
 from dash.dependencies import Input, Output
 from dash_bootstrap_templates import load_figure_template
+import dash_bootstrap_components as dbc
+from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
+
+from plotly.graph_objects import Heatmap
+from plotly.subplots import make_subplots
 
 
 def get_config_params(args):
-    """
-    Parse Input/Output columns from supplied *.ini file
-    """
-    configParseObj = configparser.ConfigParser()
-    configParseObj.read(args)
-    return configParseObj
+    """Parse configuration from supplied file."""
+    config_obj = configparser.ConfigParser()
+    config_obj.read(args)
+    return config_obj
 
 
-config = get_config_params("config.ini")
+config = get_config_params('config.ini')
+GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 
-# This loads the "darkly" themed figure template from dash-bootstrap-templates
-#  library, adds it to plotly.io and makes it the default figure template.
-load_figure_template("darkly")
+# TODO add support for some or all of the following parameters to config
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+# dashboard configuration
+TEMPLATE = 'darkly'
+TITLE = 'Volcano InSAR Interpretation Workbench'
+INITIAL_TARGET = 'Meager_5M3'
 
-workspace = "Meager_5M3"
-stackList = ['Meager_5M2',
-             'Meager_5M3',
-             'Meager_5M8',
-             'Meager_5M10',
-             'Meager_5M15',
-             'Meager_5M21',
-             'Garibaldi_3M6',
-             'Garibaldi_3M7',
-             'Garibaldi_3M18',
-             'Garibaldi_3M23',
-             'Garibaldi_3M30',
-             'Garibaldi_3M34',
-             'Garibaldi_3M42',
-             'Cayley_3M1',
-             'Cayley_3M6',
-             'Cayley_3M13',
-             'Cayley_3M14',
-             'Cayley_3M17',
-             'Cayley_3M24',
-             'Cayley_3M30',
-             'Cayley_3M36',
-             'Edgecumbe_3M36D',
-             'Edziza_North_3M13',
-             'Edziza_North_3M41',
-             'Edziza_South_3M12',
-             'Edziza_South_3M31',
-             'Edziza_South_3M42',
-             'Tseax_3M7',
-             'Tseax_3M9',
-             'Tseax_ 3M19',
-             'Tseax_3M40',
-             'Nazko_3M9',
-             'Nazko_3M20',
-             'Nazko_3M31',
-             'Hoodoo_3M8',
-             'Hoodoo_3M11',
-             'Hoodoo_3M14',
-             'Hoodoo_3M38',
-             'Hoodoo_3M41',
-             'LavaFork_3M11',
-             'LavaFork_3M20',
-             'LavaFork_3M21',
-             'LavaFork_3M29',
-             'LavaFork_3M31',
-             'LavaFork_3M41']
+# basemap configuration
+BASEMAP_URL = (
+    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
+    '/tile/{z}/{y}/{x}')
+BASEMAP_ATTRIBUTION = (
+    'Tiles courtesy of the '
+    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
+BASEMAP_NAME = 'USGS Topo'
 
-siteDict = {'Meager_5M2': [50.64, -123.60],
-            'Meager_5M3': [50.64, -123.60],
-            'Meager_5M8': [50.64, -123.60],
-            'Meager_5M10': [50.64, -123.60],
-            'Meager_5M15': [50.64, -123.60],
-            'Meager_5M21': [50.64, -123.60],
-            'Garibaldi_3M6': [49.90, -122.99],
-            'Garibaldi_3M7': [49.90, -122.99],
-            'Garibaldi_3M18': [49.90, -122.99],
-            'Garibaldi_3M23': [49.90, -122.99],
-            'Garibaldi_3M30': [49.90, -122.99],
-            'Garibaldi_3M34': [49.90, -122.99],
-            'Garibaldi_3M42': [49.90, -122.99],
-            'Cayley': [50.12, -123.29],
-            'Cayley_3M1': [50.12, -123.29],
-            'Cayley_3M6': [50.12, -123.29],
-            'Cayley_3M13': [50.12, -123.29],
-            'Cayley_3M14': [50.12, -123.29],
-            'Cayley_3M17': [50.12, -123.29],
-            'Cayley_3M24': [50.12, -123.29],
-            'Cayley_3M30': [50.12, -123.29],
-            'Cayley_3M36': [50.12, -123.29],
-            'Edgecumbe_3M36D': [50.05, -135.75],
-            'Edziza_North_3M13': [57.74, -130.64],
-            'Edziza_North_3M41': [57.74, -130.64],
-            'Edziza_South_3M12': [57.64, -130.64],
-            'Edziza_South_3M31': [57.64, -130.64],
-            'Edziza_South_3M42': [57.64, -130.64],
-            'Tseax_3M7': [55.11, -128.90],
-            'Tseax_3M9': [55.11, -128.90],
-            'Tseax_ 3M19': [55.11, -128.90],
-            'Tseax_3M40': [55.11, -128.90],
-            'Nazko_3M9': [52.93, -123.73],
-            'Nazko_3M20': [52.93, -123.73],
-            'Nazko_3M31': [52.93, -123.73],
-            'Hoodoo_3M8': [56.77, -131.29],
-            'Hoodoo_3M11': [56.77, -131.29],
-            'Hoodoo_3M14': [56.77, -131.29],
-            'Hoodoo_3M38': [56.77, -131.29],
-            'Hoodoo_3M41': [56.77, -131.29],
-            'LavaFork_3M11': [56.42, -130.85],
-            'LavaFork_3M20': [56.42, -130.85],
-            'LavaFork_3M21': [56.42, -130.85],
-            'LavaFork_3M29': [56.42, -130.85],
-            'LavaFork_3M31': [56.42, -130.85],
-            'LavaFork_3M41': [56.42, -130.85]}
+# coherence plotting configuration
+YEAR_AXES_COUNT = 1
+BASELINE_MAX = 150
+BASELINE_DTICK = 24
+YEARS_MAX = 5
+CMAP_NAME = 'RdBu_r'
+COH_LIMS = (0.2, 0.4)
+TEMPORAL_HEIGHT = 300
+MAX_YEARS = 3
+DAYS_PER_YEAR = 365.25
 
-# Coherence Pair Data
-dfCohFull = pd.read_csv('Data/Meager/5M3/CoherenceMatrix.csv')
-
-fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),
-                                                                                     len(dfCohFull['Reference Date'].unique())))),
-                x=dfCohFull['Reference Date'].unique(),
-                y=dfCohFull['Pair Date'].unique(),
-                color_continuous_scale='RdBu_r'
-                )
-fig.update_yaxes(autorange=True)
-
-app.layout = html.Div(id='parent', children=[
-    html.Div(style={'width': '5%', 'display': 'inline-block'}),
-    html.Img(src=app.get_asset_url(
-                'Seal_of_the_Geological_Survey_of_Canada.png'),
-             style={'width': '10%',
-                    'display': 'inline-block'}),
-    html.Div(style={'width': '5%',
-                    'display': 'inline-block'}),
-    html.H1(id='H1',
-            children='Volcano InSAR Interpretation Workbench',
-            style={'textAlign': 'center',
-                   'marginTop': 40,
-                   'marginBottom': 40,
-                   'display': 'inline-block'}),
-    html.Div(style={'height': '10px'}),
-    html.Div(style={'width': '5%',
-                    'display': 'inline-block'}),
-
-    html.Div(
-        dcc.Dropdown(stackList, stackList[1], id='site-dropdown'),
-        style={'width': '35%',
-               'display': 'inline-block',
-               'color': 'black'}),
-
-    html.Div(style={'width': '5%',
-                    'display': 'inline-block'}),
-
-    html.Div([
-        dcc.Graph(id='graph', figure=fig,
-                  style={'position': 'absolute',
-                         'width': '25%',
-                         'height': '45%',
-                         'margin-left': '69.5%',
-                         'margin-top': '0.5%',
-                         'zIndex': 2}
-                         ),
-        dl.Map([dl.TileLayer(),
-                dl.LayersControl(
-                    dl.BaseLayer(
-                            dl.TileLayer(
-                                # Basemaps
-                                url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-                                attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
-                            ),
-                            name="USGS Topo",
-                            checked=True
-                            ),
-                        ),
-                dl.WMSTileLayer(id='map',
-                                url=f"{config.get('geoserver', 'geoserverEndpoint')}/{workspace}/wms?",
-                                layers="cite:20210717_HH_20210903_HH.adf.wrp.geo",
-                                format="image/png",
-                                transparent=True,
-                                opacity=0.75),
-                dl.WMSTileLayer(url=f"{config.get('geoserver', 'geoserverEndpoint')}/vectorLayers/wms?",
-                                layers="cite:permanent_snow_and_ice_2",
-                                format="image/png",
-                                transparent=True,
-                                opacity=1.0),
-                ],
-               id='leafletMap',
-               center=[50.64, -123.6],
-               zoom=12,
-               style={'position': 'absolute',
-                      'width': '90%',
-                      'height': '900px',
-                      'margin-left': '5%',
-                      'zIndex': 1}
-               )],
-        style={'width': '90%',
-               'height': '900px',
-               'left-margin': '5%'}
-        ),
-
-    # html.Div(),
-
-    # html.Div(style={'width': '5%', 'display': 'inline-block'}),
-    # html.Div(
-    #     dl.Map([dl.TileLayer(),
-    #             dl.LayersControl(
-    #                 dl.BaseLayer(
-    #                         dl.TileLayer(
-    #                             # Selection of Basemaps
-    #                             url='https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-    #                             attribution='Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
-    #                         ),
-    #                         name="USGS Topo",
-    #                         checked=True
-    #                         ),
-    #                     ),
-    #             dl.WMSTileLayer(id='rmlimap',
-    #                             url=f"{config.get('geoserver', 'geoserverEndpoint')}/Meager_5M3/wms?",
-    #                             layers="cite:20210114_HH.rmli.geo.db",
-    #                             format="image/png",
-    #                             transparent=True,
-    #                             opacity=1.0),
-    #                 ],
-    #            id='leafletMapRMLI',
-    #            center=[50.64, -123.6],
-    #            zoom=12
-    #            ),
-    #     style={'width': '90%', 'height': '550px', 'display': 'inline-block'}
-    #     ),
-    # html.Div([
-    #     dcc.Slider(min=0,
-    #                max=len(dfCohFull.dropna()['Reference Date'].unique()),
-    #                step=1,
-    #                marks={i: dfCohFull.dropna()['Reference Date'].unique()[i] for i in range(0, len(dfCohFull.dropna()['Reference Date'].unique()), 10)},
-    #                value=0,
-    #                id='my-slider'
-    #                ),
-    #     html.Div(id='slider-output-container')
-    #         ]),
-    # html.Div(),
-    ])
+# TODO read target configuration from database
+TARGET_CENTRES = {
+    'Meager_5M2': [50.64, -123.60],
+    'Meager_5M3': [50.64, -123.60],
+    'Meager_5M8': [50.64, -123.60],
+    'Meager_5M10': [50.64, -123.60],
+    'Meager_5M15': [50.64, -123.60],
+    'Meager_5M21': [50.64, -123.60],
+    'Garibaldi_3M6': [49.90, -122.99],
+    'Garibaldi_3M7': [49.90, -122.99],
+    'Garibaldi_3M18': [49.90, -122.99],
+    'Garibaldi_3M23': [49.90, -122.99],
+    'Garibaldi_3M30': [49.90, -122.99],
+    'Garibaldi_3M34': [49.90, -122.99],
+    'Garibaldi_3M42': [49.90, -122.99],
+    'Cayley_3M1': [50.12, -123.29],
+    'Cayley_3M6': [50.12, -123.29],
+    'Cayley_3M13': [50.12, -123.29],
+    'Cayley_3M14': [50.12, -123.29],
+    'Cayley_3M17': [50.12, -123.29],
+    'Cayley_3M24': [50.12, -123.29],
+    'Cayley_3M30': [50.12, -123.29],
+    'Cayley_3M36': [50.12, -123.29],
+    'Edgecumbe_3M36D': [50.05, -135.75],
+    'Edziza_North_3M13': [57.74, -130.64],
+    'Edziza_North_3M41': [57.74, -130.64],
+    'Edziza_South_3M12': [57.64, -130.64],
+    'Edziza_South_3M31': [57.64, -130.64],
+    'Edziza_South_3M42': [57.64, -130.64],
+    'Tseax_3M7': [55.11, -128.90],
+    'Tseax_3M9': [55.11, -128.90],
+    'Tseax_ 3M19': [55.11, -128.90],
+    'Tseax_3M40': [55.11, -128.90],
+    'Nazko_3M9': [52.93, -123.73],
+    'Nazko_3M20': [52.93, -123.73],
+    'Nazko_3M31': [52.93, -123.73],
+    'Hoodoo_3M8': [56.77, -131.29],
+    'Hoodoo_3M11': [56.77, -131.29],
+    'Hoodoo_3M14': [56.77, -131.29],
+    'Hoodoo_3M38': [56.77, -131.29],
+    'Hoodoo_3M41': [56.77, -131.29],
+    'LavaFork_3M11': [56.42, -130.85],
+    'LavaFork_3M20': [56.42, -130.85],
+    'LavaFork_3M21': [56.42, -130.85],
+    'LavaFork_3M29': [56.42, -130.85],
+    'LavaFork_3M31': [56.42, -130.85],
+    'LavaFork_3M41': [56.42, -130.85],
+}
 
 
-# Update interferogram selection displayed on leaflet map
-@app.callback(
-    Output(component_id="map", component_property="layers"),
-    Input(component_id="graph", component_property="clickData"))
-def update_datepair(clickData):
-    if not clickData:
-        return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
-    dates = '{}_HH_{}_HH'.format(json.dumps(clickData['points'][0]['x'],
-                                            indent=2),
-                                 json.dumps(clickData['points'][0]['y'],
-                                            indent=2))
-    dates = dates.replace('-', '').replace('"', '')
-    print(dates)
-    return 'cite:{}.adf.wrp.geo'.format(dates)
+def _read_coherence(coherence_csv):
+    coh = pd.read_csv(
+        coherence_csv,
+        parse_dates=['Reference Date', 'Pair Date'])
+    coh.columns = ['first_date', 'second_date', 'coherence']
+    wrong_order = (coh.second_date < coh.first_date) & coh.coherence.notnull()
+    if wrong_order.any():
+        raise RuntimeError(
+            'Some intereferogram dates not ordered as expected:\n' +
+            coh[wrong_order].to_string())
+    return coh
 
 
-# Switch between Volcano Sites
-@app.callback(
-    Output(component_id="map", component_property="url"),
-    Input(component_id="site-dropdown", component_property="value"))
-def updateSite(value):
-    return f"{config.get('geoserver', 'geoserverEndpoint')}/{value}/wms?"
+def _valid_dates(coh):
+    return coh.first_date.dropna().unique()
 
 
-# Display new Coherence Matrix
-@app.callback(
-    Output(component_id="graph", component_property="figure"),
-    Input(component_id="site-dropdown", component_property="value"))
-def updateSite(value):
-    dfCohFull = pd.read_csv('Data/{}/{}/CoherenceMatrix.csv'.format('_'.join(value.split('_')[:-1]), value.split('_')[-1]))
+def _coherence_csv(target_id):
+    site, beam = target_id.split('_', 1)
+    return f'Data/{site}/{beam}/CoherenceMatrix.csv'
 
-    fig = px.imshow(np.rot90(np.fliplr(dfCohFull['Average Coherence'].to_numpy().reshape(len(dfCohFull['Reference Date'].unique()),len(dfCohFull['Reference Date'].unique())))),
-                    x=dfCohFull['Reference Date'].unique(),
-                    y=dfCohFull['Pair Date'].unique(),
-                    color_continuous_scale='RdBu_r'
-                    )
-    fig.update_yaxes(autorange=True)
+
+def pivot_and_clean(coh_long):
+    """Convert long-form coherence to wide-form and clean it up."""
+    coh_wide = coh_long.pivot(
+        index='delta_days',
+        columns='second_date',
+        values='coherence')
+
+    # include zero baseline even though it will never be valid
+    coh_wide.loc[0, :] = np.NaN
+    coh_wide.sort_index(inplace=True)
+
+    # because hovertemplate 'f' format doesn't handle NaN properly
+    coh_wide = coh_wide.round(2)
+
+    # trim empty edges
+    coh_wide = coh_wide.loc[
+        (coh_wide.index >= 0) &
+        (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index()),
+        (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index()) &
+        (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())]
+
+    return coh_wide
+
+
+def plot_coherence(coh_long):
+    """Plot coherence for different baselines as a function of time."""
+    coh_long['delta_days'] = (coh_long.second_date -
+                              coh_long.first_date).dt.days
+    coh_wide = pivot_and_clean(coh_long)
+
+    fig = make_subplots(
+        rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
+        start_cell='bottom-left', vertical_spacing=0.02,
+        y_title='Temporal baseline [days]')
+
+    for year in range(YEAR_AXES_COUNT):
+        fig.add_trace(
+            trace=Heatmap(
+                z=coh_wide.values,
+                x=coh_wide.columns,
+                y=coh_wide.index,
+                xgap=1,
+                ygap=1,
+                hovertemplate=(
+                    'Second: %{x}<br>'
+                    'First: -%{y} days<br>'
+                    'Coherence: %{z}'),
+                coloraxis='coloraxis'),
+            row=year + 1, col=1)
+        if year == 0:
+            baseline_limits = [0, BASELINE_MAX]
+        else:
+            baseline_limits = list(int(year*DAYS_PER_YEAR) +
+                                   BASELINE_MAX/2*np.array([-1, 1]))
+        second_date_limits = [
+            max(coh_wide.columns.min(),
+                coh_wide.columns.max() -
+                pd.to_timedelta(DAYS_PER_YEAR*MAX_YEARS, 'days')) -
+            pd.to_timedelta(4, 'days'),
+            coh_wide.columns.max() + pd.to_timedelta(4, 'days')]
+        fig.update_yaxes(
+            range=baseline_limits,
+            dtick=BASELINE_DTICK,
+            scaleanchor='x',
+            row=year + 1, col=1)
+        fig.update_xaxes(
+            range=second_date_limits,
+            row=year + 1, col=1)
+
+    fig.update_layout(
+        margin={'l': 65, 'r': 0, 't': 5, 'b': 5},
+        coloraxis={
+            'colorscale': CMAP_NAME,
+            'cmin': COH_LIMS[0],
+            'cmax': COH_LIMS[1],
+            'colorbar': {
+                'title': 'Coherence',
+                'dtick': 0.1,
+                'ticks': 'outside',
+                'tickcolor': 'white',
+                'thickness': 20,
+            }},
+        showlegend=False)
+
     return fig
 
 
-# Center Leaflet map on new volcano site
+# construct dashboard
+load_figure_template('darkly')
+app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+
+selector = html.Div(
+    title=TITLE,
+    children=dbc.InputGroup(
+        [
+            dbc.InputGroupText('Target_Beam'),
+            dbc.Select(
+                id='site-dropdown',
+                options=list(TARGET_CENTRES.keys()),
+                value=INITIAL_TARGET,
+            ),
+        ]
+    ),
+)
+
+spatial_view = html.Div(
+    Map(
+        [
+            TileLayer(),
+            LayersControl(
+                BaseLayer(
+                    TileLayer(
+                        url=BASEMAP_URL,
+                        attribution=BASEMAP_ATTRIBUTION
+                    ),
+                    name=BASEMAP_NAME,
+                    checked=True
+                ),
+            ),
+            WMSTileLayer(
+                id='interferogram',
+                url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
+                layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
+                format='image/png',
+                transparent=True,
+                opacity=0.75),
+            WMSTileLayer(
+                url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
+                layers='cite:permanent_snow_and_ice_2',
+                format='image/png',
+                transparent=True,
+                opacity=1.0)
+        ],
+        id='interferogram-bg',
+        center=TARGET_CENTRES[INITIAL_TARGET],
+        zoom=12,
+    ),
+    style={'height': '100%'},
+)
+
+temporal_view = Graph(
+    id='coherence-matrix',
+    figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
+    style={'height': TEMPORAL_HEIGHT},
+)
+
+app.layout = dbc.Container(
+    [
+        dbc.Row(dbc.Col(selector, width='auto')),
+        dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
+        dbc.Row(dbc.Col(temporal_view)),
+    ],
+    fluid=True,
+    style={
+        'height': '100vh',
+        'display': 'flex',
+        'flexDirection': 'column',
+        'topMargin': 5,
+        'bottomMargin': 5,
+    }
+)
+
+
 @app.callback(
-    Output(component_id="leafletMap", component_property="center"),
-    Input(component_id="site-dropdown", component_property="value"))
-def updateCenter(value):
-    centerDict = {'Meager_5M2': [50.64, -123.60],
-                  'Meager_5M3': [50.64, -123.60],
-                  'Meager_5M8': [50.64, -123.60],
-                  'Meager_5M10': [50.64, -123.60],
-                  'Meager_5M15': [50.64, -123.60],
-                  'Meager_5M21': [50.64, -123.60],
-                  'Garibaldi_3M6': [49.90, -122.99],
-                  'Garibaldi_3M7': [49.90, -122.99],
-                  'Garibaldi_3M18': [49.90, -122.99],
-                  'Garibaldi_3M23': [49.90, -122.99],
-                  'Garibaldi_3M30': [49.90, -122.99],
-                  'Garibaldi_3M34': [49.90, -122.99],
-                  'Garibaldi_3M42': [49.90, -122.99],
-                  'Cayley_3M1': [50.12, -123.29],
-                  'Cayley_3M6': [50.12, -123.29],
-                  'Cayley_3M13': [50.12, -123.29],
-                  'Cayley_3M14': [50.12, -123.29],
-                  'Cayley_3M17': [50.12, -123.29],
-                  'Cayley_3M24': [50.12, -123.29],
-                  'Cayley_3M30': [50.12, -123.29],
-                  'Cayley_3M36': [50.12, -123.29],
-                  'Edgecumbe_3M36D': [50.05, -135.75],
-                  'Edziza_North_3M13': [57.74, -130.64],
-                  'Edziza_North_3M41': [57.74, -130.64],
-                  'Edziza_South_3M12': [57.64, -130.64],
-                  'Edziza_South_3M31': [57.64, -130.64],
-                  'Edziza_South_3M42': [57.64, -130.64],
-                  'Tseax_3M7': [55.11, -128.90],
-                  'Tseax_3M9': [55.11, -128.90],
-                  'Tseax_ 3M19': [55.11, -128.90],
-                  'Tseax_3M40': [55.11, -128.90],
-                  'Nazko_3M9': [52.93, -123.73],
-                  'Nazko_3M20': [52.93, -123.73],
-                  'Nazko_3M31': [52.93, -123.73],
-                  'Hoodoo_3M8': [56.77, -131.29],
-                  'Hoodoo_3M11': [56.77, -131.29],
-                  'Hoodoo_3M14': [56.77, -131.29],
-                  'Hoodoo_3M38': [56.77, -131.29],
-                  'Hoodoo_3M41': [56.77, -131.29],
-                  'LavaFork_3M11': [56.42, -130.85],
-                  'LavaFork_3M20': [56.42, -130.85],
-                  'LavaFork_3M21': [56.42, -130.85],
-                  'LavaFork_3M29': [56.42, -130.85],
-                  'LavaFork_3M31': [56.42, -130.85],
-                  'LavaFork_3M41': [56.42, -130.85]}
-    print(centerDict[value])
-    return centerDict[value]
+    Output(component_id='interferogram', component_property='layers'),
+    Input(component_id='coherence-matrix', component_property='clickData'))
+def update_interferogram(click_data):
+    """Update interferogram display."""
+    if not click_data:
+        return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
+    second = pd.to_datetime(click_data['points'][0]['x'])
+    delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
+    first = second - delta
+
+    first_str = first.strftime('%Y%m%d')
+    second_str = second.strftime('%Y%m%d')
+    layer = f'cite:{first_str}_HH_{second_str}_HH.adf.wrp.geo'
+    print(f'Updating interferogram: {layer}')
+    return layer
 
 
-# Update backscatter date text from slider
 @app.callback(
-    Output('slider-output-container', 'children'),
-    Input('my-slider', 'value'))
-def update_output(value):
-    selectedDate = dfCohFull.dropna()['Reference Date'].unique()[value]
-    return f'Date: "{selectedDate}"'
+    Output(component_id='interferogram', component_property='url'),
+    Input(component_id='site-dropdown', component_property='value'))
+def update_site(value):
+    """Switch between sites."""
+    url = f'{GEOSERVER_ENDPOINT}/{value}/wms?'
+    print(f'New site url: {url}')
+    return url
 
 
-# Update Backscatter image on leaflet map
 @app.callback(
-    Output('rmlimap', 'layers'),
-    Input('my-slider', 'value'))
-def update_output(value):
-    date = dfCohFull.dropna()['Reference Date'].unique()[value].replace('-',
-                                                                        '')
-    print('cite:{}_HH.rmli.geo.db'.format(date))
-    return 'cite:{}_HH.rmli.geo.db'.format(date)
+    Output(component_id='coherence-matrix', component_property='figure'),
+    Input(component_id='site-dropdown', component_property='value'))
+def update_coherence(target_id):
+    """Display new coherence matrix."""
+    coherence_csv = _coherence_csv(target_id)
+    print(f'Loading: {coherence_csv}')
+    coherence = _read_coherence(coherence_csv)
+
+    return plot_coherence(coherence)
+
+
+@app.callback(
+    Output(component_id='interferogram-bg', component_property='center'),
+    Input(component_id='site-dropdown', component_property='value'))
+def recenter_map(target_id):
+    """Center map on new site."""
+    coords = TARGET_CENTRES[target_id]
+    print(f'Recentering: {coords}')
+    return coords
 
 
 if __name__ == '__main__':
+    # TODO login and set up - or at least test - port forwarding
+    # See https://shorturl.at/lnSY1
     app.run_server(host='0.0.0.0', port=8050, debug=False)
