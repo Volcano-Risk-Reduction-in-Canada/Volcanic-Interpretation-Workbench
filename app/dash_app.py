@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from dash import Dash, html
-from dash.dcc import Graph
+from dash.dcc import Graph, Tab, Tabs
 from dash.dependencies import Input, Output
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
@@ -24,6 +24,7 @@ from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
 
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 
 
 def get_config_params(args):
@@ -41,7 +42,7 @@ GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
-INITIAL_TARGET = 'Meager_5M3'
+INITIAL_TARGET = 'Meager_5M10'
 
 # basemap configuration
 BASEMAP_URL = (
@@ -126,6 +127,30 @@ def _read_coherence(coherence_csv):
     return coh
 
 
+def _read_baseline(baseline_csv):
+    baseline = pd.read_csv(
+        baseline_csv,
+        delimiter=' ',
+        header=None,
+        skipinitialspace=True)
+    baseline.columns = ['index',
+                        'first_date',
+                        'second_date',
+                        'bperp',
+                        'btemp',
+                        'bperp2',
+                        'x']
+    baseline = baseline.drop(['index',
+                              'btemp',
+                              'bperp2',
+                              'x'], axis=1)
+    baseline['first_date'] = pd.to_datetime(baseline['first_date'],
+                                            format="%Y%m%d")
+    baseline['second_date'] = pd.to_datetime(baseline['second_date'],
+                                             format="%Y%m%d")
+    return baseline
+
+
 def _valid_dates(coh):
     return coh.first_date.dropna().unique()
 
@@ -133,6 +158,11 @@ def _valid_dates(coh):
 def _coherence_csv(target_id):
     site, beam = target_id.split('_', 1)
     return f'Data/{site}/{beam}/CoherenceMatrix.csv'
+
+
+def _baseline_csv(target_id):
+    site, beam = target_id.split('_', 1)
+    return f'Data/{site}/{beam}/bperp_all'
 
 
 def pivot_and_clean(coh_long):
@@ -236,6 +266,62 @@ def plot_coherence(coh_long):
     return fig
 
 
+def plot_baseline(df_baseline, df_cohfull):
+    """Plot perpendicular baseline as a function of time."""
+    bperpScatterfig = go.Scatter(x=df_baseline['second_date'],
+                                 y=df_baseline['bperp'],
+                                 mode='markers')
+
+    df_baseline_edge = df_cohfull[df_cohfull['coherence'].notna()]
+    df_baseline_edge = df_baseline_edge.drop(columns=['coherence'])
+    # df_baseline_edge['first_date'] = \
+    #     pd.to_datetime(df_baseline_edge['first_date'],
+    #                    format="%Y-%m-%d")
+
+    # df_baseline_edge['second_date'] = \
+    #     pd.to_datetime(df_baseline_edge['second_date'],
+    #                    format="%Y-%m-%d")
+
+    df_baseline_edge = pd.merge(df_baseline_edge,
+                                df_baseline[['second_date', 'bperp']],
+                                right_on='second_date',
+                                left_on='first_date',
+                                how='left')
+    df_baseline_edge = df_baseline_edge.drop(columns=['second_date_y'])
+    df_baseline_edge = \
+        df_baseline_edge.rename(columns={"second_date_x": "second_date",
+                                         "bperp": "bperp_reference_date"})
+    df_baseline_edge = pd.merge(df_baseline_edge,
+                                df_baseline[['second_date', 'bperp']],
+                                right_on='second_date',
+                                left_on='second_date',
+                                how='left')
+
+    df_baseline_edge = df_baseline_edge.rename(
+        columns={"bperp": "bperp_pair_date"})
+    df_baseline_edge = df_baseline_edge[
+        df_baseline_edge['bperp_reference_date'].notna()]
+
+    edge_x = []
+    edge_y = []
+
+    for idx, edge in df_baseline_edge.iterrows():
+        edge_x.append(edge['first_date'])
+        edge_x.append(edge['second_date'])
+        edge_y.append(edge['bperp_reference_date'])
+        edge_y.append(edge['bperp_pair_date'])
+
+    bperpLinefig = go.Scatter(x=edge_x, y=edge_y,
+                              line=dict(width=0.5, color='#888'),
+                              mode='lines')
+
+    bperp_combined_fig = go.Figure(data=[bperpLinefig, bperpScatterfig])
+    bperp_combined_fig.update_layout(yaxis_title="Perpendicular Baseline (m)")
+    bperp_combined_fig.update(layout_showlegend=False)
+
+    return bperp_combined_fig
+
+
 # construct dashboard
 load_figure_template('darkly')
 app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
@@ -291,14 +377,50 @@ spatial_view = html.Div(
 
 temporal_view = Graph(
     id='coherence-matrix',
-    figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
+    # figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
+    figure=plot_baseline(_read_baseline(_baseline_csv(INITIAL_TARGET)),
+                         _read_coherence(_coherence_csv(INITIAL_TARGET))),
     style={'height': TEMPORAL_HEIGHT},
 )
+
+tab_style = {
+    'borderBottom': '1px solid #d6d6d6',
+    'color': 'black',
+    'padding': '6px',
+    'fontWeight': 'bold',
+    'font-size': '11px',
+}
+
+tab_selected_style = {
+    'align-items': 'top',
+    'borderTop': '1px solid #d6d6d6',
+    'borderBottom': '1px solid #d6d6d6',
+    'backgroundColor': '#119DFF',
+    'color': 'black',
+    'font-size': '11px',
+    'padding': '6px'
+}
+
+baseline_tab = Tabs(id="tabs-example-graph",
+                    value='tab-1-example-graph',
+                    children=[Tab(label='Coherence',
+                                  value='tab-1-example-graph',
+                                  style=tab_style,
+                                  selected_style=tab_selected_style),
+                              Tab(label='B-Perp',
+                                  value='tab-2-example-graph',
+                                  style=tab_style,
+                                  selected_style=tab_selected_style),
+                              ],
+                    style={'width': '10%',
+                           'height': '25px'},
+                    vertical=False)
 
 app.layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
         dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
+        dbc.Row(dbc.Col(baseline_tab)),
         dbc.Row(dbc.Col(temporal_view)),
     ],
     fluid=True,
@@ -360,6 +482,15 @@ def recenter_map(target_id):
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
     return coords
+
+
+@app.callback(
+    Output(component_id='coherence-matrix', component_property='figure'),
+    Input(component_id='tabs-example-graph', component_property='value'))
+def switch_temporal_viewl(tab):
+    """Switch between temporal and spatial basleine plots"""
+    print(str(tab))
+    return str(tab)
 
 
 if __name__ == '__main__':
