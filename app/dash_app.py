@@ -191,12 +191,13 @@ def pivot_and_clean(coh_long):
 
 def pivot_and_clean_dates(coh_long):
     """Convert long-form df to wide-form date matrix matching coh_wide."""
+    coh_long = coh_long.drop(coh_long[coh_long.second_date < coh_long.first_date].index)
     date_wide = coh_long.pivot(
         index='delta_days',
         columns='second_date',
         values='first_date')
     date_wide = date_wide.applymap(lambda x: pd.to_datetime(x)
-                                   .strftime('%b %d, %Y'))
+                                   .strftime('%b %d, %Y') if x is not pd.NaT else x)
     return date_wide
 
 
@@ -274,14 +275,6 @@ def plot_baseline(df_baseline, df_cohfull):
 
     df_baseline_edge = df_cohfull[df_cohfull['coherence'].notna()]
     df_baseline_edge = df_baseline_edge.drop(columns=['coherence'])
-    # df_baseline_edge['first_date'] = \
-    #     pd.to_datetime(df_baseline_edge['first_date'],
-    #                    format="%Y-%m-%d")
-
-    # df_baseline_edge['second_date'] = \
-    #     pd.to_datetime(df_baseline_edge['second_date'],
-    #                    format="%Y-%m-%d")
-
     df_baseline_edge = pd.merge(df_baseline_edge,
                                 df_baseline[['second_date', 'bperp']],
                                 right_on='second_date',
@@ -377,9 +370,9 @@ spatial_view = html.Div(
 
 temporal_view = Graph(
     id='coherence-matrix',
-    # figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
-    figure=plot_baseline(_read_baseline(_baseline_csv(INITIAL_TARGET)),
-                         _read_coherence(_coherence_csv(INITIAL_TARGET))),
+    figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
+    # figure=plot_baseline(_read_baseline(_baseline_csv(INITIAL_TARGET)),
+    #                      _read_coherence(_coherence_csv(INITIAL_TARGET))),
     style={'height': TEMPORAL_HEIGHT},
 )
 
@@ -420,7 +413,7 @@ app.layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
         dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
-        dbc.Row(dbc.Col(baseline_tab)),
+        dbc.Row(dbc.Col(baseline_tab)), # add into row below
         dbc.Row(dbc.Col(temporal_view)),
     ],
     fluid=True,
@@ -489,9 +482,14 @@ def recenter_map(target_id):
     Input(component_id='tabs-example-graph', component_property='value'))
 def switch_temporal_viewl(tab):
     """Switch between temporal and spatial basleine plots"""
-    print(str(tab))
-    return str(tab)
-
+    # if tab == 'tab-1-example-graph':
+    #     return plot_coherence(_read_coherence(_coherence_csv('Meager_5M10')))
+    # elif tab == 'tab-2-example-graph':
+    #     return plot_baseline(_read_baseline(_baseline_csv('Meager_5M10')),
+    #                          _read_coherence(_coherence_csv('Meager_5M10')))
+    # else :
+    return  plot_baseline(_read_baseline(_baseline_csv('Meager_5M10')),
+                             _read_coherence(_coherence_csv('Meager_5M10')))
 
 if __name__ == '__main__':
     # TODO login and set up - or at least test - port forwarding
