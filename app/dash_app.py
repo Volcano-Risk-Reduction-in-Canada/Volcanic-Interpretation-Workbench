@@ -15,12 +15,15 @@ import configparser
 import numpy as np
 import pandas as pd
 
-from dash import Dash, html
+from dash import html
 from dash.dcc import Graph, Tab, Tabs
-from dash.dependencies import Input, Output
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
+from dash_extensions.enrich import (Output,
+                                    DashProxy,
+                                    Input,
+                                    MultiplexerTransform)
 
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
@@ -87,7 +90,9 @@ TARGET_CENTRES = {
     'Cayley_3M24': [50.12, -123.29],
     'Cayley_3M30': [50.12, -123.29],
     'Cayley_3M36': [50.12, -123.29],
-    'Edgecumbe_3M36D': [50.05, -135.75],
+    'Edgecumbe_3M36D': [57.05, -135.75],
+    'Edgecumbe_SLA18D': [57.05, -135.75],
+    'Edgecumbe_SLA74A': [57.05, -135.75],
     'Edziza_North_3M13': [57.74, -130.64],
     'Edziza_North_3M41': [57.74, -130.64],
     'Edziza_South_3M12': [57.64, -130.64],
@@ -156,12 +161,12 @@ def _valid_dates(coh):
 
 
 def _coherence_csv(target_id):
-    site, beam = target_id.split('_', 1)
+    site, beam = target_id.rsplit('_', 1)
     return f'Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
 def _baseline_csv(target_id):
-    site, beam = target_id.split('_', 1)
+    site, beam = target_id.rsplit('_', 1)
     return f'Data/{site}/{beam}/bperp_all'
 
 
@@ -171,33 +176,35 @@ def pivot_and_clean(coh_long):
         index='delta_days',
         columns='second_date',
         values='coherence')
-
     # include zero baseline even though it will never be valid
     coh_wide.loc[0, :] = np.NaN
     coh_wide.sort_index(inplace=True)
-
     # because hovertemplate 'f' format doesn't handle NaN properly
     coh_wide = coh_wide.round(2)
-
     # trim empty edges
     coh_wide = coh_wide.loc[
         (coh_wide.index >= 0) &
         (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index()),
         (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index()) &
         (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())]
-
     return coh_wide
 
 
 def pivot_and_clean_dates(coh_long):
     """Convert long-form df to wide-form date matrix matching coh_wide."""
-    coh_long = coh_long.drop(coh_long[coh_long.second_date < coh_long.first_date].index)
+    coh_long = coh_long.drop(coh_long[coh_long.second_date <
+                                      coh_long.first_date].index)
     date_wide = coh_long.pivot(
         index='delta_days',
         columns='second_date',
         values='first_date')
     date_wide = date_wide.applymap(lambda x: pd.to_datetime(x)
-                                   .strftime('%b %d, %Y') if x is not pd.NaT else x)
+                                   .strftime('%b %d, %Y') if x is not pd.NaT
+                                   else x)
+    # remove the first row so that date_wide has
+    # the same number of columns as coh_wide
+    date_wide.drop(columns=date_wide.columns[0], axis=1,  inplace=True)
+
     return date_wide
 
 
@@ -309,7 +316,8 @@ def plot_baseline(df_baseline, df_cohfull):
                               mode='lines')
 
     bperp_combined_fig = go.Figure(data=[bperpLinefig, bperpScatterfig])
-    bperp_combined_fig.update_layout(yaxis_title="Perpendicular Baseline (m)")
+    bperp_combined_fig.update_layout(yaxis_title="Perpendicular Baseline (m)",
+                                     margin={'l': 65, 'r': 0, 't': 5, 'b': 5})
     bperp_combined_fig.update(layout_showlegend=False)
 
     return bperp_combined_fig
@@ -317,7 +325,10 @@ def plot_baseline(df_baseline, df_cohfull):
 
 # construct dashboard
 load_figure_template('darkly')
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+# app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = DashProxy(prevent_initial_callbacks=True,
+                transforms=[MultiplexerTransform()],
+                external_stylesheets=[dbc.themes.DARKLY])
 
 selector = html.Div(
     title=TITLE,
@@ -395,13 +406,13 @@ tab_selected_style = {
 }
 
 baseline_tab = Tabs(id="tabs-example-graph",
-                    value='tab-1-example-graph',
+                    value='tab-1-coherence-graph',
                     children=[Tab(label='Coherence',
-                                  value='tab-1-example-graph',
+                                  value='tab-1-coherence-graph',
                                   style=tab_style,
                                   selected_style=tab_selected_style),
                               Tab(label='B-Perp',
-                                  value='tab-2-example-graph',
+                                  value='tab-2-baseline-graph',
                                   style=tab_style,
                                   selected_style=tab_selected_style),
                               ],
@@ -413,7 +424,7 @@ app.layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
         dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
-        dbc.Row(dbc.Col(baseline_tab)), # add into row below
+        dbc.Row(dbc.Col(baseline_tab)),  # add into row below
         dbc.Row(dbc.Col(temporal_view)),
     ],
     fluid=True,
@@ -479,17 +490,19 @@ def recenter_map(target_id):
 
 @app.callback(
     Output(component_id='coherence-matrix', component_property='figure'),
-    Input(component_id='tabs-example-graph', component_property='value'))
-def switch_temporal_viewl(tab):
+    [Input(component_id='tabs-example-graph', component_property='value'),
+     Input(component_id='site-dropdown', component_property='value')])
+def switch_temporal_viewl(tab, site):
     """Switch between temporal and spatial basleine plots"""
-    # if tab == 'tab-1-example-graph':
-    #     return plot_coherence(_read_coherence(_coherence_csv('Meager_5M10')))
-    # elif tab == 'tab-2-example-graph':
-    #     return plot_baseline(_read_baseline(_baseline_csv('Meager_5M10')),
-    #                          _read_coherence(_coherence_csv('Meager_5M10')))
-    # else :
-    return  plot_baseline(_read_baseline(_baseline_csv('Meager_5M10')),
-                             _read_coherence(_coherence_csv('Meager_5M10')))
+    if tab == 'tab-1-coherence-graph':
+        print(site)
+        return plot_coherence(_read_coherence(_coherence_csv(site)))
+    elif tab == 'tab-2-baseline-graph':
+        return plot_baseline(_read_baseline(_baseline_csv(site)),
+                             _read_coherence(_coherence_csv(site)))
+    else:
+        return
+
 
 if __name__ == '__main__':
     # TODO login and set up - or at least test - port forwarding
