@@ -6,6 +6,7 @@ dependencies:
 - pandas
 # - boto3
 - dash
+- dash_extensions
 - dash-bootstrap-components
 - dash-bootstrap-templates
 - dash-renderer
