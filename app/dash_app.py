@@ -190,7 +190,7 @@ def pivot_and_clean(coh_long):
     return coh_wide
 
 
-def pivot_and_clean_dates(coh_long):
+def pivot_and_clean_dates(coh_long, coh_wide):
     """Convert long-form df to wide-form date matrix matching coh_wide."""
     coh_long = coh_long.drop(coh_long[coh_long.second_date <
                                       coh_long.first_date].index)
@@ -202,9 +202,12 @@ def pivot_and_clean_dates(coh_long):
                                    .strftime('%b %d, %Y') if x is not pd.NaT
                                    else x)
     # remove the first row so that date_wide has
-    # the same number of columns as coh_wide
-    date_wide.drop(columns=date_wide.columns[0], axis=1,  inplace=True)
-
+    # the same columns as coh_wide
+    common_cols = [col for col in
+                   set(date_wide.columns).intersection(coh_wide.columns)]
+    common_cols.sort()
+    date_wide = date_wide[common_cols]
+    # date_wide.drop(columns=date_wide.columns[0], axis=1,  inplace=True)
     return date_wide
 
 
@@ -213,7 +216,7 @@ def plot_coherence(coh_long):
     coh_long['delta_days'] = (coh_long.second_date -
                               coh_long.first_date).dt.days
     coh_wide = pivot_and_clean(coh_long)
-    date_wide = pivot_and_clean_dates(coh_long)
+    date_wide = pivot_and_clean_dates(coh_long, coh_wide)
 
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
@@ -230,8 +233,8 @@ def plot_coherence(coh_long):
                 ygap=1,
                 customdata=date_wide,
                 hovertemplate=(
-                    'End Date: %{x}<br>'
                     'Start Date: %{customdata}<br>'
+                    'End Date: %{x}<br>'
                     'Temporal Baseline: %{y} days<br>'
                     'Coherence: %{z}'),
                 coloraxis='coloraxis'),
