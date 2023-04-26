@@ -385,8 +385,6 @@ spatial_view = html.Div(
 temporal_view = Graph(
     id='coherence-matrix',
     figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
-    # figure=plot_baseline(_read_baseline(_baseline_csv(INITIAL_TARGET)),
-    #                      _read_coherence(_coherence_csv(INITIAL_TARGET))),
     style={'height': TEMPORAL_HEIGHT},
 )
 
