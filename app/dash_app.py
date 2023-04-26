@@ -201,7 +201,7 @@ def pivot_and_clean_dates(coh_long, coh_wide):
     date_wide = date_wide.applymap(lambda x: pd.to_datetime(x)
                                    .strftime('%b %d, %Y') if x is not pd.NaT
                                    else x)
-    # remove the first row so that date_wide has
+    # remove some columns so that date_wide has
     # the same columns as coh_wide
     common_cols = [col for col in
                    set(date_wide.columns).intersection(coh_wide.columns)]
@@ -279,9 +279,9 @@ def plot_coherence(coh_long):
 
 def plot_baseline(df_baseline, df_cohfull):
     """Plot perpendicular baseline as a function of time."""
-    bperpScatterfig = go.Scatter(x=df_baseline['second_date'],
-                                 y=df_baseline['bperp'],
-                                 mode='markers')
+    bperp_scatter_fig = go.Scatter(x=df_baseline['second_date'],
+                                   y=df_baseline['bperp'],
+                                   mode='markers')
 
     df_baseline_edge = df_cohfull[df_cohfull['coherence'].notna()]
     df_baseline_edge = df_baseline_edge.drop(columns=['coherence'])
@@ -318,7 +318,7 @@ def plot_baseline(df_baseline, df_cohfull):
                               line=dict(width=0.5, color='#888'),
                               mode='lines')
 
-    bperp_combined_fig = go.Figure(data=[bperpLinefig, bperpScatterfig])
+    bperp_combined_fig = go.Figure(data=[bperpLinefig, bperp_scatter_fig])
     bperp_combined_fig.update_layout(yaxis_title="Perpendicular Baseline (m)",
                                      margin={'l': 65, 'r': 0, 't': 5, 'b': 5})
     bperp_combined_fig.update(layout_showlegend=False)
