@@ -1,6 +1,6 @@
 import argparse
-import boto3
 import configparser
+import boto3
 
 
 def main():

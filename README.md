@@ -63,3 +63,28 @@ If ever the dependencies change, update the conda environment using:
 conda env update --prune --file vrrc.yml
 ```
 
+### Utility Scripts (Python)
+
+Utility scripts are included in the dashbaord to get the latest coherence and baseline data. They will usually be run automatically when new SAR imagery is ingested and processed however they can be run manually as well to update coherence and baseline data locally. A complete config.ini, copied from `app/sample_config.ini` file needs to be present in the `scripts` directory. The user will also need to be authenticated with the relevant cloud environment prior to running the script. 
+
+Scripts may have optional or mandatory arguments. Scripts requiring arguments will contain instructions via the --help argument. For example:
+
+```python loadUpdatedCoherenceMatrix.py --help
+usage: loadUpdatedCoherenceMatrix.py [-h] --site SITE --beam BEAM
+
+Copy latest coherence matrix into
+
+optional arguments:
+  -h, --help   show this help message and exit
+  --site SITE  Volcano Site Name, i.e. 'Meager'
+  --beam BEAM  RCM Beam Mode Mnemonic, i.e. '5M3'
+```
+Other scripts do not require arguments and can simply be run as is. For example:
+
+- Get the latest baseline file for every site/beam combo specific in app/beamList.yml
+
+    `python get_latest_baselines.py`
+
+- Get the latest coherence matrix csv files for every site/beam combo specific in app/beamList.yml
+
+    `python getLatestCohMatrices.py`
