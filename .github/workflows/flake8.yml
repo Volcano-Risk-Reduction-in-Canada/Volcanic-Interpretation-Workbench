@@ -21,4 +21,4 @@ jobs:
         pip install flake8
     - name: Analyse code
       run: |
-        flake8 --verbose --statistics app
+        flake8 --verbose --statistics app scripts
