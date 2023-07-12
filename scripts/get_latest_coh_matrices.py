@@ -9,16 +9,16 @@ Copyright (C) 2021-2023 Government of Canada
 Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
+
 import configparser
 import os
-import botocore.exceptions
-import boto3
 import yaml
+import boto3
 
 
 def main():
-    '''Main function, get latest perpendicular
-    baseline files for all site/beam combos'''
+    '''Main function, retrieve latest coherence
+    matrix files for all site/beam combos'''
     config = get_config_params("config.ini")
     s_3 = boto3.client('s3')
 
@@ -31,17 +31,15 @@ def main():
             print(f'Site: {site}, Beam: {beam}')
             if not os.path.exists(f'{site}/{beam}'):
                 os.makedirs(f'{site}/{beam}')
-            try:
-                s_3.download_file(Bucket=config.get('AWS', 'bucketName'),
-                                  Key=f'{site}/{beam}/bperp_all',
-                                  Filename=f'{site}/{beam}/bperp_all')
-            except botocore.exceptions.ClientError:
-                print('Perpendicular Basleine File not found')
+
+            s_3.download_file(Bucket=config.get('AWS', 'bucketName'),
+                              Key=f'{site}/{beam}/CoherenceMatrix.csv',
+                              Filename=f'{site}/{beam}/CoherenceMatrix.csv')
 
 
 def get_config_params(args):
     """
-    Parse command line arguments
+    Parse Input/Output columns from supplied *.ini file
     """
     config_parse_obj = configparser.ConfigParser()
     config_parse_obj.read(args)

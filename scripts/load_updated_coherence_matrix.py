@@ -1,3 +1,14 @@
+#!/usr/bin/python3
+"""
+Volcano InSAR Interpretation Workbench
+
+SPDX-License-Identifier: MIT
+
+Copyright (C) 2021-2023 Government of Canada
+
+Authors:
+  - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
+"""
 import argparse
 import configparser
 import boto3
