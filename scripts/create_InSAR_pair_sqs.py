@@ -15,7 +15,7 @@ import boto3
 
 
 def main():
-    '''Main function, create SQS job for pair of 
+    '''Main function, create SQS job for pair of
     SLC images for a given a site and beam'''
     args = parse_args()
     config = get_config_params("config.ini")
