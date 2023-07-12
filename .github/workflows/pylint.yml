@@ -1,6 +1,9 @@
 name: pylint
 
-on: [push]
+on: 
+  push:
+    branches:
+    - main
 
 jobs:
   build:
@@ -21,4 +24,4 @@ jobs:
         pip install pylint
     - name: Analyse code
       run: |
-        pylint --fail-under=9 app
+        pylint --fail-under=9 app scripts

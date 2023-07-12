@@ -65,6 +65,10 @@ conda env update --prune --file vrrc.yml
 
 ### Utility Scripts (Python)
 
+![pylint](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
+![flake8](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
+
+
 Utility scripts are included in the dashbaord to get the latest coherence and baseline data. They will usually be run automatically when new SAR imagery is ingested and processed however they can be run manually as well to update coherence and baseline data locally. A complete config.ini, copied from `app/sample_config.ini` file needs to be present in the `scripts` directory. The user will also need to be authenticated with the relevant cloud environment prior to running the script. 
 
 Scripts may have optional or mandatory arguments. Scripts requiring arguments will contain instructions via the --help argument. For example:

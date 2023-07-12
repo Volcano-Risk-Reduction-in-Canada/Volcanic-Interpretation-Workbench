@@ -1,3 +1,14 @@
+#!/usr/bin/python3
+"""
+Volcano InSAR Interpretation Workbench
+
+SPDX-License-Identifier: MIT
+
+Copyright (C) 2021-2023 Government of Canada
+
+Authors:
+  - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
+"""
 import argparse
 import configparser
 import boto3
@@ -11,7 +22,8 @@ def main():
     s3 = boto3.client('s3')
     s3.download_file(Bucket=config.get('AWS', 'bucketName'),
                      Key=f'{args.site}/{args.beam}/CoherenceMatrix.csv',
-                     Filename=f'Data/{args.site}/{args.beam}/CoherenceMatrix.csv')
+                     Filename=f'Data/{args.site} \
+                               /{args.beam}/CoherenceMatrix.csv')
 
 
 def get_config_params(args):
