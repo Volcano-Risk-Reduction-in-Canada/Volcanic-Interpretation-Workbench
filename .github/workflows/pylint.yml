@@ -1,6 +1,9 @@
 name: pylint
 
 on: [push]
+  branches:
+    # - main
+    - github_actions/lint_scripts_directory
 
 jobs:
   build:
