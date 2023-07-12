@@ -3,8 +3,7 @@ name: pylint
 on: 
   push:
     branches:
-    - github_actions/lint_scripts_directory
-    # - main
+    - main
 
 jobs:
   build:
