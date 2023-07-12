@@ -1,4 +1,7 @@
 # Volcanic-Interpretation-Workbench
+![pylint](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
+![flake8](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
+
 A Docker-Dash application for interpreting InSAR measurements of Canadian Volcanoes
 
 ![Screen Shot 2023-01-26 at 3 57 31 PM](https://user-images.githubusercontent.com/7228960/214976899-a2b3e2c8-1187-43d8-bd5b-0bdad686b11b.png)
@@ -64,9 +67,6 @@ conda env update --prune --file vrrc.yml
 ```
 
 ### Utility Scripts (Python)
-
-![pylint](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
-![flake8](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
 
 
 Utility scripts are included in the dashbaord to get the latest coherence and baseline data. They will usually be run automatically when new SAR imagery is ingested and processed however they can be run manually as well to update coherence and baseline data locally. A complete config.ini, copied from `app/sample_config.ini` file needs to be present in the `scripts` directory. The user will also need to be authenticated with the relevant cloud environment prior to running the script. 
