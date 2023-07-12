@@ -1,6 +1,6 @@
 # Volcanic-Interpretation-Workbench
-![pylint](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
 ![flake8](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/flake8.yml/badge.svg)
+![pylint](https://github.com/Volcano-Risk-Reduction-in-Canada/Volcanic-Interpretation-Workbench/actions/workflows/pylint.yml/badge.svg)
 
 A Docker-Dash application for interpreting InSAR measurements of Canadian Volcanoes
 
