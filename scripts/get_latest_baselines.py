@@ -26,6 +26,7 @@ def main():
 
     with open('beamList.yml', encoding="utf-8") as beam_list_yml:
         beam_list = yaml.safe_load(beam_list_yml)
+        print(beam_list)
     for site in beam_list:
         for beam in beam_list[site]:
             print(f'Site: {site}, Beam: {beam}')
