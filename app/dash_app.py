@@ -12,6 +12,7 @@ Authors:
 """
 import configparser
 import json
+import ogr
 import requests
 
 import numpy as np
@@ -333,15 +334,26 @@ def populate_beam_selector():
     beam_response_dict = json.loads(beam_response.text)
     targets_response = requests.get('http://10.70.137.60/targets/')
     targets_response_dict = json.loads(targets_response.text)
-    beam_list = []
+    beam_dict = {}
     for beam in beam_response_dict:
         site_string = beam['target_label'].split('_')[-1]
         beam_string = beam['short_name']
         site_beam_string = f'{site_string}_{beam_string}'
-        found_records = [record for record in targets_response_dict if record['label'] == target_label]
+        matching_target = [target for target in targets_response_dict if target['label'] == beam['target_label']]
+        target_coordinates = matching_target[0]['geometry']['coordinates'][0]
+        site_centroid_x, site_centroid_y = calculate_polygon_centroid(target_coordinates)
+        beam_dict[site_beam_string] = [site_centroid_y, site_centroid_x]
+    return beam_dict
 
-        beam_list.append(site_beam_string)
-    return beam_list
+
+def calculate_polygon_centroid(coordinates):
+    # Extract the coordinates
+    x_coords = [point[0] for point in coordinates]
+    y_coords = [point[1] for point in coordinates]
+    # Calculate the centroid
+    centroid_x = sum(x_coords) / len(coordinates)
+    centroid_y = sum(y_coords) / len(coordinates)
+    return round(centroid_x,2), round(centroid_y, 2)
 
 
 # construct dashboard
