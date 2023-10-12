@@ -11,6 +11,8 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
 import configparser
+import json
+import requests
 
 import numpy as np
 import pandas as pd
@@ -324,6 +326,22 @@ def plot_baseline(df_baseline, df_cohfull):
     bperp_combined_fig.update(layout_showlegend=False)
 
     return bperp_combined_fig
+
+
+def populate_beam_selector():
+    beam_response = requests.get('http://10.70.137.60/beams/')
+    beam_response_dict = json.loads(beam_response.text)
+    targets_response = requests.get('http://10.70.137.60/targets/')
+    targets_response_dict = json.loads(targets_response.text)
+    beam_list = []
+    for beam in beam_response_dict:
+        site_string = beam['target_label'].split('_')[-1]
+        beam_string = beam['short_name']
+        site_beam_string = f'{site_string}_{beam_string}'
+        found_records = [record for record in targets_response_dict if record['label'] == target_label]
+
+        beam_list.append(site_beam_string)
+    return beam_list
 
 
 # construct dashboard
