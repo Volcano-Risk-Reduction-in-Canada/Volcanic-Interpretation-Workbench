@@ -12,7 +12,6 @@ Authors:
 """
 import configparser
 import json
-import ogr
 import requests
 
 import numpy as np
@@ -69,57 +68,6 @@ COH_LIMS = (0.2, 0.4)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
-
-# TODO read target configuration from database
-TARGET_CENTRES = {
-    'Meager_5M2': [50.64, -123.60],
-    'Meager_5M3': [50.64, -123.60],
-    'Meager_5M8': [50.64, -123.60],
-    'Meager_5M10': [50.64, -123.60],
-    'Meager_5M15': [50.64, -123.60],
-    'Meager_5M21': [50.64, -123.60],
-    'Garibaldi_3M6': [49.90, -122.99],
-    'Garibaldi_3M7': [49.90, -122.99],
-    'Garibaldi_3M18': [49.90, -122.99],
-    'Garibaldi_3M23': [49.90, -122.99],
-    'Garibaldi_3M30': [49.90, -122.99],
-    'Garibaldi_3M34': [49.90, -122.99],
-    'Garibaldi_3M42': [49.90, -122.99],
-    'Cayley_3M1': [50.12, -123.29],
-    'Cayley_3M6': [50.12, -123.29],
-    'Cayley_3M13': [50.12, -123.29],
-    'Cayley_3M14': [50.12, -123.29],
-    'Cayley_3M17': [50.12, -123.29],
-    'Cayley_3M24': [50.12, -123.29],
-    'Cayley_3M30': [50.12, -123.29],
-    'Cayley_3M36': [50.12, -123.29],
-    'Edgecumbe_3M36D': [57.05, -135.75],
-    'Edgecumbe_SLA18D': [57.05, -135.75],
-    'Edgecumbe_SLA74A': [57.05, -135.75],
-    'Edziza_North_3M13': [57.74, -130.64],
-    'Edziza_North_3M41': [57.74, -130.64],
-    'Edziza_South_3M12': [57.64, -130.64],
-    'Edziza_South_3M31': [57.64, -130.64],
-    'Edziza_South_3M42': [57.64, -130.64],
-    'Tseax_3M7': [55.11, -128.90],
-    'Tseax_3M9': [55.11, -128.90],
-    'Tseax_ 3M19': [55.11, -128.90],
-    'Tseax_3M40': [55.11, -128.90],
-    'Nazko_3M9': [52.93, -123.73],
-    'Nazko_3M20': [52.93, -123.73],
-    'Nazko_3M31': [52.93, -123.73],
-    'Hoodoo_3M8': [56.77, -131.29],
-    'Hoodoo_3M11': [56.77, -131.29],
-    'Hoodoo_3M14': [56.77, -131.29],
-    'Hoodoo_3M38': [56.77, -131.29],
-    'Hoodoo_3M41': [56.77, -131.29],
-    'LavaFork_3M11': [56.42, -130.85],
-    'LavaFork_3M20': [56.42, -130.85],
-    'LavaFork_3M21': [56.42, -130.85],
-    'LavaFork_3M29': [56.42, -130.85],
-    'LavaFork_3M31': [56.42, -130.85],
-    'LavaFork_3M41': [56.42, -130.85],
-}
 
 
 def _read_coherence(coherence_csv):
@@ -336,13 +284,15 @@ def populate_beam_selector():
     targets_response_dict = json.loads(targets_response.text)
     beam_dict = {}
     for beam in beam_response_dict:
-        site_string = beam['target_label'].split('_')[-1]
         beam_string = beam['short_name']
+        for target in targets_response_dict:
+            if target['label'] == beam['target_label']:
+                matching_target = target
+        site_string = matching_target[0]['name_en']
         site_beam_string = f'{site_string}_{beam_string}'
-        matching_target = [target for target in targets_response_dict if target['label'] == beam['target_label']]
         target_coordinates = matching_target[0]['geometry']['coordinates'][0]
-        site_centroid_x, site_centroid_y = calculate_polygon_centroid(target_coordinates)
-        beam_dict[site_beam_string] = [site_centroid_y, site_centroid_x]
+        centroid_x, centroid_y = calculate_polygon_centroid(target_coordinates)
+        beam_dict[site_beam_string] = [centroid_y, centroid_x]
     return beam_dict
 
 
@@ -353,7 +303,7 @@ def calculate_polygon_centroid(coordinates):
     # Calculate the centroid
     centroid_x = sum(x_coords) / len(coordinates)
     centroid_y = sum(y_coords) / len(coordinates)
-    return round(centroid_x,2), round(centroid_y, 2)
+    return round(centroid_x, 2), round(centroid_y, 2)
 
 
 # construct dashboard
@@ -363,6 +313,7 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
+TARGET_CENTRES = populate_beam_selector()
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
