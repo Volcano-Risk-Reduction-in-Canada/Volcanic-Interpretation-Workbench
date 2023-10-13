@@ -277,10 +277,13 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 
-def populate_beam_selector():
-    beam_response = requests.get('http://10.70.137.60/beams/')
+def populate_beam_selector(vrrc_api_ip):
+    """creat dict of site_beams and centroid coordinates"""
+    beam_response = requests.get('http://{vrrc_api_ip}/beams/',
+                                 timeout=10)
     beam_response_dict = json.loads(beam_response.text)
-    targets_response = requests.get('http://10.70.137.60/targets/')
+    targets_response = requests.get('http://{vrrc_api_ip}/targets/',
+                                    timeout=10)
     targets_response_dict = json.loads(targets_response.text)
     beam_dict = {}
     for beam in beam_response_dict:
@@ -297,6 +300,7 @@ def populate_beam_selector():
 
 
 def calculate_polygon_centroid(coordinates):
+    """Calculate centroid from geojson coordinates"""
     # Extract the coordinates
     x_coords = [point[0] for point in coordinates]
     y_coords = [point[1] for point in coordinates]
@@ -313,7 +317,7 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
-TARGET_CENTRES = populate_beam_selector()
+TARGET_CENTRES = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
