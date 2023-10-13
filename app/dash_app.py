@@ -279,10 +279,10 @@ def plot_baseline(df_baseline, df_cohfull):
 
 def populate_beam_selector(vrrc_api_ip):
     """creat dict of site_beams and centroid coordinates"""
-    beam_response = requests.get('http://{vrrc_api_ip}/beams/',
+    beam_response = requests.get(f'http://{vrrc_api_ip}/beams/',
                                  timeout=10)
     beam_response_dict = json.loads(beam_response.text)
-    targets_response = requests.get('http://{vrrc_api_ip}/targets/',
+    targets_response = requests.get(f'http://{vrrc_api_ip}/targets/',
                                     timeout=10)
     targets_response_dict = json.loads(targets_response.text)
     beam_dict = {}
