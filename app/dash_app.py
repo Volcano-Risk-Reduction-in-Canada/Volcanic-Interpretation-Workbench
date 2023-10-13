@@ -293,7 +293,7 @@ def populate_beam_selector(vrrc_api_ip):
                 matching_target = target
         site_string = matching_target['name_en']
         site_beam_string = f'{site_string}_{beam_string}'
-        target_coordinates = matching_target[0]['geometry']['coordinates'][0]
+        target_coordinates = matching_target['geometry']['coordinates'][0]
         centroid_x, centroid_y = calculate_polygon_centroid(target_coordinates)
         beam_dict[site_beam_string] = [centroid_y, centroid_x]
     return beam_dict
