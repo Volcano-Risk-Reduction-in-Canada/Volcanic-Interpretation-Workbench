@@ -47,7 +47,6 @@ GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
-INITIAL_TARGET = 'Meager_5M10'
 
 # basemap configuration
 BASEMAP_URL = (
@@ -71,6 +70,8 @@ DAYS_PER_YEAR = 365.25
 
 
 def _read_coherence(coherence_csv):
+    if coherence_csv is None:
+        return None
     coh = pd.read_csv(
         coherence_csv,
         parse_dates=['Reference Date', 'Pair Date'])
@@ -84,6 +85,8 @@ def _read_coherence(coherence_csv):
 
 
 def _read_baseline(baseline_csv):
+    if baseline_csv is None:
+        return None
     baseline = pd.read_csv(
         baseline_csv,
         delimiter=' ',
@@ -112,11 +115,15 @@ def _valid_dates(coh):
 
 
 def _coherence_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
     site, beam = target_id.rsplit('_', 1)
     return f'Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
 def _baseline_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
     site, beam = target_id.rsplit('_', 1)
     return f'Data/{site}/{beam}/bperp_all'
 
@@ -164,6 +171,12 @@ def pivot_and_clean_dates(coh_long, coh_wide):
 
 def plot_coherence(coh_long):
     """Plot coherence for different baselines as a function of time."""
+    if coh_long is None:
+        fig = make_subplots(
+            rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
+            start_cell='bottom-left', vertical_spacing=0.02,
+            y_title='Temporal baseline [days]')
+        return fig
     coh_long['delta_days'] = (coh_long.second_date -
                               coh_long.first_date).dt.days
     coh_wide = pivot_and_clean(coh_long)
@@ -230,10 +243,12 @@ def plot_coherence(coh_long):
 
 def plot_baseline(df_baseline, df_cohfull):
     """Plot perpendicular baseline as a function of time."""
+    if df_baseline or df_cohfull is None:
+        bperp_combined_fig = go.Figure()
+        return bperp_combined_fig
     bperp_scatter_fig = go.Scatter(x=df_baseline['second_date'],
                                    y=df_baseline['bperp'],
                                    mode='markers')
-
     df_baseline_edge = df_cohfull[df_cohfull['coherence'].notna()]
     df_baseline_edge = df_baseline_edge.drop(columns=['coherence'])
     df_baseline_edge = pd.merge(df_baseline_edge,
@@ -265,11 +280,11 @@ def plot_baseline(df_baseline, df_cohfull):
         edge_y.append(edge['bperp_reference_date'])
         edge_y.append(edge['bperp_pair_date'])
 
-    bperpLinefig = go.Scatter(x=edge_x, y=edge_y,
-                              line=dict(width=0.5, color='#888'),
-                              mode='lines')
+    bperp_line_fig = go.Scatter(x=edge_x, y=edge_y,
+                                line=dict(width=0.5, color='#888'),
+                                mode='lines')
 
-    bperp_combined_fig = go.Figure(data=[bperpLinefig, bperp_scatter_fig])
+    bperp_combined_fig = go.Figure(data=[bperp_line_fig, bperp_scatter_fig])
     bperp_combined_fig.update_layout(yaxis_title="Perpendicular Baseline (m)",
                                      margin={'l': 65, 'r': 0, 't': 5, 'b': 5})
     bperp_combined_fig.update(layout_showlegend=False)
@@ -279,27 +294,39 @@ def plot_baseline(df_baseline, df_cohfull):
 
 def populate_beam_selector(vrrc_api_ip):
     """creat dict of site_beams and centroid coordinates"""
-    beam_response = requests.get(f'http://{vrrc_api_ip}/beams/',
-                                 timeout=10)
-    beam_response_dict = json.loads(beam_response.text)
-    targets_response = requests.get(f'http://{vrrc_api_ip}/targets/',
-                                    timeout=10)
-    targets_response_dict = json.loads(targets_response.text)
+    beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
+    targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
     beam_dict = {}
     for beam in beam_response_dict:
-        beam_string = beam['short_name']
-        for target in targets_response_dict:
-            if target['label'] == beam['target_label']:
-                matching_target = target
-        site_string = matching_target['name_en']
-        site_beam_string = f'{site_string}_{beam_string}'
-        target_coordinates = matching_target['geometry']['coordinates'][0]
-        centroid_x, centroid_y = calculate_polygon_centroid(target_coordinates)
-        beam_dict[site_beam_string] = [centroid_y, centroid_x]
+        try:
+            beam_string = beam['short_name']
+            for target in targets_response_dict:
+                if target['label'] == beam['target_label']:
+                    matching_target = target
+            site_string = matching_target['name_en']
+            site_beam_string = f'{site_string}_{beam_string}'
+            target_coordinates = matching_target['geometry']['coordinates'][0]
+            centroid_x, centroid_y = calc_polygon_centroid(target_coordinates)
+            beam_dict[site_beam_string] = [centroid_y, centroid_x]
+        except TypeError:
+            beam_dict['API Response Error'] = [50.64, -123.60]
     return beam_dict
 
 
-def calculate_polygon_centroid(coordinates):
+def get_api_response(vrrc_api_ip, route):
+    try:
+        response = requests.get(f'http://{vrrc_api_ip}/{route}/',
+                                timeout=1)
+        response.raise_for_status()
+        response_dict = json.loads(response.text)
+        return response_dict
+    except requests.exceptions.RequestException as exception:
+        response_dict = {}
+        response_dict['API Response Error'] = [exception.args[0]]
+        return response_dict
+
+
+def calc_polygon_centroid(coordinates):
     """Calculate centroid from geojson coordinates"""
     # Extract the coordinates
     x_coords = [point[0] for point in coordinates]
@@ -318,6 +345,7 @@ app = DashProxy(prevent_initial_callbacks=True,
                 external_stylesheets=[dbc.themes.DARKLY])
 
 TARGET_CENTRES = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
+INITIAL_TARGET = next(iter(TARGET_CENTRES))
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
