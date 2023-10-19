@@ -316,7 +316,7 @@ def populate_beam_selector(vrrc_api_ip):
 def get_api_response(vrrc_api_ip, route):
     try:
         response = requests.get(f'http://{vrrc_api_ip}/{route}/',
-                                timeout=1)
+                                timeout=10)
         response.raise_for_status()
         response_dict = json.loads(response.text)
         return response_dict
