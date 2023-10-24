@@ -11,6 +11,8 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
 import configparser
+import json
+import requests
 
 import numpy as np
 import pandas as pd
@@ -45,7 +47,6 @@ GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
-INITIAL_TARGET = 'Meager_5M10'
 
 # basemap configuration
 BASEMAP_URL = (
@@ -67,59 +68,10 @@ TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
 
-# TODO read target configuration from database
-TARGET_CENTRES = {
-    'Meager_5M2': [50.64, -123.60],
-    'Meager_5M3': [50.64, -123.60],
-    'Meager_5M8': [50.64, -123.60],
-    'Meager_5M10': [50.64, -123.60],
-    'Meager_5M15': [50.64, -123.60],
-    'Meager_5M21': [50.64, -123.60],
-    'Garibaldi_3M6': [49.90, -122.99],
-    'Garibaldi_3M7': [49.90, -122.99],
-    'Garibaldi_3M18': [49.90, -122.99],
-    'Garibaldi_3M23': [49.90, -122.99],
-    'Garibaldi_3M30': [49.90, -122.99],
-    'Garibaldi_3M34': [49.90, -122.99],
-    'Garibaldi_3M42': [49.90, -122.99],
-    'Cayley_3M1': [50.12, -123.29],
-    'Cayley_3M6': [50.12, -123.29],
-    'Cayley_3M13': [50.12, -123.29],
-    'Cayley_3M14': [50.12, -123.29],
-    'Cayley_3M17': [50.12, -123.29],
-    'Cayley_3M24': [50.12, -123.29],
-    'Cayley_3M30': [50.12, -123.29],
-    'Cayley_3M36': [50.12, -123.29],
-    'Edgecumbe_3M36D': [57.05, -135.75],
-    'Edgecumbe_SLA18D': [57.05, -135.75],
-    'Edgecumbe_SLA74A': [57.05, -135.75],
-    'Edziza_North_3M13': [57.74, -130.64],
-    'Edziza_North_3M41': [57.74, -130.64],
-    'Edziza_South_3M12': [57.64, -130.64],
-    'Edziza_South_3M31': [57.64, -130.64],
-    'Edziza_South_3M42': [57.64, -130.64],
-    'Tseax_3M7': [55.11, -128.90],
-    'Tseax_3M9': [55.11, -128.90],
-    'Tseax_ 3M19': [55.11, -128.90],
-    'Tseax_3M40': [55.11, -128.90],
-    'Nazko_3M9': [52.93, -123.73],
-    'Nazko_3M20': [52.93, -123.73],
-    'Nazko_3M31': [52.93, -123.73],
-    'Hoodoo_3M8': [56.77, -131.29],
-    'Hoodoo_3M11': [56.77, -131.29],
-    'Hoodoo_3M14': [56.77, -131.29],
-    'Hoodoo_3M38': [56.77, -131.29],
-    'Hoodoo_3M41': [56.77, -131.29],
-    'LavaFork_3M11': [56.42, -130.85],
-    'LavaFork_3M20': [56.42, -130.85],
-    'LavaFork_3M21': [56.42, -130.85],
-    'LavaFork_3M29': [56.42, -130.85],
-    'LavaFork_3M31': [56.42, -130.85],
-    'LavaFork_3M41': [56.42, -130.85],
-}
-
 
 def _read_coherence(coherence_csv):
+    if coherence_csv is None:
+        return None
     coh = pd.read_csv(
         coherence_csv,
         parse_dates=['Reference Date', 'Pair Date'])
@@ -133,6 +85,8 @@ def _read_coherence(coherence_csv):
 
 
 def _read_baseline(baseline_csv):
+    if baseline_csv is None:
+        return None
     baseline = pd.read_csv(
         baseline_csv,
         delimiter=' ',
@@ -161,11 +115,15 @@ def _valid_dates(coh):
 
 
 def _coherence_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
     site, beam = target_id.rsplit('_', 1)
     return f'Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
 def _baseline_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
     site, beam = target_id.rsplit('_', 1)
     return f'Data/{site}/{beam}/bperp_all'
 
@@ -213,6 +171,12 @@ def pivot_and_clean_dates(coh_long, coh_wide):
 
 def plot_coherence(coh_long):
     """Plot coherence for different baselines as a function of time."""
+    if coh_long is None:
+        fig = make_subplots(
+            rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
+            start_cell='bottom-left', vertical_spacing=0.02,
+            y_title='Temporal baseline [days]')
+        return fig
     coh_long['delta_days'] = (coh_long.second_date -
                               coh_long.first_date).dt.days
     coh_wide = pivot_and_clean(coh_long)
@@ -279,10 +243,12 @@ def plot_coherence(coh_long):
 
 def plot_baseline(df_baseline, df_cohfull):
     """Plot perpendicular baseline as a function of time."""
+    if df_baseline or df_cohfull is None:
+        bperp_combined_fig = go.Figure()
+        return bperp_combined_fig
     bperp_scatter_fig = go.Scatter(x=df_baseline['second_date'],
                                    y=df_baseline['bperp'],
                                    mode='markers')
-
     df_baseline_edge = df_cohfull[df_cohfull['coherence'].notna()]
     df_baseline_edge = df_baseline_edge.drop(columns=['coherence'])
     df_baseline_edge = pd.merge(df_baseline_edge,
@@ -314,16 +280,61 @@ def plot_baseline(df_baseline, df_cohfull):
         edge_y.append(edge['bperp_reference_date'])
         edge_y.append(edge['bperp_pair_date'])
 
-    bperpLinefig = go.Scatter(x=edge_x, y=edge_y,
-                              line=dict(width=0.5, color='#888'),
-                              mode='lines')
+    bperp_line_fig = go.Scatter(x=edge_x, y=edge_y,
+                                line=dict(width=0.5, color='#888'),
+                                mode='lines')
 
-    bperp_combined_fig = go.Figure(data=[bperpLinefig, bperp_scatter_fig])
+    bperp_combined_fig = go.Figure(data=[bperp_line_fig, bperp_scatter_fig])
     bperp_combined_fig.update_layout(yaxis_title="Perpendicular Baseline (m)",
                                      margin={'l': 65, 'r': 0, 't': 5, 'b': 5})
     bperp_combined_fig.update(layout_showlegend=False)
 
     return bperp_combined_fig
+
+
+def populate_beam_selector(vrrc_api_ip):
+    """creat dict of site_beams and centroid coordinates"""
+    beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
+    targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
+    beam_dict = {}
+    for beam in beam_response_dict:
+        try:
+            beam_string = beam['short_name']
+            for target in targets_response_dict:
+                if target['label'] == beam['target_label']:
+                    matching_target = target
+            site_string = matching_target['name_en']
+            site_beam_string = f'{site_string}_{beam_string}'
+            target_coordinates = matching_target['geometry']['coordinates'][0]
+            centroid_x, centroid_y = calc_polygon_centroid(target_coordinates)
+            beam_dict[site_beam_string] = [centroid_y, centroid_x]
+        except TypeError:
+            beam_dict['API Response Error'] = [50.64, -123.60]
+    return beam_dict
+
+
+def get_api_response(vrrc_api_ip, route):
+    try:
+        response = requests.get(f'http://{vrrc_api_ip}/{route}/',
+                                timeout=10)
+        response.raise_for_status()
+        response_dict = json.loads(response.text)
+        return response_dict
+    except requests.exceptions.RequestException as exception:
+        response_dict = {}
+        response_dict['API Response Error'] = [exception.args[0]]
+        return response_dict
+
+
+def calc_polygon_centroid(coordinates):
+    """Calculate centroid from geojson coordinates"""
+    # Extract the coordinates
+    x_coords = [point[0] for point in coordinates]
+    y_coords = [point[1] for point in coordinates]
+    # Calculate the centroid
+    centroid_x = sum(x_coords) / len(coordinates)
+    centroid_y = sum(y_coords) / len(coordinates)
+    return round(centroid_x, 2), round(centroid_y, 2)
 
 
 # construct dashboard
@@ -333,6 +344,8 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
+TARGET_CENTRES = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
+INITIAL_TARGET = next(iter(TARGET_CENTRES))
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
