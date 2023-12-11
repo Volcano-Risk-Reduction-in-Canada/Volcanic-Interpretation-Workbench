@@ -32,6 +32,7 @@ from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
+dash.register_page(__name__, path='/site')
 
 def get_config_params(args):
     """Parse configuration from supplied file."""
@@ -40,7 +41,7 @@ def get_config_params(args):
     return config_obj
 
 
-config = get_config_params('config.ini')
+config = get_config_params('scripts/config.ini')
 GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 
 # TODO add support for some or all of the following parameters to config
@@ -119,14 +120,14 @@ def _coherence_csv(target_id):
     if target_id == 'API Response Error':
         return None
     site, beam = target_id.rsplit('_', 1)
-    return f'Data/{site}/{beam}/CoherenceMatrix.csv'
+    return f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
 def _baseline_csv(target_id):
     if target_id == 'API Response Error':
         return None
     site, beam = target_id.rsplit('_', 1)
-    return f'Data/{site}/{beam}/bperp_all'
+    return f'app/Data/{site}/{beam}/bperp_all'
 
 
 def pivot_and_clean(coh_long):
@@ -435,7 +436,8 @@ baseline_tab = Tabs(id="tabs-example-graph",
                            'height': '25px'},
                     vertical=False)
 
-app.layout = dbc.Container(
+layout = dbc.Container(
+# app.layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
         dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
