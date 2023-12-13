@@ -12,36 +12,29 @@ Authors:
 """
 
 import configparser
-import dash
 import json
+import dash
 import requests
 
-from dash import html, callback, dash_table
-from dash.dcc import Tooltip, Graph, Tab, Tabs, Markdown
-from dash_bootstrap_templates import load_figure_template
+from dash import html, dash_table, dcc, callback
 import dash_bootstrap_components as dbc
 from dash_leaflet import (Map,
                           TileLayer,
                           LayersControl,
                           BaseLayer,
-                          WMSTileLayer,
                           GeoJSON)
 from dash_extensions.enrich import (Output,
-                                    DashProxy,
                                     Input,
-                                    MultiplexerTransform)
-from dash_extensions.javascript import arrow_function
-
-
-from plotly.graph_objects import Heatmap
-from plotly.subplots import make_subplots
+                                    State)
+from dash_extensions.javascript import (assign,
+                                        arrow_function)
 
 import pandas as pd
-import plotly.graph_objects as go
 
 dash.register_page(__name__, path='/')
 
 df = pd.read_csv('app/Data/home_test_table.csv')
+
 
 def get_config_params(args):
     """Parse configuration from supplied file."""
@@ -55,6 +48,9 @@ def read_targets_geojson():
     try:
         response = requests.get('http://127.0.0.1:8080/targets/geojson')
         response_geojson = json.loads(response.content)
+        for feature in response_geojson['features']:
+            feature['properties']['tooltip'] = feature['id']
+
     except requests.exceptions.ConnectionError:
         response_geojson = None
         # pass
@@ -62,6 +58,10 @@ def read_targets_geojson():
 
 
 targets_geojson = read_targets_geojson()
+# print(targets_geojson['features'][0]['properties']['name_en'])
+on_each_feature = assign("""function(feature, layer, context){
+    layer.bindTooltip(`${feature.properties.name_en}`)
+}""")
 config = get_config_params('scripts/config.ini')
 GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 
@@ -76,14 +76,19 @@ BASEMAP_NAME = 'USGS Topo'
 
 # spatial_view = html.Div()
 layout = html.Div([
-    html.H3('VRRC InSAR - National Overview', 
-            style={'text-align': 'center'}),
+    dcc.Location(id='url', refresh=True),
+    dcc.Store(id='selected_feature'),
+    html.H3(
+        id='Title',
+        children='VRRC InSAR - National Overview',
+        style={'text-align': 'center'}),
     html.Div(
         id='interferogram-bg',
         style={'width': '100%', 'height': '100vh', 'position': 'relative'},
         children=[
             Map(
-                style={'width': '100%', 'height': '100%'},
+                id='map',
+                style={'width': '100%', 'height': '95vh'},
                 center=[54.64, -123.60],
                 zoom=6,
                 children=[
@@ -98,41 +103,34 @@ layout = html.Div([
                             checked=True
                         ),
                     ),
+                    # Popup(position=[57, 10], children="Hello world!"),
                     GeoJSON(
                         data=targets_geojson,
                         options=dict(
                             style=dict(color='red')
                         ),
                         zoomToBounds=False,
-                        zoomToBoundsOnClick=True,
+                        zoomToBoundsOnClick=False,
                         id='geojson',
+                        # onEachFeature=on_each_feature,
+                        # children=[
+                        #     Tooltip(
+                        #         id='geojson_tooltip',
+                        #         interactive=True,
+                        #         content="This is <b>html<b/>!")],
                         hoverStyle=arrow_function(dict(weight=5,
                                                         color='#666',
                                                         dashArray=''))
                     ),
-                    html.Div(
-                        id="popup-output",
-                        style={"position": "absolute",
-                               "pointer-events": "all",
-                               "display": "none"}),
                 ]
             ),
-            # Style for custom popup
-            Markdown("""
-                .popup {
-                    background-color: black;
-                    border: 1px solid #ccc;
-                    padding: 5px;
-                    max-width: 200px;
-                }
-            """),
         ]
     ),
     html.Div(
         id='table-container',
         style={'position': 'absolute',
-               'bottom': '200px',
-               'right': '2%',
+               'top': '125px',
+               'right': '0.7%',
                'width': '20%',
                'zIndex': 1000},
         children=[
@@ -149,54 +147,46 @@ layout = html.Div([
             )
         ]
     ),
-
 ])
 
-@callback(
-    Output("hover-output", "children"),
-    Input("geojson", "hover_feature"),
-)
-def display_hover_info(hover_feature):
-    if hover_feature is not None:
-        return [
-            html.Div(
-                className="popup",
-                children=[
-                    html.Div(f"Name: {hover_feature['properties']['name']}"),
-                    html.Div(f"Info: {hover_feature['properties']['info']}"),
-                ],
-                id="popup-div",
-            )
-        ]
 
-    return []
-
-
-clientside_callback(
-    """
-    function updatePopupPosition(hoverFeature) {
-        if (hoverFeature) {
-            var popupDiv = document.getElementById("popup-div");
-            popupDiv.style.display = "block";
-            popupDiv.style.left = hoverFeature.layerPoint.x + "px";
-            popupDiv.style.top = hoverFeature.layerPoint.y + "px";
-        } else {
-            var popupDiv = document.getElementById("popup-div");
-            popupDiv.style.display = "none";
-        }
-    }
-    """,
-    Output("popup-container", "children"),
-    Input("geojson", "hover_feature"),
-)
-
-# @callback(Output("site", "children"),
-#           Input("sites", "hover_feature"))
-# def state_hover(feature):
+# @callback(
+#     Output('selected_feature', 'data'),
+#     [Input('geojson', 'click_feature')]
+# )
+# def update_selected_feature(feature):
 #     if feature is not None:
-#         children = [
-#                     html.Div([
-#                         f"{feature['properties']['name_en']}"
-#                         ], style={'width': '200px', 'white-space': 'normal'})
-#                     ]
-#         return children
+#         return feature['properties']
+#     return {}
+
+
+# Callback to navigate to a new page based on the selected feature
+@callback(
+    [Output('selected_feature', 'data'),
+     Output('url', 'pathname'),
+     Output('map', 'children')],
+    [Input('map', 'click_lat_lng')],
+    [State('geojson', 'data')],
+    prevent_initial_call=True
+)
+def handle_map_click(click_lat_lng, geojson_data):
+    selected_feature = {}
+    new_page_path = '/'
+    map_children = [
+        TileLayer(),
+        GeoJSON(data=geojson_data, id='geojson', click_feature_event='click'),
+    ]
+
+    if click_lat_lng is not None:
+        for feature in geojson_data['features']:
+            geometry = feature.get('geometry', {})
+            if geometry.get('type') == 'Polygon' and dl.inside_polygon(click_lat_lng, geometry.get('coordinates', [[]])):
+                selected_feature = feature['properties']
+                new_page_path = '/new_page'
+                map_children = [
+                    html.H3(f"Additional information about {selected_feature.get('name_en', 'Unknown')}"),
+                    # Add more components to display additional information as needed
+                ]
+                break
+
+    return selected_feature, new_page_path, map_children
