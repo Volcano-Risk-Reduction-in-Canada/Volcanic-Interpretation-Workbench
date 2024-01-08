@@ -20,10 +20,10 @@ def main():
 
     # Copy file from S3 into filesystem
     s3 = boto3.client('s3')
-    s3.download_file(Bucket=config.get('AWS', 'bucketName'),
-                     Key=f'{args.site}/{args.beam}/CoherenceMatrix.csv',
-                     Filename=f'Data/{args.site} \
-                               /{args.beam}/CoherenceMatrix.csv')
+    s3.download_file(
+        Bucket=config.get('AWS', 'bucketName'),
+        Key=f'{args.site}/{args.beam}/CoherenceMatrix.csv',
+        Filename=f'Data/{args.site}/{args.beam}/CoherenceMatrix.csv')
 
 
 def get_config_params(args):
@@ -37,7 +37,7 @@ def get_config_params(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Copy latest coherence matrix into ")
+        description="Copy latest coherence matrix into dashboard application")
     parser.add_argument("--site",
                         type=str,
                         help="Volcano Site Name, i.e. 'Meager'",
