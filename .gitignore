@@ -3,4 +3,4 @@ virtualenv/*
 *.pyc
 config.ini
 app/Data
-venv
+venv*

@@ -18,7 +18,8 @@ import dash
 import numpy as np
 import pandas as pd
 
-from dash import html, Dash
+from dash import html, callback
+from dash.dependencies import State
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
@@ -33,6 +34,8 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 dash.register_page(__name__, path='/site')
+print("done importing")
+
 
 def get_config_params(args):
     """Parse configuration from supplied file."""
@@ -245,9 +248,12 @@ def plot_coherence(coh_long):
 
 def plot_baseline(df_baseline, df_cohfull):
     """Plot perpendicular baseline as a function of time."""
-    if df_baseline or df_cohfull is None:
+    if df_baseline is None or df_cohfull is None:
         bperp_combined_fig = go.Figure()
         return bperp_combined_fig
+    # if :
+    #     bperp_combined_fig = go.Figure()
+    #     return bperp_combined_fig
     bperp_scatter_fig = go.Scatter(x=df_baseline['second_date'],
                                    y=df_baseline['bperp'],
                                    mode='markers')
@@ -316,6 +322,7 @@ def populate_beam_selector(vrrc_api_ip):
 
 
 def get_api_response(vrrc_api_ip, route):
+    """Get a response from the vrrc API given an ip and a route"""
     try:
         response = requests.get(f'http://{vrrc_api_ip}/{route}/',
                                 timeout=10)
@@ -362,40 +369,39 @@ selector = html.Div(
     ),
 )
 
-spatial_view = html.Div(
-    Map(
-        [
-            TileLayer(),
-            LayersControl(
-                BaseLayer(
-                    TileLayer(
-                        url=BASEMAP_URL,
-                        attribution=BASEMAP_ATTRIBUTION
-                    ),
-                    name=BASEMAP_NAME,
-                    checked=True
+spatial_view = Map(
+    children=[
+        TileLayer(),
+        LayersControl(
+            BaseLayer(
+                TileLayer(
+                    url=BASEMAP_URL,
+                    attribution=BASEMAP_ATTRIBUTION
                 ),
+                name=BASEMAP_NAME,
+                checked=True
             ),
-            WMSTileLayer(
-                id='interferogram',
-                url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
-                layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
-                format='image/png',
-                transparent=True,
-                opacity=0.75),
-            WMSTileLayer(
-                url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
-                layers='cite:permanent_snow_and_ice_2',
-                format='image/png',
-                transparent=True,
-                opacity=1.0)
-        ],
-        id='interferogram-bg',
-        center=TARGET_CENTRES[INITIAL_TARGET],
-        zoom=12,
-    ),
-    style={'height': '100%'},
+        ),
+        WMSTileLayer(
+            id='interferogram',
+            url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
+            layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
+            format='image/png',
+            transparent=True,
+            opacity=0.75),
+        WMSTileLayer(
+            url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
+            layers='cite:permanent_snow_and_ice_2',
+            format='image/png',
+            transparent=True,
+            opacity=1.0)
+    ],
+    id='interferogram-bg',
+    center=TARGET_CENTRES[INITIAL_TARGET],
+    zoom=12,
+    style={'height': '100%'}
 )
+
 
 temporal_view = Graph(
     id='coherence-matrix',
@@ -455,9 +461,58 @@ layout = dbc.Container(
 )
 
 
-@app.callback(
-    Output(component_id='interferogram', component_property='layers'),
-    Input(component_id='coherence-matrix', component_property='clickData'))
+# broken
+# @callback(
+#     Output(component_id='interferogram-bg', component_property='children', allow_duplicate=True),
+#     [Input(component_id='coherence-matrix', component_property='clickData'),
+#      State(component_id='interferogram-bg', component_property='children')],
+#     prevent_initial_call=True)
+# def update_interferogram(click_data, map_children):
+#     """Update interferogram display."""
+#     print('Map Children:')
+#     print(map_children)
+#     print('')
+#     if not click_data:
+#         return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
+#     second = pd.to_datetime(click_data['points'][0]['x'])
+#     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
+#     first = second - delta
+    
+#     first_str = first.strftime('%Y%m%d')
+#     second_str = second.strftime('%Y%m%d')
+#     layer = f'cite:{first_str}_HH_{second_str}_HH.adf.wrp.geo'
+#     print(f'Updating interferogram: {layer}')
+#     print('#################################################')
+#     new_wms_tile_layer = WMSTileLayer(
+#             id='interferogram',
+#             url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
+#             layers=layer,
+#             format='image/png',
+#             transparent=True,
+#             opacity=0.75
+#         )
+#     print(new_wms_tile_layer)
+#     print('#################################################')
+#     current_children = [
+#                 child for child in layout['interferogram-bg'].children
+#                 if isinstance(child, (TileLayer, WMSTileLayer))
+#             ]
+#     for child in current_children:
+#         print(child)
+#     print('#################################################')
+#     current_children[1] = new_wms_tile_layer
+#     for child in current_children:
+#         print(child)
+#     print('#################################################')
+#     # print(Map(id='interferogram-bg').children)
+
+#     layout['interferogram-bg'].children = current_children
+#     return current_children
+
+@callback(
+    Output(component_id='interferogram', component_property='layers', allow_duplicate=True),
+    Input(component_id='coherence-matrix', component_property='clickData'),
+    prevent_initial_call=True)
 def update_interferogram(click_data):
     """Update interferogram display."""
     if not click_data:
@@ -472,20 +527,22 @@ def update_interferogram(click_data):
     print(f'Updating interferogram: {layer}')
     return layer
 
-
-@app.callback(
-    Output(component_id='interferogram', component_property='url'),
-    Input(component_id='site-dropdown', component_property='value'))
+# not sure
+@callback(
+    Output(component_id='interferogram', component_property='url', allow_duplicate=True),
+    Input(component_id='site-dropdown', component_property='value'),
+    prevent_initial_call=True)
 def update_site(value):
     """Switch between sites."""
     url = f'{GEOSERVER_ENDPOINT}/{value}/wms?'
     print(f'New site url: {url}')
     return url
 
-
-@app.callback(
-    Output(component_id='coherence-matrix', component_property='figure'),
-    Input(component_id='site-dropdown', component_property='value'))
+# works
+@callback(
+    Output(component_id='coherence-matrix', component_property='figure', allow_duplicate=True),
+    Input(component_id='site-dropdown', component_property='value'),
+    prevent_initial_call=True)
 def update_coherence(target_id):
     """Display new coherence matrix."""
     coherence_csv = _coherence_csv(target_id)
@@ -494,32 +551,36 @@ def update_coherence(target_id):
 
     return plot_coherence(coherence)
 
-
-@app.callback(
-    Output(component_id='interferogram-bg', component_property='center'),
-    Input(component_id='site-dropdown', component_property='value'))
+# works
+@callback(
+    Output(component_id='interferogram-bg', component_property='viewport', allow_duplicate=True),
+    Input(component_id='site-dropdown', component_property='value'),
+    prevent_initial_call=True)
 def recenter_map(target_id):
     """Center map on new site."""
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
-    return coords
+    return dict(center=coords,
+                zoom=12,
+                transition="flyTo")
 
-
-@app.callback(
-    Output(component_id='coherence-matrix', component_property='figure'),
+# works
+@callback(
+    Output(component_id='coherence-matrix', component_property='figure', allow_duplicate=True),
     [Input(component_id='tabs-example-graph', component_property='value'),
-     Input(component_id='site-dropdown', component_property='value')])
+     Input(component_id='site-dropdown', component_property='value')],
+    prevent_initial_call=True)
 def switch_temporal_viewl(tab, site):
     """Switch between temporal and spatial basleine plots"""
     if tab == 'tab-1-coherence-graph':
-        print(site)
+        print(f'coherence for {site}')
         return plot_coherence(_read_coherence(_coherence_csv(site)))
-    elif tab == 'tab-2-baseline-graph':
+    if tab == 'tab-2-baseline-graph':
+        print(f'Baseline for {site}')
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
-    else:
-        return
+    return None
 
 
-if __name__ == '__main__':
-	app.run(debug=True)
+# if __name__ == '__main__':
+# 	app.run(debug=True)

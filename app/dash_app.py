@@ -13,16 +13,20 @@ Authors:
 
 import dash
 
-from dash import html
+from dash import html, Dash
 import dash_bootstrap_components as dbc
-from dash_extensions.enrich import (DashProxy,
-                                    MultiplexerTransform)
+# from dash_extensions.enrich import (DashProxy,
+#                                     MultiplexerTransform)
 
-# app = Dash(__name__, use_pages=True)
-app = DashProxy(prevent_initial_callbacks=True,
-                transforms=[MultiplexerTransform()],
-                external_stylesheets=[dbc.themes.DARKLY],
-                use_pages=True)
+app = Dash(__name__,
+           prevent_initial_callbacks=True,
+           external_stylesheets=[dbc.themes.DARKLY],
+           use_pages=True,)
+# app = DashProxy(prevent_initial_callbacks=True,
+#                 suppress_callback_exceptions=True,
+#                 transforms=[MultiplexerTransform()],
+#                 external_stylesheets=[dbc.themes.DARKLY],
+#                 use_pages=True)
 
 app.layout = html.Div([
   dash.page_container
