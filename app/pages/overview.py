@@ -13,11 +13,10 @@ Authors:
 
 import configparser
 import json
-import requests
 import datetime
-
 from io import StringIO
 
+import requests
 import dash
 from dash import html, dash_table, dcc, callback
 from dash_leaflet import (Map,
@@ -70,23 +69,27 @@ def calculate_and_append_centroids(geojson_dict):
 def read_targets_geojson():
     """Query VRRC API for All Targets FootPrints"""
     try:
-        # response = requests.get('http://127.0.0.1:8080/targets/geojson')
-        # response_geojson = json.loads(response.content)
+        vrrc_api_ip = config.get('API', 'vrrc_api_ip')
+        response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
+                                timeout=10)
+        response_geojson = json.loads(response.content)
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
-        with open("app/Data/sites.geojson") as sites_geojson:
-            response_geojson = json.load(sites_geojson)
         calculate_and_append_centroids(response_geojson)
         for feature in response_geojson['features']:
-            if unrest_table_df.loc[unrest_table_df['Site']==
-                                   feature['properties']['name_en']]['Unrest'].values.size > 0 :
-                unrest_bool = unrest_table_df.loc[unrest_table_df['Site']==feature['properties']['name_en']]['Unrest'].values[0]
+            if unrest_table_df.loc[unrest_table_df['Site'] ==
+                                   feature['properties']['name_en']
+                                   ]['Unrest'].values.size > 0:
+                unrest_bool = unrest_table_df.loc[
+                    unrest_table_df['Site'] == feature['properties']['name_en']
+                    ]['Unrest'].values[0]
             feature['properties']['tooltip'] = html.Div([
-                                                html.Span(f"Site: {feature['id']}"), html.Br(),
-                                                html.Span(f"Last Checked by: None"), html.Br(),
-                                                html.Span(f"Most Recent SLC: None"), html.Br(),
-                                                html.Span("Unrest Observed: "),
-                                                html.Span(f"{unrest_bool}",
-                                                          style={'color': 'red' if unrest_bool else 'green'})]) 
+                html.Span(f"Site: {feature['id']}"), html.Br(),
+                html.Span("Last Checked by: None"), html.Br(),
+                html.Span("Most Recent SLC: None"), html.Br(),
+                html.Span("Unrest Observed: "),
+                html.Span(f"{unrest_bool}",
+                          style={
+                              'color': 'red' if unrest_bool else 'green'})])
             # feature['properties']['icon'] = 'assets/greenVolcano.png'
     except requests.exceptions.ConnectionError:
         response_geojson = None
@@ -97,15 +100,15 @@ def read_targets_geojson():
 def get_latest_quakes_chis_fsdn():
     """Query the CHIS fsdn for latest earthquakes"""
     url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
-
     # Parameters for the query
     params = {
         'format': 'text',
-        'starttime': (datetime.datetime.today() - datetime.timedelta(days=365)).strftime('%Y-%m-%d'),
+        'starttime': (datetime.datetime.today() -
+                      datetime.timedelta(
+                          days=365)).strftime('%Y-%m-%d'),
         'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
         'eventtype': 'earthquake',
     }
-    
     # Make the request
     try:
         response = requests.get(url,
@@ -135,8 +138,10 @@ def get_latest_quakes_chis_fsdn():
     return df
 
 
-def build_summary_table(targets_geojson):
-    targets_df = pd.json_normalize(targets_geojson, record_path = ['features'])
+def build_summary_table(targs_geojson):
+    """Build a summary table with volcanoes and info on their unrest"""
+    targets_df = pd.json_normalize(targs_geojson,
+                                   record_path=['features'])
     targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
     targets_df['latest SAR Image Date'] = None
     targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
@@ -144,12 +149,16 @@ def build_summary_table(targets_geojson):
     # targets_df['Unrest'] = None
     targets_df = pd.merge(targets_df, unrest_table_df, on='Site', how='left')
     for site in targets_df['id']:
-        site_index = targets_df.loc[targets_df['id']==site].index[0]
+        site_index = targets_df.loc[targets_df['id'] == site].index[0]
         try:
-            response = requests.get(f"http://{config.get('API', 'vrrc_api_ip')}/targets/{site}")
+            response = requests.get(
+                f"http://{config.get('API', 'vrrc_api_ip')}/targets/{site}",
+                timeout=10)
             response_geojson = json.loads(response.content)
-            if type(response_geojson['last_slc_datetime']) == str:
-                targets_df.loc[site_index, 'latest SAR Image Date'] = response_geojson['last_slc_datetime'][0:10]
+            if type(response_geojson['last_slc_datetime']) is str:
+                targets_df.loc[site_index,
+                               'latest SAR Image Date'
+                               ] = response_geojson['last_slc_datetime'][0:10]
         except requests.exceptions.ConnectionError:
             targets_df.loc[site_index, 'latest SAR Image Date'] = None
     targets_df = targets_df.sort_values('id')
@@ -166,9 +175,10 @@ def get_green_volcanoes():
     for feature in targets_geojson['features']:
         if feature['id'].startswith('A'):
             if (feature['geometry']['type'] == 'Point' and
-                summary_table_df.loc[
-                    summary_table_df['Site'] == feature['properties']['name_en']
-                    ]['Unrest'].values[0] == False):
+                not summary_table_df.loc[
+                        summary_table_df[
+                            'Site'] == feature['properties']['name_en']
+                        ]['Unrest'].values[0]):
                 green_point_features.append(feature)
     green_markers = [
         Marker(position=[point['geometry']['coordinates'][1],
@@ -194,7 +204,7 @@ def get_red_volcanoes():
             if (feat['geometry']['type'] == 'Point' and
                 summary_table_df.loc[
                     summary_table_df['Site'] == feat['properties']['name_en']
-                    ]['Unrest'].values[0] == True):
+                    ]['Unrest'].values[0]):
                 red_point_features.append(feat)
     red_markers = [
         Marker(position=[point['geometry']['coordinates'][1],
@@ -273,16 +283,21 @@ layout = html.Div([
                             weight=1,
                             # fill_colou='red',
                             # fill_opacity=0.6,
-                            children=Popup(html.P([f"""Magnitude: \
-                                                    {row['Magnitude']} \
+                            children=Popup(
+                                html.P(
+                                    [f"""Magnitude: {row['Magnitude']} \
                                                     {row['MagType']}""",
-                                                   html.Br(),
-                                                   f"Date: {row['Time'][0:10]}", html.Br(),
-                                               f"Depth: {row['Depth/km']} km", html.Br(),
-                                               f"EventID: {row['#EventID']}", html.Br(),
-                                            ])),
+                                     html.Br(),
+                                     f"Date: {row['Time'][0:10]}",
+                                     html.Br(),
+                                     f"Depth: {row['Depth/km']} km",
+                                     html.Br(),
+                                     f"EventID: {row['#EventID']}",
+                                     html.Br(),
+                                     ])),
                         )
-                        for index, row in epicenters_df.sort_values(by='#EventID').iterrows() 
+                        for index, row in epicenters_df.sort_values(
+                            by='#EventID').iterrows()
                     ]
                 ]
             ),
@@ -297,7 +312,8 @@ layout = html.Div([
                'zIndex': 1000},
         children=[
             dash_table.DataTable(
-                columns=[{"name": i, "id": i} for i in summary_table_df.columns],
+                columns=[
+                    {"name": i, "id": i} for i in summary_table_df.columns],
                 data=summary_table_df.to_dict('records'),
                 style_table={'color': 'black'},
                 style_data_conditional=[
@@ -315,23 +331,16 @@ layout = html.Div([
 
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
-    [[Input(component_id=i.id, component_property='n_clicks') for i in markers_green],
-     [Input(component_id=i.id, component_property='n_clicks') for i in markers_red]],
-     prevent_initial_call=True,
-     suppress_callback_exceptions=True
+    [[Input(
+        component_id=i.id,
+        component_property='n_clicks') for i in markers_green],
+     [Input(
+         component_id=i.id,
+         component_property='n_clicks') for i in markers_red]],
+    prevent_initial_call=True,
+    suppress_callback_exceptions=True
 )
 def navigate_to_site_page(*args):
     ctx = dash.callback_context
-    print(type(ctx))
+    print(type(ctx), args)
     return '/site'
-
-# @callback(
-#     Output(component_id='site-dropdown', component_property='value', allow_duplicate=True),
-#     [[Input(component_id=i.id, component_property='n_clicks') for i in markers_green],
-#      [Input(component_id=i.id, component_property='n_clicks') for i in markers_red]],
-#      prevent_initial_call=True,
-#      suppress_callback_exceptions=True
-# )
-# def select_new_site(target_id):
-#     target_id = target_id.split('_', 1)[1]
-#     return 

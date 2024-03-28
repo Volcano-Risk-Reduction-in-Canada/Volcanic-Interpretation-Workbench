@@ -19,7 +19,6 @@ import numpy as np
 import pandas as pd
 
 from dash import html, callback
-from dash.dependencies import State
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
@@ -282,7 +281,7 @@ def plot_baseline(df_baseline, df_cohfull):
     edge_x = []
     edge_y = []
 
-    for idx, edge in df_baseline_edge.iterrows():
+    for _, edge in df_baseline_edge.iterrows():
         edge_x.append(edge['first_date'])
         edge_x.append(edge['second_date'])
         edge_y.append(edge['bperp_reference_date'])
@@ -398,7 +397,7 @@ spatial_view = Map(
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
-    zoom=12,
+    zoom=11,
     style={'height': '100%'}
 )
 
@@ -443,7 +442,6 @@ baseline_tab = Tabs(id="tabs-example-graph",
                     vertical=False)
 
 layout = dbc.Container(
-# app.layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
         dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
@@ -461,56 +459,10 @@ layout = dbc.Container(
 )
 
 
-# broken
-# @callback(
-#     Output(component_id='interferogram-bg', component_property='children', allow_duplicate=True),
-#     [Input(component_id='coherence-matrix', component_property='clickData'),
-#      State(component_id='interferogram-bg', component_property='children')],
-#     prevent_initial_call=True)
-# def update_interferogram(click_data, map_children):
-#     """Update interferogram display."""
-#     print('Map Children:')
-#     print(map_children)
-#     print('')
-#     if not click_data:
-#         return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
-#     second = pd.to_datetime(click_data['points'][0]['x'])
-#     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
-#     first = second - delta
-    
-#     first_str = first.strftime('%Y%m%d')
-#     second_str = second.strftime('%Y%m%d')
-#     layer = f'cite:{first_str}_HH_{second_str}_HH.adf.wrp.geo'
-#     print(f'Updating interferogram: {layer}')
-#     print('#################################################')
-#     new_wms_tile_layer = WMSTileLayer(
-#             id='interferogram',
-#             url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
-#             layers=layer,
-#             format='image/png',
-#             transparent=True,
-#             opacity=0.75
-#         )
-#     print(new_wms_tile_layer)
-#     print('#################################################')
-#     current_children = [
-#                 child for child in layout['interferogram-bg'].children
-#                 if isinstance(child, (TileLayer, WMSTileLayer))
-#             ]
-#     for child in current_children:
-#         print(child)
-#     print('#################################################')
-#     current_children[1] = new_wms_tile_layer
-#     for child in current_children:
-#         print(child)
-#     print('#################################################')
-#     # print(Map(id='interferogram-bg').children)
-
-#     layout['interferogram-bg'].children = current_children
-#     return current_children
-
 @callback(
-    Output(component_id='interferogram', component_property='layers', allow_duplicate=True),
+    Output(component_id='interferogram',
+           component_property='layers',
+           allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     prevent_initial_call=True)
 def update_interferogram(click_data):
@@ -527,9 +479,11 @@ def update_interferogram(click_data):
     print(f'Updating interferogram: {layer}')
     return layer
 
-# not sure
+
 @callback(
-    Output(component_id='interferogram', component_property='url', allow_duplicate=True),
+    Output(component_id='interferogram',
+           component_property='url',
+           allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
     prevent_initial_call=True)
 def update_site(value):
@@ -538,9 +492,11 @@ def update_site(value):
     print(f'New site url: {url}')
     return url
 
-# works
+
 @callback(
-    Output(component_id='coherence-matrix', component_property='figure', allow_duplicate=True),
+    Output(component_id='coherence-matrix',
+           component_property='figure',
+           allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
     prevent_initial_call=True)
 def update_coherence(target_id):
@@ -551,9 +507,11 @@ def update_coherence(target_id):
 
     return plot_coherence(coherence)
 
-# works
+
 @callback(
-    Output(component_id='interferogram-bg', component_property='viewport', allow_duplicate=True),
+    Output(component_id='interferogram-bg',
+           component_property='viewport',
+           allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
     prevent_initial_call=True)
 def recenter_map(target_id):
@@ -561,12 +519,14 @@ def recenter_map(target_id):
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
     return dict(center=coords,
-                zoom=12,
+                zoom=10,
                 transition="flyTo")
 
-# works
+
 @callback(
-    Output(component_id='coherence-matrix', component_property='figure', allow_duplicate=True),
+    Output(component_id='coherence-matrix',
+           component_property='figure',
+           allow_duplicate=True),
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True)
@@ -581,6 +541,3 @@ def switch_temporal_viewl(tab, site):
                              _read_coherence(_coherence_csv(site)))
     return None
 
-
-# if __name__ == '__main__':
-# 	app.run(debug=True)
