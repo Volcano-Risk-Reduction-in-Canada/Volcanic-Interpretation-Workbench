@@ -140,81 +140,105 @@ def get_latest_quakes_chis_fsdn():
 
 def build_summary_table(targs_geojson):
     """Build a summary table with volcanoes and info on their unrest"""
-    targets_df = pd.json_normalize(targs_geojson,
-                                   record_path=['features'])
-    targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
-    targets_df['latest SAR Image Date'] = None
-    targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
-    unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
-    # targets_df['Unrest'] = None
-    targets_df = pd.merge(targets_df, unrest_table_df, on='Site', how='left')
-    for site in targets_df['id']:
-        site_index = targets_df.loc[targets_df['id'] == site].index[0]
-        try:
-            response = requests.get(
-                f"http://{config.get('API', 'vrrc_api_ip')}/targets/{site}",
-                timeout=10)
-            response_geojson = json.loads(response.content)
-            if type(response_geojson['last_slc_datetime']) is str:
-                targets_df.loc[site_index,
-                               'latest SAR Image Date'
-                               ] = response_geojson['last_slc_datetime'][0:10]
-        except requests.exceptions.ConnectionError:
-            targets_df.loc[site_index, 'latest SAR Image Date'] = None
-    targets_df = targets_df.sort_values('id')
+    try:
+        targets_df = pd.json_normalize(targs_geojson,
+                                       record_path=['features'])
+        targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
+        targets_df['latest SAR Image Date'] = None
+        targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
+        unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
+        # targets_df['Unrest'] = None
+        targets_df = pd.merge(targets_df,
+                              unrest_table_df,
+                              on='Site',
+                              how='left')
+        for site in targets_df['id']:
+            site_index = targets_df.loc[targets_df['id'] == site].index[0]
+            try:
+                url = config.get('API', 'vrrc_api_ip')
+                response = requests.get(
+                    f"http://{url}/targets/{site}",
+                    timeout=10)
+                response_geojson = json.loads(response.content)
+                if type(response_geojson['last_slc_datetime']) is str:
+                    last_slc_date = response_geojson['last_slc_datetime'][0:10]
+                    targets_df.loc[site_index,
+                                   'latest SAR Image Date'
+                                   ] = last_slc_date
+            except requests.exceptions.ConnectionError:
+                targets_df.loc[site_index, 'latest SAR Image Date'] = None
+        targets_df = targets_df.sort_values('id')
+    except NotImplementedError:
+        targets_df = pd.DataFrame(columns=['Site',
+                                           'latest SAR Image Date',
+                                           'Unrest'])
+        targets_df.loc[0] = ["API Connection Error"] * 3
     return targets_df[['Site', 'latest SAR Image Date', 'Unrest']]
 
 
 def get_green_volcanoes():
     """Return a list of green volcano points"""
-    green_point_features = []
-    green_icon = dict(
-        iconUrl=dash.get_asset_url('green_volcano_transparent.png'),
-        iconSize=[25, 25],
-    )
-    for feature in targets_geojson['features']:
-        if feature['id'].startswith('A'):
-            if (feature['geometry']['type'] == 'Point' and
-                not summary_table_df.loc[
-                        summary_table_df[
-                            'Site'] == feature['properties']['name_en']
-                        ]['Unrest'].values[0]):
-                green_point_features.append(feature)
-    green_markers = [
-        Marker(position=[point['geometry']['coordinates'][1],
-                         point['geometry']['coordinates'][0]],
-               icon=green_icon,
-               children=Tooltip(html.P(point['properties']['tooltip'])),
-               id=f"marker_{point['properties']['name_en']}"
-               )
-        for point in green_point_features
-    ]
+    try:
+        green_point_features = []
+        green_icon = dict(
+            iconUrl=dash.get_asset_url('green_volcano_transparent.png'),
+            iconSize=[25, 25],
+        )
+        for feature in targets_geojson['features']:
+            if feature['id'].startswith('A'):
+                if (feature['geometry']['type'] == 'Point' and
+                    not summary_table_df.loc[
+                            summary_table_df[
+                                'Site'] == feature['properties']['name_en']
+                            ]['Unrest'].values[0]):
+                    green_point_features.append(feature)
+        green_markers = [
+            Marker(position=[point['geometry']['coordinates'][1],
+                             point['geometry']['coordinates'][0]],
+                   icon=green_icon,
+                   children=Tooltip(html.P(point['properties']['tooltip'])),
+                   id=f"marker_{point['properties']['name_en']}"
+                   )
+            for point in green_point_features
+        ]
+    except TypeError:
+        green_markers = [Marker(position=[0., 0.],
+                                icon=green_icon,
+                                children=Tooltip("API Error"),
+                                id="TypeError_green")]
     return green_markers
 
 
 def get_red_volcanoes():
     """Return a list of red volcano points"""
-    red_point_features = []
-    red_icon = dict(
-        iconUrl=dash.get_asset_url('red_volcano_transparent.png'),
-        iconSize=[25, 25],
-    )
-    for feat in targets_geojson['features']:
-        if feat['id'].startswith('A') or feat['id'] == 'Edgecumbe':
-            if (feat['geometry']['type'] == 'Point' and
-                summary_table_df.loc[
-                    summary_table_df['Site'] == feat['properties']['name_en']
-                    ]['Unrest'].values[0]):
-                red_point_features.append(feat)
-    red_markers = [
-        Marker(position=[point['geometry']['coordinates'][1],
-                         point['geometry']['coordinates'][0]],
-               icon=red_icon,
-               children=Tooltip(html.P(point['properties']['tooltip'])),
-               id=f"marker_{point['properties']['name_en']}"
-               )
-        for point in red_point_features
-    ]
+    try:
+        red_point_features = []
+        red_icon = dict(
+            iconUrl=dash.get_asset_url('red_volcano_transparent.png'),
+            iconSize=[25, 25],
+        )
+        for feature in targets_geojson['features']:
+            if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
+                if (feature['geometry']['type'] == 'Point' and
+                    summary_table_df.loc[
+                        summary_table_df[
+                            'Site'] == feature['properties']['name_en']
+                        ]['Unrest'].values[0]):
+                    red_point_features.append(feature)
+        red_markers = [
+            Marker(position=[point['geometry']['coordinates'][1],
+                             point['geometry']['coordinates'][0]],
+                   icon=red_icon,
+                   children=Tooltip(html.P(point['properties']['tooltip'])),
+                   id=f"marker_{point['properties']['name_en']}"
+                   )
+            for point in red_point_features
+        ]
+    except TypeError:
+        red_markers = [Marker(position=[0., 0.],
+                              icon=red_icon,
+                              children=Tooltip("API Error"),
+                              id="TypeError_red")]
     return red_markers
 
 
@@ -341,6 +365,7 @@ layout = html.Div([
     suppress_callback_exceptions=True
 )
 def navigate_to_site_page(*args):
+    "Navigate to the site detail page anytime a red or green marker is clicked"
     ctx = dash.callback_context
     print(type(ctx), args)
     return '/site'
