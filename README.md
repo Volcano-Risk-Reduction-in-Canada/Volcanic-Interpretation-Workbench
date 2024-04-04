@@ -52,6 +52,11 @@ Start forwarding local port 8080 to remote port 8080 of the geoserver instance u
 aws ssm start-session --target <GEOSERVER_INSTANCE_ID> --document-name AWS-StartPortForwardingSession --parameters "portNumber"=["8080"],"localPortNumber"=["8080"]
 ```
 
+Start forwarding local port 8081 to remote port 8080 of the vrrc-api using:
+```bash
+aws ssm start-session --target <VRRC_INSTANCE_ID> --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters host=<VRRC_API_IP>,portNumber="80",localPortNumber="8081"
+```
+
 Activate the `vrrc` environment in VSCode and use the launch.json configuration to debug. This is equivalent to:
 ```bash
 conda activate vrrc
