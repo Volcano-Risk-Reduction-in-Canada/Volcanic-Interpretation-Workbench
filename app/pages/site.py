@@ -33,7 +33,6 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 dash.register_page(__name__, path='/site')
-print("done importing")
 
 
 def get_config_params(args):
