@@ -10,9 +10,9 @@ A Docker-Dash application for interpreting InSAR measurements of Canadian Volcan
 
 ### General
 
-Before the first run, create `app/config.ini` from the sample and edit as necessary:
+Before the first run, create `config.ini` from the sample and edit as necessary:
 ```
-cp -iv app/sample_config.ini app/config.ini
+cp -iv sample_config.ini onfig.ini
 ```
 
 ### Docker
@@ -69,7 +69,7 @@ conda env update --prune --file vrrc.yml
 ### Utility Scripts (Python)
 
 
-Utility scripts are included in the dashbaord to get the latest coherence and baseline data. They will usually be run automatically when new SAR imagery is ingested and processed however they can be run manually as well to update coherence and baseline data locally. A complete config.ini, copied from `app/sample_config.ini` file needs to be present in the `scripts` directory. The user will also need to be authenticated with the relevant cloud environment prior to running the script. 
+Utility scripts are included in the dashbaord to get the latest coherence and baseline data. They will usually be run automatically when new SAR imagery is ingested and processed however they can be run manually as well to update coherence and baseline data locally. The user will need to be authenticated with the relevant cloud environment prior to running the script. 
 
 Scripts may have optional or mandatory arguments. Scripts requiring arguments will contain instructions via the --help argument. For example:
 

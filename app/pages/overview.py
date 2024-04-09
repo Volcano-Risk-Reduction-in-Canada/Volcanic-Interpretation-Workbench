@@ -242,7 +242,7 @@ def get_red_volcanoes():
     return red_markers
 
 
-config = get_config_params('scripts/config.ini')
+config = get_config_params('config.ini')
 targets_geojson = read_targets_geojson()
 summary_table_df = build_summary_table(targets_geojson)
 

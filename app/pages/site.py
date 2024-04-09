@@ -43,7 +43,7 @@ def get_config_params(args):
     return config_obj
 
 
-config = get_config_params('scripts/config.ini')
+config = get_config_params('config.ini')
 GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 
 # TODO add support for some or all of the following parameters to config
@@ -540,4 +540,3 @@ def switch_temporal_viewl(tab, site):
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
-
