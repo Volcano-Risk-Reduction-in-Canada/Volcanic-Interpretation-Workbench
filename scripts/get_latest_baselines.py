@@ -22,21 +22,20 @@ def main():
     config = get_config_params("config.ini")
     s_3 = boto3.client('s3')
 
-    os.chdir('../app/Data/')
-
-    with open('beamList.yml', encoding="utf-8") as beam_list_yml:
+    with open('app/Data/beamList.yml', encoding="utf-8") as beam_list_yml:
         beam_list = yaml.safe_load(beam_list_yml)
+        print(beam_list)
     for site in beam_list:
         for beam in beam_list[site]:
             print(f'Site: {site}, Beam: {beam}')
-            if not os.path.exists(f'{site}/{beam}'):
-                os.makedirs(f'{site}/{beam}')
+            if not os.path.exists(f'app/Data/{site}/{beam}'):
+                os.makedirs(f'app/Data/{site}/{beam}')
             try:
                 s_3.download_file(Bucket=config.get('AWS', 'bucketName'),
                                   Key=f'{site}/{beam}/bperp_all',
-                                  Filename=f'{site}/{beam}/bperp_all')
+                                  Filename=f'app/Data/{site}/{beam}/bperp_all')
             except botocore.exceptions.ClientError:
-                print('Perpendicular Basleine File not found')
+                print('Perpendicular Baseline File not found')
 
 
 def get_config_params(args):
