@@ -17,12 +17,22 @@ import requests
 import dash
 import numpy as np
 import pandas as pd
+import datetime
+from io import StringIO
 
 from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
+from dash_leaflet import (Map,
+                          TileLayer,
+                          LayersControl,
+                          BaseLayer,
+                          WMSTileLayer,
+                          CircleMarker,
+                          Popup,
+                          Marker,
+                          Tooltip)
 from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
@@ -32,44 +42,12 @@ from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-dash.register_page(__name__, path='/site')
-
 
 def get_config_params(args):
     """Parse configuration from supplied file."""
     config_obj = configparser.ConfigParser()
     config_obj.read(args)
     return config_obj
-
-
-config = get_config_params('config.ini')
-GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
-
-# TODO add support for some or all of the following parameters to config
-
-# dashboard configuration
-TEMPLATE = 'darkly'
-TITLE = 'Volcano InSAR Interpretation Workbench'
-
-# basemap configuration
-BASEMAP_URL = (
-    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
-    '/tile/{z}/{y}/{x}')
-BASEMAP_ATTRIBUTION = (
-    'Tiles courtesy of the '
-    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
-BASEMAP_NAME = 'USGS Topo'
-
-# coherence plotting configuration
-YEAR_AXES_COUNT = 1
-BASELINE_MAX = 150
-BASELINE_DTICK = 24
-YEARS_MAX = 5
-CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
-TEMPORAL_HEIGHT = 300
-MAX_YEARS = 3
-DAYS_PER_YEAR = 365.25
 
 
 def _read_coherence(coherence_csv):
@@ -344,6 +322,79 @@ def calc_polygon_centroid(coordinates):
     return round(centroid_x, 2), round(centroid_y, 2)
 
 
+def get_latest_quakes_chis_fsdn():
+    """Query the CHIS fsdn for latest earthquakes"""
+    url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
+    # Parameters for the query
+    params = {
+        'format': 'text',
+        'starttime': (datetime.datetime.today() -
+                      datetime.timedelta(
+                          days=365)).strftime('%Y-%m-%d'),
+        'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
+        'eventtype': 'earthquake',
+    }
+    # Make the request
+    try:
+        response = requests.get(url,
+                                params=params,
+                                timeout=10)
+        if response.status_code == 200:
+            # Parse the response text to a dataframe
+            df = pd.read_csv(StringIO(response.text),
+                             delimiter='|')
+            # Create marker colour code based on event age
+            df['Time_Delta'] = pd.to_datetime(
+                df['Time'])-datetime.datetime.now(datetime.timezone.utc)
+            df['Time_Delta'] = pd.to_numeric(-df['Time_Delta'].dt.days,
+                                             downcast='integer')
+            conditions = [
+                (df['Time_Delta'] <= 2),
+                (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
+                (df['Time_Delta'] > 7) & (df['Time_Delta'] <= 31),
+                (df['Time_Delta'] > 31)
+                ]
+            values = ['red', 'orange', 'yellow', 'white']
+            df['quake_colour'] = np.select(conditions, values)
+            df.sort_values(by='#EventID')
+    except requests.exceptions.ConnectionError:
+        df = pd.DataFrame()
+        df['#EventID'] = None
+    return df
+
+
+dash.register_page(__name__, path='/site')
+config = get_config_params('config.ini')
+GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
+
+epicenters_df = get_latest_quakes_chis_fsdn()
+
+# TODO add support for some or all of the following parameters to config
+
+# dashboard configuration
+TEMPLATE = 'darkly'
+TITLE = 'Volcano InSAR Interpretation Workbench'
+
+# basemap configuration
+BASEMAP_URL = (
+    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
+    '/tile/{z}/{y}/{x}')
+BASEMAP_ATTRIBUTION = (
+    'Tiles courtesy of the '
+    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
+BASEMAP_NAME = 'USGS Topo'
+
+# coherence plotting configuration
+YEAR_AXES_COUNT = 1
+BASELINE_MAX = 150
+BASELINE_DTICK = 24
+YEARS_MAX = 5
+CMAP_NAME = 'RdBu_r'
+COH_LIMS = (0.2, 0.4)
+TEMPORAL_HEIGHT = 300
+MAX_YEARS = 3
+DAYS_PER_YEAR = 365.25
+
 # construct dashboard
 load_figure_template('darkly')
 # app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
@@ -380,6 +431,32 @@ spatial_view = Map(
                 checked=True
             ),
         ),
+        *[
+            CircleMarker(
+                center=[row['Latitude'], row['Longitude']],
+                radius=3*row['Magnitude'],
+                fillColor=row['quake_colour'],
+                fillOpacity=0.6,
+                color='black',
+                weight=1,
+                # fill_colou='red',
+                # fill_opacity=0.6,
+                children=Popup(
+                    html.P(
+                        [f"""Magnitude: {row['Magnitude']} \
+                                        {row['MagType']}""",
+                            html.Br(),
+                            f"Date: {row['Time'][0:10]}",
+                            html.Br(),
+                            f"Depth: {row['Depth/km']} km",
+                            html.Br(),
+                            f"EventID: {row['#EventID']}",
+                            html.Br(),
+                            ])),
+            )
+            for index, row in epicenters_df.sort_values(
+                by='#EventID').iterrows()
+        ],
         WMSTileLayer(
             id='interferogram',
             url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
