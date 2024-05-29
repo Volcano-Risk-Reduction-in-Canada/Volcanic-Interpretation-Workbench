@@ -322,9 +322,21 @@ def calc_polygon_centroid(coordinates):
     return round(centroid_x, 2), round(centroid_y, 2)
 
 
-def get_latest_quakes_chis_fsdn():
+def get_latest_quakes_chis_fsdn(initial_target):
     """Query the CHIS fsdn for latest earthquakes"""
     url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
+    
+    # Initial lat long for initial target
+    center_lat_long = TARGET_CENTRES[initial_target]
+    center_latitude = center_lat_long[0]
+    center_longitude = center_lat_long[1]
+    
+    # Geographic boundaries
+    min_latitude = center_latitude - 2
+    max_latitude = center_latitude + 2
+    min_longitude = center_longitude - 1
+    max_longitude = center_longitude + 1
+    
     # Parameters for the query
     params = {
         'format': 'text',
@@ -333,6 +345,10 @@ def get_latest_quakes_chis_fsdn():
                           days=365)).strftime('%Y-%m-%d'),
         'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
         'eventtype': 'earthquake',
+        'minlatitude': min_latitude,
+        'maxlatitude': max_latitude,
+        'minlongitude': min_longitude,
+        'maxlongitude': max_longitude,
     }
     # Make the request
     try:
@@ -343,6 +359,13 @@ def get_latest_quakes_chis_fsdn():
             # Parse the response text to a dataframe
             df = pd.read_csv(StringIO(response.text),
                              delimiter='|')
+            # Parse the boundary lat long
+            df = df[
+                (df['Latitude'] >= min_latitude) &
+                (df['Latitude'] <= max_latitude) &
+                (df['Longitude'] >= min_longitude) &
+                (df['Longitude'] <= max_longitude)
+            ]
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
                 df['Time'])-datetime.datetime.now(datetime.timezone.utc)
@@ -366,8 +389,6 @@ def get_latest_quakes_chis_fsdn():
 dash.register_page(__name__, path='/site')
 config = get_config_params('config.ini')
 GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
-
-epicenters_df = get_latest_quakes_chis_fsdn()
 
 # TODO add support for some or all of the following parameters to config
 
@@ -404,6 +425,8 @@ app = DashProxy(prevent_initial_callbacks=True,
 
 TARGET_CENTRES = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
 INITIAL_TARGET = next(iter(TARGET_CENTRES))
+epicenters_df = get_latest_quakes_chis_fsdn(INITIAL_TARGET)
+
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
