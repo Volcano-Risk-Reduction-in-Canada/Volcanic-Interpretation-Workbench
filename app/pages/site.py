@@ -332,10 +332,10 @@ def get_latest_quakes_chis_fsdn(initial_target):
     center_longitude = center_lat_long[1]
     
     # Geographic boundaries
-    min_latitude = center_latitude - 2
-    max_latitude = center_latitude + 2
-    min_longitude = center_longitude - 1
-    max_longitude = center_longitude + 1
+    min_latitude = center_latitude - 1
+    max_latitude = center_latitude + 1
+    min_longitude = center_longitude - 2
+    max_longitude = center_longitude + 2
     
     # Parameters for the query
     params = {
@@ -639,3 +639,74 @@ def switch_temporal_viewl(tab, site):
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
+
+
+@callback(
+    Output('interferogram-bg', 'children'),
+    Input('site-dropdown', 'value'),
+    prevent_initial_call=True
+)
+def update_earthquake_markers(target_id):
+    """Update earthquake markers on map."""
+    if not target_id:
+        raise PreventUpdate
+
+    # Fetch the latest earthquake data for the selected target
+    epicenters_df = get_latest_quakes_chis_fsdn(target_id)
+
+    # Create new CircleMarker elements
+    new_markers = [
+        CircleMarker(
+            center=[row['Latitude'], row['Longitude']],
+            radius=3*row['Magnitude'],
+            fillColor=row['quake_colour'],
+            fillOpacity=0.6,
+            color='black',
+            weight=1,
+            children=Popup(
+                html.P([
+                    f"Magnitude: {row['Magnitude']} {row['MagType']}",
+                    html.Br(),
+                    f"Date: {row['Time'][0:10]}",
+                    html.Br(),
+                    f"Depth: {row['Depth/km']} km",
+                    html.Br(),
+                    f"EventID: {row['#EventID']}",
+                    html.Br(),
+                ])
+            ),
+        )
+        for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
+    ]
+
+    # Create other layers to add back to the map
+    base_layers = [
+        TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+        LayersControl(
+            BaseLayer(
+                TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+                name=BASEMAP_NAME,
+                checked=True
+            ),
+        ),
+        WMSTileLayer(
+            id='interferogram',
+            url=f'{GEOSERVER_ENDPOINT}/{target_id}/wms?',
+            layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
+            format='image/png',
+            transparent=True,
+            opacity=0.75
+        ),
+        WMSTileLayer(
+            url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
+            layers='cite:permanent_snow_and_ice_2',
+            format='image/png',
+            transparent=True,
+            opacity=1.0
+        )
+    ]
+
+    # Combine the base layers and the new markers
+    all_layers = base_layers + new_markers
+
+    return all_layers
