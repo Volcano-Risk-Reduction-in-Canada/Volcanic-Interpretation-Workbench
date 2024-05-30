@@ -9,6 +9,7 @@ Copyright (C) 2021-2023 Government of Canada
 Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
+  - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
 import configparser
 import json
