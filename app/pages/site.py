@@ -422,8 +422,10 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
-TARGET_CENTRES = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
-INITIAL_TARGET = next(iter(TARGET_CENTRES))
+TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
+TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
+
+INITIAL_TARGET = 'Meager_5M3'
 epicenters_df = get_latest_quakes_chis_fsdn(INITIAL_TARGET)
 
 selector = html.Div(
