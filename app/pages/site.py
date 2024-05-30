@@ -11,18 +11,15 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
   - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
+
 import configparser
 import json
-import requests
-
-import dash
-import numpy as np
-import pandas as pd
 import datetime
 from io import StringIO
+import requests
+import numpy as np
+import pandas as pd
 
-from dash import html, callback
-from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import (Map,
@@ -31,9 +28,7 @@ from dash_leaflet import (Map,
                           BaseLayer,
                           WMSTileLayer,
                           CircleMarker,
-                          Popup,
-                          Marker,
-                          Tooltip)
+                          Popup)
 from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
@@ -42,6 +37,9 @@ from dash_extensions.enrich import (Output,
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+from dash import html, callback
+from dash.dcc import Graph, Tab, Tabs
+import dash
 
 
 def get_config_params(args):
