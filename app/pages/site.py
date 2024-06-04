@@ -395,7 +395,15 @@ spatial_view = Map(
             layers='cite:permanent_snow_and_ice_2',
             format='image/png',
             transparent=True,
-            opacity=1.0)
+            opacity=1.0),
+        TileLayer(
+            id='tiles',
+            url='https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/20240417_20240421/{z}/{x}/{y}.png',
+            maxZoom=20,
+            minZoom=1,
+            attribution='&copy; Open Street Map Contributors',
+            tms=True,
+            opacity=0.7)
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
