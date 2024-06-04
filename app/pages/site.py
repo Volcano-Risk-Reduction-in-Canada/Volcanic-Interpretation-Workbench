@@ -355,6 +355,9 @@ app = DashProxy(prevent_initial_callbacks=True,
 TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
+INITIAL_TARGET_SPLIT = INITIAL_TARGET.split('_')
+SITE_INI = INITIAL_TARGET_SPLIT[0]
+BEAM_INI = INITIAL_TARGET_SPLIT[1]
 
 selector = html.Div(
     title=TITLE,
@@ -398,7 +401,7 @@ spatial_view = Map(
             opacity=1.0),
         TileLayer(
             id='tiles',
-            url='https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/20240417_20240421/{z}/{x}/{y}.png',
+            url=f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE_INI}/{BEAM_INI}/20220821_20220914/{{z}}/{{x}}/{{y}}.png',
             maxZoom=20,
             minZoom=1,
             attribution='&copy; Open Street Map Contributors',
@@ -477,6 +480,7 @@ layout = dbc.Container(
     prevent_initial_call=True)
 def update_interferogram(click_data):
     """Update interferogram display."""
+    print(click_data)
     if not click_data:
         return 'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/20240417_20240421/{z}/{x}/{y}.png'
     second = pd.to_datetime(click_data['points'][0]['x'])
