@@ -22,7 +22,7 @@ def main():
     config = get_config_params("config.ini")
     s_3 = boto3.client('s3')
 
-    os.chdir('../app/Data/')
+    os.chdir('app/Data/')
 
     with open('beamList.yml', encoding="utf-8") as beam_list_yml:
         beam_list = yaml.safe_load(beam_list_yml)
