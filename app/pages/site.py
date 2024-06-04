@@ -470,22 +470,21 @@ layout = dbc.Container(
 
 
 @callback(
-    Output(component_id='interferogram',
-           component_property='layers',
+    Output(component_id='tiles',
+           component_property='url',
            allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     prevent_initial_call=True)
 def update_interferogram(click_data):
     """Update interferogram display."""
     if not click_data:
-        return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
+        return 'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/20240417_20240421/{z}/{x}/{y}.png'
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
-
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
-    layer = f'cite:{first_str}_HH_{second_str}_HH.adf.wrp.geo'
+    layer = f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/{first_str}_{second_str}/{{z}}/{{x}}/{{y}}.png'
     print(f'Updating interferogram: {layer}')
     return layer
 
@@ -551,22 +550,3 @@ def switch_temporal_viewl(tab, site):
                              _read_coherence(_coherence_csv(site)))
     return None
 
-
-@callback(
-    Output(component_id='tiles',
-           component_property='url',
-           allow_duplicate=True),
-    Input(component_id='coherence-matrix', component_property='clickData'),
-    prevent_initial_call=True)
-def update_interferogram(click_data):
-    """Update interferogram display."""
-    if not click_data:
-        return 'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/20240417_20240421/{z}/{x}/{y}.png'
-    second = pd.to_datetime(click_data['points'][0]['x'])
-    delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
-    first = second - delta
-    first_str = first.strftime('%Y%m%d')
-    second_str = second.strftime('%Y%m%d')
-    layer = f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/{first_str}_{second_str}/{{z}}/{{x}}/{{y}}.png'
-    print(f'Updating interferogram: {layer}')
-    return layer
