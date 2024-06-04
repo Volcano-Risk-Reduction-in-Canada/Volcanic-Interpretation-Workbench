@@ -43,36 +43,6 @@ def get_config_params(args):
     return config_obj
 
 
-config = get_config_params('config.ini')
-GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
-
-# TODO add support for some or all of the following parameters to config
-
-# dashboard configuration
-TEMPLATE = 'darkly'
-TITLE = 'Volcano InSAR Interpretation Workbench'
-
-# basemap configuration
-BASEMAP_URL = (
-    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
-    '/tile/{z}/{y}/{x}')
-BASEMAP_ATTRIBUTION = (
-    'Tiles courtesy of the '
-    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
-BASEMAP_NAME = 'USGS Topo'
-
-# coherence plotting configuration
-YEAR_AXES_COUNT = 1
-BASELINE_MAX = 150
-BASELINE_DTICK = 24
-YEARS_MAX = 5
-CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
-TEMPORAL_HEIGHT = 300
-MAX_YEARS = 3
-DAYS_PER_YEAR = 365.25
-
-
 def _read_coherence(coherence_csv):
     if coherence_csv is None:
         return None
@@ -343,6 +313,36 @@ def calc_polygon_centroid(coordinates):
     centroid_x = sum(x_coords) / len(coordinates)
     centroid_y = sum(y_coords) / len(coordinates)
     return round(centroid_x, 2), round(centroid_y, 2)
+
+
+config = get_config_params('config.ini')
+GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
+
+# TODO add support for some or all of the following parameters to config
+
+# dashboard configuration
+TEMPLATE = 'darkly'
+TITLE = 'Volcano InSAR Interpretation Workbench'
+
+# basemap configuration
+BASEMAP_URL = (
+    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
+    '/tile/{z}/{y}/{x}')
+BASEMAP_ATTRIBUTION = (
+    'Tiles courtesy of the '
+    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
+BASEMAP_NAME = 'USGS Topo'
+
+# coherence plotting configuration
+YEAR_AXES_COUNT = 1
+BASELINE_MAX = 150
+BASELINE_DTICK = 24
+YEARS_MAX = 5
+CMAP_NAME = 'RdBu_r'
+COH_LIMS = (0.2, 0.4)
+TEMPORAL_HEIGHT = 300
+MAX_YEARS = 3
+DAYS_PER_YEAR = 365.25
 
 
 # construct dashboard
