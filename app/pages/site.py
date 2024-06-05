@@ -477,18 +477,27 @@ layout = dbc.Container(
            component_property='url',
            allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
+    Input('site-dropdown', 'value'),
     prevent_initial_call=True)
-def update_interferogram(click_data):
+def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     print(click_data)
+    if not target_id:
+        raise PreventUpdate
+    
+    TARGET_SPLIT = target_id.split('_')
+    SITE = TARGET_SPLIT[0]
+    BEAM = TARGET_SPLIT[1]
+    
+    print(f'test {target_id}')
     if not click_data:
-        return 'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/20240417_20240421/{z}/{x}/{y}.png'
+        return f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE_INI}/{BEAM_INI}/20220821_20220914/{{z}}/{{x}}/{{y}}.png'
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
-    layer = f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/Edgecumbe/3M36D/{first_str}_{second_str}/{{z}}/{{x}}/{{y}}.png'
+    layer = f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE}/{BEAM}/{first_str}_{second_str}/{{z}}/{{x}}/{{y}}.png'
     print(f'Updating interferogram: {layer}')
     return layer
 
