@@ -351,6 +351,7 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
+TILES_BUCKET = config.get('AWS', 'tiles')
 TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
@@ -387,7 +388,10 @@ spatial_view = Map(
         ),
         TileLayer(
             id='tiles',
-            url=f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE_INI}/{BEAM_INI}/20220821_20220914/{{z}}/{{x}}/{{y}}.png',
+            url=(
+                f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+                '{z}/{x}/{y}.png'
+            ),
             maxZoom=20,
             minZoom=1,
             attribution='&copy; Open Street Map Contributors',
@@ -469,19 +473,26 @@ def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
-    
+
     TARGET_SPLIT = target_id.split('_')
     SITE = TARGET_SPLIT[0]
     BEAM = TARGET_SPLIT[1]
-    
+
     if not click_data:
-        return f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE_INI}/{BEAM_INI}/20220821_20220914/{{z}}/{{x}}/{{y}}.png'
+        return (
+            f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+            '{z}/{x}/{y}.png'
+        )
+
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
-    layer = f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE}/{BEAM}/{first_str}_{second_str}/{{z}}/{{x}}/{{y}}.png'
+    layer = (
+        f'{TILES_BUCKET}/{SITE}/{BEAM}/{first_str}_{second_str}/'
+        '{z}/{x}/{y}.png'
+    )
     print(f'Updating interferogram: {layer}')
     return layer
 
