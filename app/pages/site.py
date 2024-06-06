@@ -481,7 +481,6 @@ layout = dbc.Container(
     prevent_initial_call=True)
 def update_interferogram(click_data, target_id):
     """Update interferogram display."""
-    print(click_data)
     if not target_id:
         raise PreventUpdate
     
@@ -489,7 +488,6 @@ def update_interferogram(click_data, target_id):
     SITE = TARGET_SPLIT[0]
     BEAM = TARGET_SPLIT[1]
     
-    print(f'test {target_id}')
     if not click_data:
         return f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE_INI}/{BEAM_INI}/20220821_20220914/{{z}}/{{x}}/{{y}}.png'
     second = pd.to_datetime(click_data['points'][0]['x'])
