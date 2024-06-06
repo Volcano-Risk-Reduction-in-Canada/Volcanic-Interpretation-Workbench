@@ -316,6 +316,11 @@ def calc_polygon_centroid(coordinates):
 
 
 config = get_config_params('config.ini')
+TILES_BUCKET = config.get('AWS', 'tiles')
+TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
+TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
+INITIAL_TARGET = 'Meager_5M3'
+SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
 
 # TODO add support for some or all of the following parameters to config
 
@@ -343,7 +348,6 @@ TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
 
-
 # construct dashboard
 load_figure_template('darkly')
 # app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
@@ -351,13 +355,6 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
-TILES_BUCKET = config.get('AWS', 'tiles')
-TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
-TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
-INITIAL_TARGET = 'Meager_5M3'
-INITIAL_TARGET_SPLIT = INITIAL_TARGET.split('_')
-SITE_INI = INITIAL_TARGET_SPLIT[0]
-BEAM_INI = INITIAL_TARGET_SPLIT[1]
 
 selector = html.Div(
     title=TITLE,
@@ -403,7 +400,6 @@ spatial_view = Map(
     zoom=11,
     style={'height': '100%'}
 )
-
 
 temporal_view = Graph(
     id='coherence-matrix',
@@ -473,11 +469,7 @@ def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
-
-    TARGET_SPLIT = target_id.split('_')
-    SITE = TARGET_SPLIT[0]
-    BEAM = TARGET_SPLIT[1]
-
+    SITE, BEAM = target_id.split('_')
     if not click_data:
         return (
             f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
@@ -544,4 +536,3 @@ def switch_temporal_viewl(tab, site):
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
-
