@@ -315,6 +315,8 @@ def calc_polygon_centroid(coordinates):
     return round(centroid_x, 2), round(centroid_y, 2)
 
 
+# TODO further cleanup and organize code, make it more user friendly
+
 config = get_config_params('config.ini')
 TILES_BUCKET = config.get('AWS', 'tiles')
 TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
@@ -389,7 +391,7 @@ spatial_view = Map(
                 f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
                 '{z}/{x}/{y}.png'
             ),
-            maxZoom=20,
+            maxZoom=30,
             minZoom=1,
             attribution='&copy; Open Street Map Contributors',
             tms=True,
