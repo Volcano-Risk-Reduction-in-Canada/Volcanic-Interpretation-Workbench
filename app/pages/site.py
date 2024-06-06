@@ -316,7 +316,6 @@ def calc_polygon_centroid(coordinates):
 
 
 config = get_config_params('config.ini')
-GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 
 # TODO add support for some or all of the following parameters to config
 
@@ -386,19 +385,6 @@ spatial_view = Map(
                 checked=True
             ),
         ),
-        WMSTileLayer(
-            id='interferogram',
-            url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
-            layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
-            format='image/png',
-            transparent=True,
-            opacity=0.75),
-        WMSTileLayer(
-            url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
-            layers='cite:permanent_snow_and_ice_2',
-            format='image/png',
-            transparent=True,
-            opacity=1.0),
         TileLayer(
             id='tiles',
             url=f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE_INI}/{BEAM_INI}/20220821_20220914/{{z}}/{{x}}/{{y}}.png',
@@ -498,19 +484,6 @@ def update_interferogram(click_data, target_id):
     layer = f'https://vrrc-insar-tiles-store-dev.s3.ca-central-1.amazonaws.com/{SITE}/{BEAM}/{first_str}_{second_str}/{{z}}/{{x}}/{{y}}.png'
     print(f'Updating interferogram: {layer}')
     return layer
-
-
-@callback(
-    Output(component_id='interferogram',
-           component_property='url',
-           allow_duplicate=True),
-    Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True)
-def update_site(value):
-    """Switch between sites."""
-    url = f'{GEOSERVER_ENDPOINT}/{value}/wms?'
-    print(f'New site url: {url}')
-    return url
 
 
 @callback(
