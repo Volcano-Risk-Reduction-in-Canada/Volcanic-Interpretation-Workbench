@@ -18,6 +18,7 @@ from io import StringIO
 
 import requests
 import dash
+import data_utils
 from dash import html, dash_table, dcc, callback
 from dash_leaflet import (Map,
                           TileLayer,
@@ -98,6 +99,7 @@ def read_targets_geojson():
 
 
 def get_latest_quakes_chis_fsdn():
+    print("GET latest quakes chis fsdn")
     """Query the CHIS fsdn for latest earthquakes"""
     url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
     # Parameters for the query
@@ -178,6 +180,7 @@ def build_summary_table(targs_geojson):
 
 def get_green_volcanoes():
     """Return a list of green volcano points"""
+    print("GET green volc")
     try:
         green_point_features = []
         green_icon = dict(
@@ -211,6 +214,7 @@ def get_green_volcanoes():
 
 def get_red_volcanoes():
     """Return a list of red volcano points"""
+    print("GET red volc")
     try:
         red_point_features = []
         red_icon = dict(
@@ -250,6 +254,7 @@ summary_table_df = build_summary_table(targets_geojson)
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
+
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
@@ -268,10 +273,12 @@ BASEMAP_NAME = 'USGS Topo'
 # spatial_view = html.Div()
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
+    # dcc.Location(id='url', refresh=False),  # Monitor URL changes
+    html.Div(id='trigger-reload', style={'display': 'none'}),  # Hidden div for triggering callback
     dcc.Store(id='selected_feature'),
     html.H3(
         id='Title',
-        children='VRRC InSAR - National Overview!',
+        children='VRRC InSAR - National Overview',
         style={'text-align': 'center'}),
     html.Div(
         id='overview_map',
@@ -297,32 +304,33 @@ layout = html.Div([
                     ),
                     *markers_green,
                     *markers_red,
-                    *[
-                        CircleMarker(
-                            center=[row['Latitude'], row['Longitude']],
-                            radius=3*row['Magnitude'],
-                            fillColor=row['quake_colour'],
-                            fillOpacity=0.6,
-                            color='black',
-                            weight=1,
-                            # fill_colou='red',
-                            # fill_opacity=0.6,
-                            children=Popup(
-                                html.P(
-                                    [f"""Magnitude: {row['Magnitude']} \
-                                                    {row['MagType']}""",
-                                     html.Br(),
-                                     f"Date: {row['Time'][0:10]}",
-                                     html.Br(),
-                                     f"Depth: {row['Depth/km']} km",
-                                     html.Br(),
-                                     f"EventID: {row['#EventID']}",
-                                     html.Br(),
-                                     ])),
-                        )
-                        for index, row in epicenters_df.sort_values(
-                            by='#EventID').iterrows()
-                    ]
+                    html.Div(id='circle-marker')
+                    # *[
+                    #     CircleMarker(
+                    #         center=[row['Latitude'], row['Longitude']],
+                    #         radius=3*row['Magnitude'],
+                    #         fillColor=row['quake_colour'],
+                    #         fillOpacity=0.6,
+                    #         color='black',
+                    #         weight=1,
+                    #         # fill_colou='red',
+                    #         # fill_opacity=0.6,
+                    #         children=Popup(
+                    #             html.P(
+                    #                 [f"""Magnitude: {row['Magnitude']} \
+                    #                                 {row['MagType']}""",
+                    #                  html.Br(),
+                    #                  f"Date: {row['Time'][0:10]}",
+                    #                  html.Br(),
+                    #                  f"Depth: {row['Depth/km']} km",
+                    #                  html.Br(),
+                    #                  f"EventID: {row['#EventID']}",
+                    #                  html.Br(),
+                    #                  ])),
+                    #     )
+                    #     for index, row in epicenters_df.sort_values(
+                    #         by='#EventID').iterrows()
+                    # ]   
                 ]
             ),
         ]
@@ -352,6 +360,65 @@ layout = html.Div([
     ),
 ])
 
+
+@callback(
+    Output('circle-marker', 'children'),
+    [Input('url', 'pathname')],
+    prevent_initial_call=True
+)
+def update_map_data(pathname):
+    print(f"Update map data - {pathname}")
+    # Check if the pathname is '/'
+    # if pathname != '/': return
+    # markers_red = get_red_volcanoes()
+    # markers_green = get_green_volcanoes()
+    epicenters_df = get_latest_quakes_chis_fsdn()
+
+    circle_markers = [
+        CircleMarker(
+            center=[row['Latitude'], row['Longitude']],
+            radius=3*row['Magnitude'],
+            fillColor=row['quake_colour'],
+            fillOpacity=0.6,
+            color='black',
+            weight=1,
+            # fill_colou='red',
+            # fill_opacity=0.6,
+            children=Popup(
+                html.P(
+                    [f"""Magnitude: {row['Magnitude']} \
+                                    {row['MagType']}""",
+                    html.Br(),
+                    f"Date: {row['Time'][0:10]}",
+                    html.Br(),
+                    f"Depth: {row['Depth/km']} km",
+                    html.Br(),
+                    f"EventID: {row['#EventID']}",
+                    html.Br(),
+                    ])),
+        )
+        for index, row in epicenters_df.sort_values(
+            by='#EventID').iterrows()
+    ]
+
+    # return updated data
+    return circle_markers
+    # [
+    #     LayersControl(
+    #         BaseLayer(
+    #             TileLayer(
+    #                 url=BASEMAP_URL,
+    #                 attribution=BASEMAP_ATTRIBUTION
+    #             ),
+    #             name=BASEMAP_NAME,
+    #             checked=True
+    #         ),
+    #     ),
+    #     *markers_green,
+    #     *markers_red,
+    #     *circle_markers
+    # ]
+     
 
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
