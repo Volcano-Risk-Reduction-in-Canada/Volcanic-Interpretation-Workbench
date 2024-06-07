@@ -23,7 +23,7 @@ from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
+from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer
 from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
