@@ -18,7 +18,6 @@ from io import StringIO
 
 import requests
 import dash
-import data_utils
 from dash import html, dash_table, dcc, callback
 from dash_leaflet import (Map,
                           TileLayer,
@@ -99,7 +98,6 @@ def read_targets_geojson():
 
 
 def get_latest_quakes_chis_fsdn():
-    print("GET latest quakes chis fsdn")
     """Query the CHIS fsdn for latest earthquakes"""
     url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
     # Parameters for the query
@@ -273,12 +271,17 @@ BASEMAP_NAME = 'USGS Topo'
 # spatial_view = html.Div()
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
-    html.Div(id='trigger-reload', style={'display': 'none'}),  # Hidden div for triggering callback (for page reload)
+    # Hidden div for triggering callback (for page reload)
+    html.Div(id='trigger-reload', style={'display': 'none'}),
     dcc.Store(id='selected_feature'),
+    # VISIBLE elements on the 'overview' page
+    # TITLE
     html.H3(
         id='Title',
         children='VRRC InSAR - National Overview',
-        style={'text-align': 'center'}),
+        style={'text-align': 'center'}
+    ),
+    # MAP
     html.Div(
         id='overview_map',
         style={'width': '100%', 'height': '100vh', 'position': 'relative'},
@@ -289,8 +292,7 @@ layout = html.Div([
                 center=[54.64, -123.60],
                 zoom=6,
                 children=[
-
-                    # TileLayer(),
+                    # base layer of the map
                     LayersControl(
                         BaseLayer(
                             TileLayer(
@@ -301,13 +303,16 @@ layout = html.Div([
                             checked=True
                         ),
                     ),
+                    # red and green volcano markers
                     *markers_green,
                     *markers_red,
+                    # circle markers (representing earthquakes) to be populated in callback
                     html.Div(id='circle-marker')
                 ]
             ),
         ]
     ),
+    # TABLE (on top right corner)
     html.Div(
         id='table-container',
         style={'position': 'absolute',
@@ -334,12 +339,20 @@ layout = html.Div([
 ])
 
 
+"""
+    Callback to update map data on page reload.
+    INPUT: hidden div in Layout with ID 'trigger-reload'
+    OUTPUT: various circle markers, generated from the updated map data
+"""
 @callback(
     Output('circle-marker', 'children'),
     [Input('trigger-reload', 'children')]
 )
-def update_map_data():
-    print(f"Update map data")
+def update_map_data(data):
+    """
+        Call get_latest_quakes_chis_fsdn() on page reload.
+        Generate and return circle markers for each data point (representing an earthquake)
+    """
     # get the most updated data and assign it to epicenters_df
     epicenters_df = get_latest_quakes_chis_fsdn()
 
@@ -351,8 +364,7 @@ def update_map_data():
             fillOpacity=0.6,
             color='black',
             weight=1,
-            # fill_colou='red',
-            # fill_opacity=0.6,
+            # information about the earthquake (as a popup)
             children=Popup(
                 html.P(
                     [f"""Magnitude: {row['Magnitude']} \
@@ -373,7 +385,11 @@ def update_map_data():
     # updated data
     return circle_markers
      
-
+"""
+    Callback to navigate to the site page about the specific red or green volcano clicked.
+    INPUT: any of the green or red volcanos
+    OUTPUT: the url changes to '/site'
+"""
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
     [[Input(
@@ -386,7 +402,9 @@ def update_map_data():
     suppress_callback_exceptions=True
 )
 def navigate_to_site_page(*args):
-    "Navigate to the site detail page anytime a red or green marker is clicked"
+    """
+        Navigate to the site detail page anytime a red or green marker is clicked
+    """
     ctx = dash.callback_context
     print(type(ctx), args)
     return '/site'
