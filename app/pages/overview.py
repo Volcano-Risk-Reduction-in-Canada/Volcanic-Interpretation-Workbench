@@ -273,8 +273,7 @@ BASEMAP_NAME = 'USGS Topo'
 # spatial_view = html.Div()
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
-    # dcc.Location(id='url', refresh=False),  # Monitor URL changes
-    html.Div(id='trigger-reload', style={'display': 'none'}),  # Hidden div for triggering callback
+    html.Div(id='trigger-reload', style={'display': 'none'}),  # Hidden div for triggering callback (for page reload)
     dcc.Store(id='selected_feature'),
     html.H3(
         id='Title',
@@ -305,32 +304,6 @@ layout = html.Div([
                     *markers_green,
                     *markers_red,
                     html.Div(id='circle-marker')
-                    # *[
-                    #     CircleMarker(
-                    #         center=[row['Latitude'], row['Longitude']],
-                    #         radius=3*row['Magnitude'],
-                    #         fillColor=row['quake_colour'],
-                    #         fillOpacity=0.6,
-                    #         color='black',
-                    #         weight=1,
-                    #         # fill_colou='red',
-                    #         # fill_opacity=0.6,
-                    #         children=Popup(
-                    #             html.P(
-                    #                 [f"""Magnitude: {row['Magnitude']} \
-                    #                                 {row['MagType']}""",
-                    #                  html.Br(),
-                    #                  f"Date: {row['Time'][0:10]}",
-                    #                  html.Br(),
-                    #                  f"Depth: {row['Depth/km']} km",
-                    #                  html.Br(),
-                    #                  f"EventID: {row['#EventID']}",
-                    #                  html.Br(),
-                    #                  ])),
-                    #     )
-                    #     for index, row in epicenters_df.sort_values(
-                    #         by='#EventID').iterrows()
-                    # ]   
                 ]
             ),
         ]
@@ -363,15 +336,11 @@ layout = html.Div([
 
 @callback(
     Output('circle-marker', 'children'),
-    [Input('url', 'pathname')],
-    prevent_initial_call=True
+    [Input('trigger-reload', 'children')]
 )
-def update_map_data(pathname):
-    print(f"Update map data - {pathname}")
-    # Check if the pathname is '/'
-    # if pathname != '/': return
-    # markers_red = get_red_volcanoes()
-    # markers_green = get_green_volcanoes()
+def update_map_data():
+    print(f"Update map data")
+    # get the most updated data and assign it to epicenters_df
     epicenters_df = get_latest_quakes_chis_fsdn()
 
     circle_markers = [
@@ -401,23 +370,8 @@ def update_map_data(pathname):
             by='#EventID').iterrows()
     ]
 
-    # return updated data
+    # updated data
     return circle_markers
-    # [
-    #     LayersControl(
-    #         BaseLayer(
-    #             TileLayer(
-    #                 url=BASEMAP_URL,
-    #                 attribution=BASEMAP_ATTRIBUTION
-    #             ),
-    #             name=BASEMAP_NAME,
-    #             checked=True
-    #         ),
-    #     ),
-    #     *markers_green,
-    #     *markers_red,
-    #     *circle_markers
-    # ]
      
 
 @callback(
