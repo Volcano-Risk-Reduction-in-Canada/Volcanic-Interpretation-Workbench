@@ -33,6 +33,9 @@ from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
+from dash.exceptions import PreventUpdate
+
+
 dash.register_page(__name__, path='/site')
 
 
