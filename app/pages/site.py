@@ -492,14 +492,16 @@ def update_interferogram(click_data, target_id):
     )
 
     # Checking if the layer exists
-    check_url = layer.replace('{z}', '0').replace('{x}', '0').replace('{y}', '0')
+    check_url = (layer.replace('{z}', '0')
+                 .replace('{x}', '0')
+                 .replace('{y}', '0'))
     response = requests.head(check_url)
 
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
         return layer
     else:
-        print(f'Layer does not exist')
+        print('Layer does not exist')
         raise PreventUpdate
 
 
