@@ -22,8 +22,6 @@ from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-
-from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer
@@ -32,6 +30,7 @@ from dash_extensions.enrich import (Output,
                                     Input,
                                     MultiplexerTransform)
 from dash.exceptions import PreventUpdate
+from dash.dcc import Graph, Tab, Tabs
 from dash import html, callback
 import dash
 
