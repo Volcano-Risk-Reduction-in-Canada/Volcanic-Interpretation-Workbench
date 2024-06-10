@@ -45,6 +45,7 @@ app = Dash(__name__,
 #                 use_pages=True)
 
 app.layout = html.Div([
+  html.H2(id='test', children='hiii this is testing'),
   dash.page_container
 ])
 
