@@ -4,3 +4,5 @@ virtualenv/*
 config.ini
 app/Data
 venv*
+**/CoherenceMatrix.csv
+**/bperp_all

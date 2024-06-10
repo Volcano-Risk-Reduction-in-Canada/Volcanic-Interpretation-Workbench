@@ -4,11 +4,12 @@ Volcano InSAR Interpretation Workbench
 
 SPDX-License-Identifier: MIT
 
-Copyright (C) 2021-2023 Government of Canada
+Copyright (C) 2021-2024 Government of Canada
 
 Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
+  - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
 import configparser
 import json
@@ -22,7 +23,7 @@ from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer, WMSTileLayer
+from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer
 from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
@@ -32,6 +33,9 @@ from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
+from dash.exceptions import PreventUpdate
+
+
 dash.register_page(__name__, path='/site')
 
 
@@ -40,36 +44,6 @@ def get_config_params(args):
     config_obj = configparser.ConfigParser()
     config_obj.read(args)
     return config_obj
-
-
-config = get_config_params('config.ini')
-GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
-
-# TODO add support for some or all of the following parameters to config
-
-# dashboard configuration
-TEMPLATE = 'darkly'
-TITLE = 'Volcano InSAR Interpretation Workbench'
-
-# basemap configuration
-BASEMAP_URL = (
-    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
-    '/tile/{z}/{y}/{x}')
-BASEMAP_ATTRIBUTION = (
-    'Tiles courtesy of the '
-    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
-BASEMAP_NAME = 'USGS Topo'
-
-# coherence plotting configuration
-YEAR_AXES_COUNT = 1
-BASELINE_MAX = 150
-BASELINE_DTICK = 24
-YEARS_MAX = 5
-CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
-TEMPORAL_HEIGHT = 300
-MAX_YEARS = 3
-DAYS_PER_YEAR = 365.25
 
 
 def _read_coherence(coherence_csv):
@@ -344,6 +318,41 @@ def calc_polygon_centroid(coordinates):
     return round(centroid_x, 2), round(centroid_y, 2)
 
 
+# TODO further cleanup and organize code, make it more user friendly
+
+config = get_config_params('config.ini')
+TILES_BUCKET = config.get('AWS', 'tiles')
+TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
+TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
+INITIAL_TARGET = 'Meager_5M3'
+SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
+
+# TODO add support for some or all of the following parameters to config
+
+# dashboard configuration
+TEMPLATE = 'darkly'
+TITLE = 'Volcano InSAR Interpretation Workbench'
+
+# basemap configuration
+BASEMAP_URL = (
+    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
+    '/tile/{z}/{y}/{x}')
+BASEMAP_ATTRIBUTION = (
+    'Tiles courtesy of the '
+    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
+BASEMAP_NAME = 'USGS Topo'
+
+# coherence plotting configuration
+YEAR_AXES_COUNT = 1
+BASELINE_MAX = 150
+BASELINE_DTICK = 24
+YEARS_MAX = 5
+CMAP_NAME = 'RdBu_r'
+COH_LIMS = (0.2, 0.4)
+TEMPORAL_HEIGHT = 300
+MAX_YEARS = 3
+DAYS_PER_YEAR = 365.25
+
 # construct dashboard
 load_figure_template('darkly')
 # app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
@@ -351,8 +360,7 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
-TARGET_CENTRES = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
-INITIAL_TARGET = next(iter(TARGET_CENTRES))
+
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
@@ -380,26 +388,23 @@ spatial_view = Map(
                 checked=True
             ),
         ),
-        WMSTileLayer(
-            id='interferogram',
-            url=f'{GEOSERVER_ENDPOINT}/{INITIAL_TARGET}/wms?',
-            layers='cite:20210717_HH_20210903_HH.adf.wrp.geo',
-            format='image/png',
-            transparent=True,
-            opacity=0.75),
-        WMSTileLayer(
-            url=f'{GEOSERVER_ENDPOINT}/vectorLayers/wms?',
-            layers='cite:permanent_snow_and_ice_2',
-            format='image/png',
-            transparent=True,
-            opacity=1.0)
+        TileLayer(
+            id='tiles',
+            url=(
+                f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+                '{z}/{x}/{y}.png'
+            ),
+            maxZoom=30,
+            minZoom=1,
+            attribution='&copy; Open Street Map Contributors',
+            tms=True,
+            opacity=0.7)
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
     zoom=11,
     style={'height': '100%'}
 )
-
 
 temporal_view = Graph(
     id='coherence-matrix',
@@ -459,37 +464,43 @@ layout = dbc.Container(
 
 
 @callback(
-    Output(component_id='interferogram',
-           component_property='layers',
+    Output(component_id='tiles',
+           component_property='url',
            allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
+    Input('site-dropdown', 'value'),
     prevent_initial_call=True)
-def update_interferogram(click_data):
+def update_interferogram(click_data, target_id):
     """Update interferogram display."""
+    if not target_id:
+        raise PreventUpdate
+    SITE, BEAM = target_id.split('_')
     if not click_data:
-        return 'cite:20210717_HH_20210903_HH.adf.wrp.geo'
+        return (
+            f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+            '{z}/{x}/{y}.png'
+        )
+
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
-
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
-    layer = f'cite:{first_str}_HH_{second_str}_HH.adf.wrp.geo'
-    print(f'Updating interferogram: {layer}')
-    return layer
+    layer = (
+        f'{TILES_BUCKET}/{SITE}/{BEAM}/{first_str}_{second_str}/'
+        '{z}/{x}/{y}.png'
+    )
 
+    # Checking if the layer exists
+    check_url = layer.replace('{z}', '0').replace('{x}', '0').replace('{y}', '0')
+    response = requests.head(check_url)
 
-@callback(
-    Output(component_id='interferogram',
-           component_property='url',
-           allow_duplicate=True),
-    Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True)
-def update_site(value):
-    """Switch between sites."""
-    url = f'{GEOSERVER_ENDPOINT}/{value}/wms?'
-    print(f'New site url: {url}')
-    return url
+    if response.status_code == 200:
+        print(f'Updating interferogram: {layer}')
+        return layer
+    else:
+        print(f'Layer does not exist')
+        raise PreventUpdate
 
 
 @callback(

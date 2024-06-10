@@ -254,7 +254,6 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
-GEOSERVER_ENDPOINT = config.get('geoserver', 'geoserverEndpoint')
 
 # basemap configuration
 BASEMAP_URL = (
