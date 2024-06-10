@@ -22,12 +22,12 @@ from dash_extensions.enrich import (Output,
                                     Input)
 from dash_extensions.javascript import (assign)
 
-from data_utils import (build_summary_table, 
-                            get_config_params, 
-                            get_green_volcanoes, 
-                            get_latest_quakes_chis_fsdn, 
-                            get_red_volcanoes, 
-                            read_targets_geojson
+from data_utils import (build_summary_table,
+                        get_config_params,
+                        get_green_volcanoes,
+                        get_latest_quakes_chis_fsdn,
+                        get_red_volcanoes,
+                        read_targets_geojson
                         )
 
 dash.register_page(__name__, path='/')
@@ -93,7 +93,7 @@ layout = html.Div([
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,
-                    # circle markers (representing earthquakes) to be populated in callback
+                    # circle markers (earthquakes) populated in callback
                     html.Div(id='circle-marker')
                 ]
             ),
@@ -131,6 +131,8 @@ layout = html.Div([
     INPUT: hidden div in Layout with ID 'trigger-reload'
     OUTPUT: various circle markers, generated from the updated map data
 """
+
+
 @callback(
     Output('circle-marker', 'children'),
     [Input('trigger-reload', 'children')]
@@ -138,7 +140,8 @@ layout = html.Div([
 def update_map_data(data):
     """
         Call get_latest_quakes_chis_fsdn() on page reload.
-        Generate and return circle markers for each data point (representing an earthquake)
+        Generate and return circle markers for each data
+        point (representing an earthquake)
     """
     # get the most updated data and assign it to epicenters_df
     epicenters_df = get_latest_quakes_chis_fsdn()
@@ -156,14 +159,14 @@ def update_map_data(data):
                 html.P(
                     [f"""Magnitude: {row['Magnitude']} \
                                     {row['MagType']}""",
-                    html.Br(),
-                    f"Date: {row['Time'][0:10]}",
-                    html.Br(),
-                    f"Depth: {row['Depth/km']} km",
-                    html.Br(),
-                    f"EventID: {row['#EventID']}",
-                    html.Br(),
-                    ])),
+                     html.Br(),
+                     f"Date: {row['Time'][0:10]}",
+                     html.Br(),
+                     f"Depth: {row['Depth/km']} km",
+                     html.Br(),
+                     f"EventID: {row['#EventID']}",
+                     html.Br(),
+                     ])),
         )
         for index, row in epicenters_df.sort_values(
             by='#EventID').iterrows()
@@ -171,12 +174,16 @@ def update_map_data(data):
 
     # updated data
     return circle_markers
-     
+
+
 """
-    Callback to navigate to the site page about the specific red or green volcano clicked.
+    Callback to navigate to the site page about
+    the specific red or green volcano clicked.
     INPUT: any of the green or red volcanos
     OUTPUT: the url changes to '/site'
 """
+
+
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
     [[Input(
@@ -190,7 +197,8 @@ def update_map_data(data):
 )
 def navigate_to_site_page(*args):
     """
-        Navigate to the site detail page anytime a red or green marker is clicked
+        Navigate to the site detail page
+        anytime a red or green marker is clicked
     """
     ctx = dash.callback_context
     print(type(ctx), args)

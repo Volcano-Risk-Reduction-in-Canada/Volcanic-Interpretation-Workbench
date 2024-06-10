@@ -11,6 +11,7 @@ from dash_leaflet import (Marker,
 import numpy as np
 import pandas as pd
 
+
 def get_config_params(args):
     """Parse configuration from supplied file."""
     config_obj = configparser.ConfigParser()
