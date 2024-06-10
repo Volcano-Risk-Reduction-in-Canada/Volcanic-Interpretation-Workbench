@@ -11,15 +11,18 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
   - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
+
 import configparser
 import json
 import requests
-
-import dash
 import numpy as np
 import pandas as pd
 
-from dash import html, callback
+from plotly.graph_objects import Heatmap
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+
+
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
@@ -28,13 +31,9 @@ from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
                                     MultiplexerTransform)
-
-from plotly.graph_objects import Heatmap
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-
 from dash.exceptions import PreventUpdate
-
+from dash import html, callback
+import dash
 
 dash.register_page(__name__, path='/site')
 
@@ -204,8 +203,8 @@ def plot_coherence(coh_long):
         margin={'l': 65, 'r': 0, 't': 5, 'b': 5},
         coloraxis={
             'colorscale': CMAP_NAME,
-            'cmin': COH_LIMS[0],
-            'cmax': COH_LIMS[1],
+            'cmin': COH_LIM[0],
+            'cmax': COH_LIM[1],
             'colorbar': {
                 'title': 'Coherence',
                 'dtick': 0.1,
@@ -273,7 +272,7 @@ def plot_baseline(df_baseline, df_cohfull):
 
 
 def populate_beam_selector(vrrc_api_ip):
-    """creat dict of site_beams and centroid coordinates"""
+    """create dict of site_beams and centroid coordinates"""
     beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
     targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
     beam_dict = {}
@@ -321,11 +320,11 @@ def calc_polygon_centroid(coordinates):
 # TODO further cleanup and organize code, make it more user friendly
 
 config = get_config_params('config.ini')
-TILES_BUCKET = config.get('AWS', 'tiles')
-TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
-TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
-INITIAL_TARGET = 'Meager_5M3'
-SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
+tiles_bucket = config.get('AWS', 'tiles')
+target_centres_ini = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
+target_centres = {i: target_centres_ini[i] for i in sorted(target_centres_ini)}
+initial_target = 'Meager_5M3'
+site_ini, beam_ini = initial_target.split('_')
 
 # TODO add support for some or all of the following parameters to config
 
@@ -348,7 +347,7 @@ BASELINE_MAX = 150
 BASELINE_DTICK = 24
 YEARS_MAX = 5
 CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
+COH_LIM = (0.2, 0.4)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
@@ -365,11 +364,11 @@ selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
         [
-            dbc.InputGroupText('Target_Beam'),
+            dbc.InputGroupText('Target_beam'),
             dbc.Select(
                 id='site-dropdown',
-                options=list(TARGET_CENTRES.keys()),
-                value=INITIAL_TARGET,
+                options=list(target_centres.keys()),
+                value=initial_target,
             ),
         ]
     ),
@@ -391,7 +390,7 @@ spatial_view = Map(
         TileLayer(
             id='tiles',
             url=(
-                f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+                f'{tiles_bucket}/{site_ini}/{beam_ini}/20220821_20220914/'
                 '{z}/{x}/{y}.png'
             ),
             maxZoom=30,
@@ -401,14 +400,14 @@ spatial_view = Map(
             opacity=0.7)
     ],
     id='interferogram-bg',
-    center=TARGET_CENTRES[INITIAL_TARGET],
+    center=target_centres[initial_target],
     zoom=11,
     style={'height': '100%'}
 )
 
 temporal_view = Graph(
     id='coherence-matrix',
-    figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
+    figure=plot_coherence(_read_coherence(_coherence_csv(initial_target))),
     style={'height': TEMPORAL_HEIGHT},
 )
 
@@ -474,10 +473,10 @@ def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
-    SITE, BEAM = target_id.split('_')
+    site, beam = target_id.split('_')
     if not click_data:
         return (
-            f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+            f'{tiles_bucket}/{site_ini}/{beam_ini}/20220821_20220914/'
             '{z}/{x}/{y}.png'
         )
 
@@ -487,7 +486,7 @@ def update_interferogram(click_data, target_id):
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
     layer = (
-        f'{TILES_BUCKET}/{SITE}/{BEAM}/{first_str}_{second_str}/'
+        f'{tiles_bucket}/{site}/{beam}/{first_str}_{second_str}/'
         '{z}/{x}/{y}.png'
     )
 
@@ -495,14 +494,13 @@ def update_interferogram(click_data, target_id):
     check_url = (layer.replace('{z}', '0')
                  .replace('{x}', '0')
                  .replace('{y}', '0'))
-    response = requests.head(check_url)
+    response = requests.head(check_url, timeout=10)
 
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
         return layer
-    else:
-        print('Layer does not exist')
-        raise PreventUpdate
+    print('Layer does not exist')
+    raise PreventUpdate
 
 
 @callback(
@@ -528,7 +526,7 @@ def update_coherence(target_id):
     prevent_initial_call=True)
 def recenter_map(target_id):
     """Center map on new site."""
-    coords = TARGET_CENTRES[target_id]
+    coords = target_centres[target_id]
     print(f'Recentering: {coords}')
     return dict(center=coords,
                 zoom=10,
@@ -542,8 +540,8 @@ def recenter_map(target_id):
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True)
-def switch_temporal_viewl(tab, site):
-    """Switch between temporal and spatial basleine plots"""
+def switch_temporal_view(tab, site):
+    """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
         print(f'coherence for {site}')
         return plot_coherence(_read_coherence(_coherence_csv(site)))
