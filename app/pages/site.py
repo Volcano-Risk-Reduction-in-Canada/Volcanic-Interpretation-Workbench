@@ -555,7 +555,7 @@ baseline_tab = Tabs(id="tabs-example-graph",
                     vertical=False)
 
 ini_info_text = html.P([
-    'Layer:'
+    'Layer: 20220821_HH_20220914_HH.adf.unw.geo.tif'
 ], style={
     'margin': 0  # Remove default margin
 })
