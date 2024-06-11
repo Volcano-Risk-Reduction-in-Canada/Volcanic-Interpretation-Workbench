@@ -22,7 +22,12 @@ import pandas as pd
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer
+from dash_leaflet import (Map,
+                          TileLayer,
+                          LayersControl,
+                          BaseLayer,
+                          CircleMarker,
+                          Popup)
 from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
@@ -382,6 +387,7 @@ def get_latest_quakes_chis_fsdn(initial_target):
 
 
 # TODO further cleanup and organize code, make it more user friendly
+# TODO add support for some or all of the following parameters to config
 
 config = get_config_params('config.ini')
 TILES_BUCKET = config.get('AWS', 'tiles')
@@ -390,7 +396,7 @@ TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
 SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
 
-# TODO add support for some or all of the following parameters to config
+epicenters_df = get_latest_quakes_chis_fsdn(INITIAL_TARGET)
 
 # dashboard configuration
 TEMPLATE = 'darkly'
@@ -451,6 +457,32 @@ spatial_view = Map(
                 checked=True
             ),
         ),
+        *[
+            CircleMarker(
+                center=[row['Latitude'], row['Longitude']],
+                radius=3*row['Magnitude'],
+                fillColor=row['quake_colour'],
+                fillOpacity=0.6,
+                color='black',
+                weight=1,
+                # fill_colou='red',
+                # fill_opacity=0.6,
+                children=Popup(
+                    html.P(
+                        [f"""Magnitude: {row['Magnitude']} \
+                                        {row['MagType']}""",
+                            html.Br(),
+                            f"Date: {row['Time'][0:10]}",
+                            html.Br(),
+                            f"Depth: {row['Depth/km']} km",
+                            html.Br(),
+                            f"EventID: {row['#EventID']}",
+                            html.Br(),
+                            ])),
+            )
+            for index, row in epicenters_df.sort_values(
+                by='#EventID').iterrows()
+        ],
         TileLayer(
             id='tiles',
             url=(
