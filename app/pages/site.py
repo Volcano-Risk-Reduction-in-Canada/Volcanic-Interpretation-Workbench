@@ -394,7 +394,7 @@ TILES_BUCKET = config.get('AWS', 'tiles')
 TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
-SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
+SITE_INI, BEAM_INI = INITIAL_TARGET.rsplit('_', 1)
 
 epicenters_df = get_latest_quakes_chis_fsdn(INITIAL_TARGET)
 
@@ -569,7 +569,7 @@ def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
-    SITE, BEAM = target_id.split('_')
+    SITE, BEAM = target_id.rsplit('_', 1)
     if not click_data:
         return (
             f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
@@ -616,21 +616,6 @@ def update_coherence(target_id):
 
 
 @callback(
-    Output(component_id='interferogram-bg',
-           component_property='viewport',
-           allow_duplicate=True),
-    Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True)
-def recenter_map(target_id):
-    """Center map on new site."""
-    coords = TARGET_CENTRES[target_id]
-    print(f'Recentering: {coords}')
-    return dict(center=coords,
-                zoom=10,
-                transition="flyTo")
-
-
-@callback(
     Output(component_id='coherence-matrix',
            component_property='figure',
            allow_duplicate=True),
@@ -647,3 +632,80 @@ def switch_temporal_viewl(tab, site):
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
+
+
+@callback(
+    Output(component_id='interferogram-bg',
+           component_property='viewport',
+           allow_duplicate=True),
+    Input(component_id='site-dropdown', component_property='value'),
+    prevent_initial_call=True)
+def recenter_map(target_id):
+    """Center map on new site."""
+    coords = TARGET_CENTRES[target_id]
+    print(f'Recentering: {coords}')
+    return dict(center=coords,
+                zoom=10,
+                transition="flyTo")
+
+
+@callback(
+    Output('interferogram-bg', 'children'),
+    Input('site-dropdown', 'value'),
+    prevent_initial_call=True
+)
+def update_earthquake_markers(target_id):
+    """Update earthquake markers on map."""
+    if not target_id:
+        raise PreventUpdate
+    # Fetch the latest earthquake data for the selected target
+    epicenters_df = get_latest_quakes_chis_fsdn(target_id)
+
+    # Create new CircleMarker elements
+    new_markers = [
+        CircleMarker(
+            center=[row['Latitude'], row['Longitude']],
+            radius=3*row['Magnitude'],
+            fillColor=row['quake_colour'],
+            fillOpacity=0.6,
+            color='black',
+            weight=1,
+            children=Popup(
+                html.P([
+                    f"Magnitude: {row['Magnitude']} {row['MagType']}",
+                    html.Br(),
+                    f"Date: {row['Time'][0:10]}",
+                    html.Br(),
+                    f"Depth: {row['Depth/km']} km",
+                    html.Br(),
+                    f"EventID: {row['#EventID']}",
+                    html.Br(),
+                ])
+            ),
+        )
+        for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
+    ]
+
+    # Create other layers to add back to the map
+    base_layers = [
+        TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+        LayersControl(
+            BaseLayer(
+                TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+                name=BASEMAP_NAME,
+                checked=True
+            ),
+        ),
+        TileLayer(
+            id='tiles',
+            url=(''),
+            maxZoom=30,
+            minZoom=1,
+            attribution='&copy; Open Street Map Contributors',
+            tms=True,
+            opacity=0.7)
+    ]
+
+    # Combine the base layers and the new markers
+    all_layers = base_layers + new_markers
+    return all_layers
