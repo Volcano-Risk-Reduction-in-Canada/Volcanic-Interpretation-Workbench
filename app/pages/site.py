@@ -340,7 +340,7 @@ def get_latest_quakes_chis_fsdn(initial_target):
     # Parameters for the query
     params = {
         'format': 'text',
-        'starttime': (datetime.datetime.today() -
+        'starttime': (datetime.datetime.today() - 
                       datetime.timedelta(
                           days=365)).strftime('%Y-%m-%d'),
         'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
@@ -350,6 +350,9 @@ def get_latest_quakes_chis_fsdn(initial_target):
         'minlongitude': min_longitude,
         'maxlongitude': max_longitude,
     }
+
+    df = pd.DataFrame()  # Initialize df to an empty DataFrame to ensure it is always defined
+
     # Make the request
     try:
         response = requests.get(url,
@@ -376,13 +379,22 @@ def get_latest_quakes_chis_fsdn(initial_target):
                 (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
                 (df['Time_Delta'] > 7) & (df['Time_Delta'] <= 31),
                 (df['Time_Delta'] > 31)
-                ]
+            ]
             values = ['red', 'orange', 'yellow', 'white']
             df['quake_colour'] = np.select(conditions, values)
-            df.sort_values(by='#EventID')
+            if '#EventID' in df.columns:
+                df.sort_values(by='#EventID')
     except requests.exceptions.ConnectionError:
         df = pd.DataFrame()
         df['#EventID'] = None
+        
+    except Exception as e:
+        # Handle other possible exceptions
+        df = pd.DataFrame()
+        df['#EventID'] = None
+        # Optionally log the exception e for debugging
+        print(f"An error occurred: {e}")
+
     return df
 
 
@@ -468,20 +480,21 @@ spatial_view = Map(
                 # fill_colou='red',
                 # fill_opacity=0.6,
                 children=Popup(
-                    html.P(
-                        [f"""Magnitude: {row['Magnitude']} \
-                                        {row['MagType']}""",
-                            html.Br(),
-                            f"Date: {row['Time'][0:10]}",
-                            html.Br(),
-                            f"Depth: {row['Depth/km']} km",
-                            html.Br(),
-                            f"EventID: {row['#EventID']}",
-                            html.Br(),
-                            ])),
+                    html.P([
+                        f"""Magnitude: {row['Magnitude']} {row['MagType']}""",
+                        html.Br(),
+                        f"Date: {row['Time'][0:10]}",
+                        html.Br(),
+                        f"Depth: {row['Depth/km']} km",
+                        html.Br(),
+                        f"EventID: {row['#EventID']}",
+                        html.Br(),
+                    ])
+                ),
             )
             for index, row in epicenters_df.sort_values(
-                by='#EventID').iterrows()
+                by='#EventID'
+                ).iterrows()
         ],
         TileLayer(
             id='tiles',
@@ -590,14 +603,13 @@ def update_interferogram(click_data, target_id):
     check_url = (layer.replace('{z}', '0')
                  .replace('{x}', '0')
                  .replace('{y}', '0'))
-    response = requests.head(check_url)
+    response = requests.head(check_url, timeout=10)
 
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
         return layer
-    else:
-        print('Layer does not exist')
-        raise PreventUpdate
+    print('Layer does not exist')
+    raise PreventUpdate
 
 
 @callback(
@@ -623,7 +635,7 @@ def update_coherence(target_id):
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True)
 def switch_temporal_viewl(tab, site):
-    """Switch between temporal and spatial basleine plots"""
+    """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
         print(f'coherence for {site}')
         return plot_coherence(_read_coherence(_coherence_csv(site)))
@@ -661,31 +673,37 @@ def update_earthquake_markers(target_id):
     # Fetch the latest earthquake data for the selected target
     epicenters_df = get_latest_quakes_chis_fsdn(target_id)
 
-    # Create new CircleMarker elements
-    new_markers = [
-        CircleMarker(
-            center=[row['Latitude'], row['Longitude']],
-            radius=3*row['Magnitude'],
-            fillColor=row['quake_colour'],
-            fillOpacity=0.6,
-            color='black',
-            weight=1,
-            children=Popup(
-                html.P([
-                    f"Magnitude: {row['Magnitude']} {row['MagType']}",
-                    html.Br(),
-                    f"Date: {row['Time'][0:10]}",
-                    html.Br(),
-                    f"Depth: {row['Depth/km']} km",
-                    html.Br(),
-                    f"EventID: {row['#EventID']}",
-                    html.Br(),
-                ])
-            ),
-        )
-        for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
-    ]
-
+    if '#EventID' in epicenters_df.columns:
+        
+        # Create new CircleMarker elements
+        new_markers = [
+            CircleMarker(
+                center=[row['Latitude'], row['Longitude']],
+                radius=3*row['Magnitude'],
+                fillColor=row['quake_colour'],
+                fillOpacity=0.6,
+                color='black',
+                weight=1,
+                children=Popup(
+                    html.P([
+                        f"Magnitude: {row['Magnitude']} {row['MagType']}",
+                        html.Br(),
+                        f"Date: {row['Time'][0:10]}",
+                        html.Br(),
+                        f"Depth: {row['Depth/km']} km",
+                        html.Br(),
+                        f"EventID: {row['#EventID']}",
+                        html.Br(),
+                    ])
+                ),
+            )
+            for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
+        ]
+    
+    else:
+        new_markers = []
+        print("Note: No earthquakes found.")
+    
     # Create other layers to add back to the map
     base_layers = [
         TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
