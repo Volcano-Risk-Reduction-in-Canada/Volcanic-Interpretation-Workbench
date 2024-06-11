@@ -19,7 +19,6 @@ import requests
 import numpy as np
 import pandas as pd
 
-from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import (Map,
@@ -33,12 +32,14 @@ from dash_extensions.enrich import (Output,
                                     Input,
                                     MultiplexerTransform)
 from dash.exceptions import PreventUpdate
-from dash import html, callback
-import dash
 
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+
+from dash.dcc import Graph, Tab, Tabs
+from dash import html, callback
+import dash
 
 dash.register_page(__name__, path='/site')
 
@@ -208,8 +209,8 @@ def plot_coherence(coh_long):
         margin={'l': 65, 'r': 0, 't': 5, 'b': 5},
         coloraxis={
             'colorscale': CMAP_NAME,
-            'cmin': COH_LIMS[0],
-            'cmax': COH_LIMS[1],
+            'cmin': COH_LIM[0],
+            'cmax': COH_LIM[1],
             'colorbar': {
                 'title': 'Coherence',
                 'dtick': 0.1,
@@ -277,7 +278,7 @@ def plot_baseline(df_baseline, df_cohfull):
 
 
 def populate_beam_selector(vrrc_api_ip):
-    """creat dict of site_beams and centroid coordinates"""
+    """create dict of site_beams and centroid coordinates"""
     beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
     targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
     beam_dict = {}
@@ -340,9 +341,9 @@ def get_latest_quakes_chis_fsdn(initial_target):
     # Parameters for the query
     params = {
         'format': 'text',
-        'starttime': (datetime.datetime.today() - 
-                      datetime.timedelta(
-                          days=365)).strftime('%Y-%m-%d'),
+        'starttime': (
+            datetime.datetime.today() - datetime.timedelta(days=365)
+            ).strftime('%Y-%m-%d'),
         'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
         'eventtype': 'earthquake',
         'minlatitude': min_latitude,
@@ -351,7 +352,8 @@ def get_latest_quakes_chis_fsdn(initial_target):
         'maxlongitude': max_longitude,
     }
 
-    df = pd.DataFrame()  # Initialize df to an empty DataFrame to ensure it is always defined
+    # Initialize df to an empty df to ensure it is always defined
+    df = pd.DataFrame()
 
     # Make the request
     try:
@@ -360,8 +362,8 @@ def get_latest_quakes_chis_fsdn(initial_target):
                                 timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
-            df = pd.read_csv(StringIO(response.text),
-                             delimiter='|')
+            df = pd.read_csv(
+                StringIO(response.text), delimiter='|')
             # Parse the boundary lat long
             df = df[
                 (df['Latitude'] >= min_latitude) &
@@ -372,8 +374,8 @@ def get_latest_quakes_chis_fsdn(initial_target):
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
                 df['Time'])-datetime.datetime.now(datetime.timezone.utc)
-            df['Time_Delta'] = pd.to_numeric(-df['Time_Delta'].dt.days,
-                                             downcast='integer')
+            df['Time_Delta'] = pd.to_numeric(
+                -df['Time_Delta'].dt.days, downcast='integer')
             conditions = [
                 (df['Time_Delta'] <= 2),
                 (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
@@ -387,7 +389,6 @@ def get_latest_quakes_chis_fsdn(initial_target):
     except requests.exceptions.ConnectionError:
         df = pd.DataFrame()
         df['#EventID'] = None
-        
     except Exception as e:
         # Handle other possible exceptions
         df = pd.DataFrame()
@@ -429,7 +430,7 @@ BASELINE_MAX = 150
 BASELINE_DTICK = 24
 YEARS_MAX = 5
 CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
+COH_LIM = (0.2, 0.4)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
@@ -477,7 +478,7 @@ spatial_view = Map(
                 fillOpacity=0.6,
                 color='black',
                 weight=1,
-                # fill_colou='red',
+                # fill_colour='red',
                 # fill_opacity=0.6,
                 children=Popup(
                     html.P([
@@ -582,7 +583,7 @@ def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
-    SITE, BEAM = target_id.rsplit('_', 1)
+    site, beam = target_id.rsplit('_', 1)
     if not click_data:
         return (
             f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
@@ -595,7 +596,7 @@ def update_interferogram(click_data, target_id):
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
     layer = (
-        f'{TILES_BUCKET}/{SITE}/{BEAM}/{first_str}_{second_str}/'
+        f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
         '{z}/{x}/{y}.png'
     )
 
@@ -634,7 +635,7 @@ def update_coherence(target_id):
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True)
-def switch_temporal_viewl(tab, site):
+def switch_temporal_view(tab, site):
     """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
         print(f'coherence for {site}')
@@ -671,10 +672,9 @@ def update_earthquake_markers(target_id):
     if not target_id:
         raise PreventUpdate
     # Fetch the latest earthquake data for the selected target
-    epicenters_df = get_latest_quakes_chis_fsdn(target_id)
+    new_epicenters_df = get_latest_quakes_chis_fsdn(target_id)
 
-    if '#EventID' in epicenters_df.columns:
-        
+    if '#EventID' in new_epicenters_df.columns:
         # Create new CircleMarker elements
         new_markers = [
             CircleMarker(
@@ -697,13 +697,14 @@ def update_earthquake_markers(target_id):
                     ])
                 ),
             )
-            for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
+            for index, row in new_epicenters_df.sort_values(
+                by='#EventID'
+                ).iterrows()
         ]
-    
     else:
         new_markers = []
         print("Note: No earthquakes found.")
-    
+
     # Create other layers to add back to the map
     base_layers = [
         TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
