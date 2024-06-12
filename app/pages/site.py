@@ -555,9 +555,10 @@ baseline_tab = Tabs(id="tabs-example-graph",
                     vertical=False)
 
 ini_info_text = html.P([
-    'Layer: 20220821_HH_20220914_HH.adf.unw.geo.tif'
+    '20220821_HH_20220914_HH.adf.unw.geo.tif'
 ], style={
-    'margin': 0  # Remove default margin
+    'margin': 0,
+    'color': 'rgba(255, 255, 255, 0.9)',
 })
 
 ifg_info = html.Div(
@@ -565,9 +566,9 @@ ifg_info = html.Div(
     id='ifg-info',
     style={
         'position': 'absolute',
-        'top': '1px',
-        'right': '10px',
-        'width': '398px',
+        'top': '1.5px',
+        'right': '11px',
+        'width': '340px',
         'height': '35px',
         'backgroundColor': 'rgba(255, 255, 255, 0.1)',
         'padding': '10px',
@@ -602,6 +603,7 @@ layout = dbc.Container(
     Output(component_id='tiles',
            component_property='url',
            allow_duplicate=True),
+    Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
     prevent_initial_call=True)
@@ -634,7 +636,15 @@ def update_interferogram(click_data, target_id):
 
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
-        return layer
+        
+        info_text = html.P([
+            f'{first_str}_HH_{second_str}_HH.adf.unw.geo.tif'
+            ], style={
+                'margin': 0,
+                'color': 'rgba(255, 255, 255, 0.9)'
+                }
+            )
+        return layer, info_text
     print('Layer does not exist')
     raise PreventUpdate
 
@@ -677,15 +687,24 @@ def switch_temporal_view(tab, site):
     Output(component_id='interferogram-bg',
            component_property='viewport',
            allow_duplicate=True),
+    Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
     prevent_initial_call=True)
 def recenter_map(target_id):
     """Center map on new site."""
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
+    
+    info_text = html.P([''], style={
+        'margin': 0,
+        'color': 'rgba(255, 255, 255, 0.9)'
+        })
+    
     return dict(center=coords,
                 zoom=10,
-                transition="flyTo")
+                transition="flyTo"), info_text
+    
+    
 
 
 @callback(
