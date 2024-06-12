@@ -18,6 +18,11 @@ from dash import html, Dash
 import dash_bootstrap_components as dbc
 # from dash_extensions.enrich import (DashProxy,
 #                                     MultiplexerTransform)
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file during development
+load_dotenv()
 
 parser = argparse.ArgumentParser(
     description='Serve Volcanic Interpretation Workbench'
@@ -25,12 +30,14 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     '--host', type=str,
     help='Address on which to run the server',
-    default='0.0.0.0'
+    # use the env variable as default host (if specified)
+    default=os.getenv('WORKBENCH_HOST', '0.0.0.0')
 )
 parser.add_argument(
     '--port', type=str,
     help="Port on which to run the server",
-    default="8050"
+    # use the env variable as default port (if specified)
+    default=int(os.getenv('WORKBENCH_PORT', '8050'))
 )
 args = parser.parse_args()
 
@@ -49,7 +56,5 @@ app.layout = html.Div([
 ])
 
 if __name__ == '__main__':
-    # app.run(debug=True)
+    print(f"Running server at {args.host}:{args.port}")
     app.run(debug=True, host=args.host, port=args.port)
-
-# testing!!
