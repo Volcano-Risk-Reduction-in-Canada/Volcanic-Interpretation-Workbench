@@ -23,7 +23,7 @@ from dash_extensions.enrich import (Output,
 from dash_extensions.javascript import (assign)
 
 from data_utils import (build_summary_table,
-                        get_config_params,
+                        get_config_params, get_glacier_geo,
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
                         get_red_volcanoes,
@@ -45,6 +45,9 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
+data = get_glacier_geo()
+if data is not None:
+    print(data)
 
 # basemap configuration
 BASEMAP_URL = (

@@ -2,6 +2,7 @@ import configparser
 import json
 import datetime
 from io import StringIO
+import ssl
 
 import requests
 import dash
@@ -222,3 +223,44 @@ def get_red_volcanoes():
 config = get_config_params('config.ini')
 targets_geojson = read_targets_geojson()
 summary_table_df = build_summary_table(targets_geojson)
+
+
+def get_glacier_geo():
+    """
+    Query GEO.ca for glacier data
+    """
+    print("GET glacier data")
+    collection = 'msi'
+    url = f'https://datacube.services.geo.ca/api/collections/{collection}/'
+    # Parameters for the query
+    # params = {
+    #     'name': 'msi'
+    # }
+    session = requests.Session()
+    session.mount('https://', requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3))
+
+    # Make the request
+    response = requests.get(url, timeout=10, verify=True, headers={'Connection':'close'})  # Increase timeout to 10 seconds
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Return the JSON data
+        return response.json()
+    else:
+        # Handle unsuccessful request
+        print(f"Request failed with status code: {response.status_code}")
+        return None
+
+    # try:
+    #     response = requests.get(url, timeout=10)
+    #     # Check if the request was successful
+    #     if response.status_code == 200:
+    #         # Return the JSON data
+    #         return response.json()
+    #     else:
+    #         # Handle unsuccessful request
+    #         print(f"Request failed with status code: {response.status_code}")
+    #         return None
+    # except requests.exceptions.ConnectionError:
+    #     # Handle connection error
+    #     print("Connection Error occurred.")
+    #     return None
