@@ -23,8 +23,8 @@ from dash_extensions.enrich import (Output,
 from dash_extensions.javascript import (assign)
 
 from global_variables import (
-    BASEMAP_NAME, 
-    BASEMAP_ATTRIBUTION, 
+    BASEMAP_NAME,
+    BASEMAP_ATTRIBUTION,
     BASEMAP_URL
 )
 from data_utils import (build_summary_table,

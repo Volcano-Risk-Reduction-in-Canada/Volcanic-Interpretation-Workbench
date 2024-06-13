@@ -241,7 +241,7 @@ def get_red_volcanoes():
     try:
         red_point_features = []
         red_icon = {
-            "iconUrl": dash.get_asset_url('red_volcano_transparent.png'), 
+            "iconUrl": dash.get_asset_url('red_volcano_transparent.png'),
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:

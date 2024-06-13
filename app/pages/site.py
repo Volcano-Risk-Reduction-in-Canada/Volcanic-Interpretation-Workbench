@@ -37,8 +37,8 @@ from data_utils import (
     populate_beam_selector
 )
 from global_variables import (
-    BASEMAP_NAME, 
-    BASEMAP_ATTRIBUTION, 
+    BASEMAP_NAME,
+    BASEMAP_ATTRIBUTION,
     BASEMAP_URL
 )
 
