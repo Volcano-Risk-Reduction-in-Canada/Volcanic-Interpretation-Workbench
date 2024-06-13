@@ -14,7 +14,7 @@ import botocore.exceptions
 import boto3
 import yaml
 
-from app.data_utils import get_config_params
+from ..app.data_utils import get_config_params
 
 
 def main():

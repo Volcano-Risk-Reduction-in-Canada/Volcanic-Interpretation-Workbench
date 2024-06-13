@@ -12,7 +12,7 @@ Authors:
 import argparse
 import boto3
 
-from app.data_utils import get_config_params
+from ..app.data_utils import get_config_params
 
 
 def main():

@@ -36,12 +36,16 @@ from data_utils import (
     plot_coherence,
     populate_beam_selector
 )
-
-dash.register_page(__name__, path='/site')
+from global_variables import (
+    BASEMAP_NAME, 
+    BASEMAP_ATTRIBUTION, 
+    BASEMAP_URL
+)
 
 # TODO further cleanup and organize code, make it more user friendly
 
-# config = get_config_params('config.ini')
+dash.register_page(__name__, path='/site')
+
 config = get_config_params()
 TILES_BUCKET = config['AWS_TILES_URL']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
@@ -54,15 +58,6 @@ SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
-
-# basemap configuration
-BASEMAP_URL = (
-    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
-    '/tile/{z}/{y}/{x}')
-BASEMAP_ATTRIBUTION = (
-    'Tiles courtesy of the '
-    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
-BASEMAP_NAME = 'USGS Topo'
 
 # coherence plotting configuration
 YEAR_AXES_COUNT = 1

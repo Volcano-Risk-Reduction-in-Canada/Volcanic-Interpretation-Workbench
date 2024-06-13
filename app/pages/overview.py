@@ -22,6 +22,11 @@ from dash_extensions.enrich import (Output,
                                     Input)
 from dash_extensions.javascript import (assign)
 
+from global_variables import (
+    BASEMAP_NAME, 
+    BASEMAP_ATTRIBUTION, 
+    BASEMAP_URL
+)
 from data_utils import (build_summary_table,
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
@@ -43,16 +48,6 @@ epicenters_df = get_latest_quakes_chis_fsdn()
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
-
-# TODO: create a file for global variables
-# basemap configuration
-BASEMAP_URL = (
-    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
-    '/tile/{z}/{y}/{x}')
-BASEMAP_ATTRIBUTION = (
-    'Tiles courtesy of the '
-    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
-BASEMAP_NAME = 'USGS Topo'
 
 # spatial_view = html.Div()
 layout = html.Div([

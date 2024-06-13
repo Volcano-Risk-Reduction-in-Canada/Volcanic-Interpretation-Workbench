@@ -206,7 +206,10 @@ def get_green_volcanoes():
     print("GET green volc")
     try:
         green_point_features = []
-        green_icon = {"iconUrl": dash.get_asset_url('green_volcano_transparent.png'), "iconSize": [25, 25]}
+        green_icon = {
+            "iconUrl": dash.get_asset_url('green_volcano_transparent.png'),
+            "iconSize": [25, 25]
+        }
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A'):
                 if (feature['geometry']['type'] == 'Point' and
@@ -237,7 +240,10 @@ def get_red_volcanoes():
     print("GET red volc")
     try:
         red_point_features = []
-        red_icon = {"iconUrl": dash.get_asset_url('red_volcano_transparent.png'), "iconSize": [25, 25]}
+        red_icon = {
+            "iconUrl": dash.get_asset_url('red_volcano_transparent.png'), 
+            "iconSize": [25, 25]
+        }
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
                 if (feature['geometry']['type'] == 'Point' and
