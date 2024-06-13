@@ -389,12 +389,6 @@ def get_latest_quakes_chis_fsdn(initial_target):
     except requests.exceptions.ConnectionError:
         df = pd.DataFrame()
         df['#EventID'] = None
-    except Exception as e:
-        # Handle other possible exceptions
-        df = pd.DataFrame()
-        df['#EventID'] = None
-        # Optionally log the exception e for debugging
-        print(f"An error occurred: {e}")
 
     return df
 
@@ -606,7 +600,8 @@ layout = dbc.Container(
     Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
-    prevent_initial_call=True)
+    prevent_initial_call=True
+    )
 def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
@@ -615,9 +610,9 @@ def update_interferogram(click_data, target_id):
     if not click_data:
         return (
             f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-            '{z}/{x}/{y}.png'
+            '{z}/{x}/{y}.png',
+            ""
         )
-
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
@@ -628,7 +623,6 @@ def update_interferogram(click_data, target_id):
         '{z}/{x}/{y}.png'
     )
 
-    # Checking if the layer exists
     check_url = (layer.replace('{z}', '0')
                  .replace('{x}', '0')
                  .replace('{y}', '0'))
@@ -636,7 +630,7 @@ def update_interferogram(click_data, target_id):
 
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
-        
+
         info_text = html.P([
             f'{first_str}_HH_{second_str}_HH.adf.unw.geo.tif'
             ], style={
@@ -644,6 +638,7 @@ def update_interferogram(click_data, target_id):
                 'color': 'rgba(255, 255, 255, 0.9)'
                 }
             )
+
         return layer, info_text
     print('Layer does not exist')
     raise PreventUpdate
@@ -660,7 +655,6 @@ def update_coherence(target_id):
     coherence_csv = _coherence_csv(target_id)
     print(f'Loading: {coherence_csv}')
     coherence = _read_coherence(coherence_csv)
-
     return plot_coherence(coherence)
 
 
@@ -694,17 +688,13 @@ def recenter_map(target_id):
     """Center map on new site."""
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
-    
     info_text = html.P([''], style={
         'margin': 0,
         'color': 'rgba(255, 255, 255, 0.9)'
         })
-    
     return dict(center=coords,
                 zoom=10,
                 transition="flyTo"), info_text
-    
-    
 
 
 @callback(
