@@ -16,6 +16,17 @@ from app.data_utils import get_config_params
 
 
 def main():
+    """
+    Main function to execute the coherence matrix copying process.
+
+    This function parses command-line arguments, retrieves configuration
+    parameters, and copies the coherence matrix file from an AWS S3 bucket
+    into the local filesystem.
+
+    Raises:
+        botocore.exceptions.ClientError: If there is an error when
+        accessing AWS S3.
+    """
     args = parse_args()
     config = get_config_params()
 
@@ -28,6 +39,12 @@ def main():
 
 
 def parse_args():
+    """
+    Parse command-line arguments.
+
+    Returns:
+        argparse.Namespace: An object containing the parsed arguments.
+    """
     parser = argparse.ArgumentParser(
         description="Copy latest coherence matrix into dashboard application")
     parser.add_argument("--site",

@@ -21,13 +21,11 @@ from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer
+from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
                                     MultiplexerTransform)
-
-from dash.exceptions import PreventUpdate
-
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -224,9 +222,9 @@ def update_interferogram(click_data, target_id):
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
         return layer
-    else:
-        print('Layer does not exist')
-        raise PreventUpdate
+    # else
+    print('Layer does not exist')
+    raise PreventUpdate
 
 
 @callback(
@@ -254,9 +252,7 @@ def recenter_map(target_id):
     """Center map on new site."""
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
-    return dict(center=coords,
-                zoom=10,
-                transition="flyTo")
+    return {"center": coords, "zoom": 10, "transition": 'flyTo'}
 
 
 @callback(

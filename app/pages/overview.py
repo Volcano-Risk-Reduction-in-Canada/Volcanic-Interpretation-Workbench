@@ -136,7 +136,7 @@ layout = html.Div([
     Output('circle-marker', 'children'),
     [Input('trigger-reload', 'children')]
 )
-def update_map_data(data):
+def update_map_data(_):
     """
         Call get_latest_quakes_chis_fsdn() on page reload.
         Generate and return circle markers for each data

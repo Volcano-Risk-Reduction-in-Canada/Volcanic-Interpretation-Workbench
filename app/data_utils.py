@@ -1,3 +1,14 @@
+#!/usr/bin/python3
+"""
+Volcano InSAR Interpretation Workbench
+
+SPDX-License-Identifier: MIT
+
+Copyright (C) 2021-2023 Government of Canada
+
+Authors:
+  - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
+"""
 import json
 import datetime
 from io import StringIO
@@ -23,6 +34,19 @@ import plotly.graph_objects as go
 
 
 def get_config_params():
+    """
+    Retrieve configuration parameters from environment variables.
+
+    This function loads variables from a .env file into the environment
+    and retrieves specific environment variables related to AWS, API,
+    and other configurations. It creates a dictionary storing these
+    configuration parameters and returns it.
+
+    Returns:
+        dict: A dictionary containing configuration parameters. Keys
+        correspond to environment variable names, and values are the
+        corresponding values retrieved from the environment.
+    """
     # Load variables from .env file into environment
     load_dotenv()
     # List of environment variable names
@@ -161,7 +185,7 @@ def build_summary_table(targs_geojson):
                     f"http://{url}/targets/{site}",
                     timeout=10)
                 response_geojson = json.loads(response.content)
-                if type(response_geojson['last_slc_datetime']) is str:
+                if isinstance(response_geojson['last_slc_datetime']) is str:
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
                     targets_df.loc[site_index,
                                    'latest SAR Image Date'
@@ -182,10 +206,7 @@ def get_green_volcanoes():
     print("GET green volc")
     try:
         green_point_features = []
-        green_icon = dict(
-            iconUrl=dash.get_asset_url('green_volcano_transparent.png'),
-            iconSize=[25, 25],
-        )
+        green_icon = {"iconUrl": dash.get_asset_url('green_volcano_transparent.png'), "iconSize": [25, 25]}
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A'):
                 if (feature['geometry']['type'] == 'Point' and
@@ -216,10 +237,7 @@ def get_red_volcanoes():
     print("GET red volc")
     try:
         red_point_features = []
-        red_icon = dict(
-            iconUrl=dash.get_asset_url('red_volcano_transparent.png'),
-            iconSize=[25, 25],
-        )
+        red_icon = {"iconUrl": dash.get_asset_url('red_volcano_transparent.png'), "iconSize": [25, 25]}
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
                 if (feature['geometry']['type'] == 'Point' and
@@ -355,8 +373,7 @@ def pivot_and_clean_dates(coh_long, coh_wide):
                                    else x)
     # remove some columns so that date_wide has
     # the same columns as coh_wide
-    common_cols = [col for col in
-                   set(date_wide.columns).intersection(coh_wide.columns)]
+    common_cols = list(set(date_wide.columns).intersection(coh_wide.columns))
     common_cols.sort()
     date_wide = date_wide[common_cols]
     # date_wide.drop(columns=date_wide.columns[0], axis=1,  inplace=True)
@@ -478,7 +495,7 @@ def plot_baseline(df_baseline, df_cohfull):
         edge_y.append(edge['bperp_pair_date'])
 
     bperp_line_fig = go.Scatter(x=edge_x, y=edge_y,
-                                line=dict(width=0.5, color='#888'),
+                                line={"width": 0.5, "color": '#888'},
                                 mode='lines')
 
     bperp_combined_fig = go.Figure(data=[bperp_line_fig, bperp_scatter_fig])

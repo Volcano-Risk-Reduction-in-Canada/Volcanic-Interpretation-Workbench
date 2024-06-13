@@ -11,7 +11,7 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
 import argparse
-
+import os
 import dash
 
 from dash import html, Dash
@@ -19,7 +19,6 @@ import dash_bootstrap_components as dbc
 # from dash_extensions.enrich import (DashProxy,
 #                                     MultiplexerTransform)
 from dotenv import load_dotenv
-import os
 
 # Load environment variables from .env file during development
 load_dotenv()
