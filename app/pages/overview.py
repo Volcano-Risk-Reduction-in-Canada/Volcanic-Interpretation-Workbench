@@ -23,7 +23,6 @@ from dash_extensions.enrich import (Output,
 from dash_extensions.javascript import (assign)
 
 from data_utils import (build_summary_table,
-                        get_config_params,
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
                         get_red_volcanoes,

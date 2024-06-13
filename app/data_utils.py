@@ -18,7 +18,7 @@ import plotly.graph_objects as go
 
 # TODO: organize the functions in a way that is more easy to follow
 
-# note: for now, it is mostly just copy and paste directly 
+# note: for now, it is mostly just copy and paste directly
 # from files like overview.py and site.py
 
 
@@ -37,7 +37,8 @@ def get_config_params():
     ]
     # Dictionary to store configuration parameters
     config_params = {}
-    # Retrieve configuration parameters using os.getenv() and store them in the dictionary
+    # Retrieve configuration parameters using os.getenv()
+    # and store them in the dictionary
     for var_name in env_variables:
         config_params[var_name] = os.getenv(var_name)
     # Return the dictionary of configuration parameters
@@ -260,6 +261,7 @@ COH_LIMS = (0.2, 0.4)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
+
 
 def _read_coherence(coherence_csv):
     if coherence_csv is None:
@@ -531,4 +533,3 @@ def calc_polygon_centroid(coordinates):
     centroid_x = sum(x_coords) / len(coordinates)
     centroid_y = sum(y_coords) / len(coordinates)
     return round(centroid_x, 2), round(centroid_y, 2)
-

@@ -11,8 +11,6 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
   - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
-import configparser
-import json
 import requests
 
 import dash
@@ -31,13 +29,13 @@ from dash_extensions.enrich import (Output,
 from dash.exceptions import PreventUpdate
 
 from data_utils import (
-    _baseline_csv, 
-    _coherence_csv, 
-    _read_baseline, 
-    _read_coherence, 
-    get_config_params, 
-    plot_baseline, 
-    plot_coherence, 
+    _baseline_csv,
+    _coherence_csv,
+    _read_baseline,
+    _read_coherence,
+    get_config_params,
+    plot_baseline,
+    plot_coherence,
     populate_beam_selector
 )
 
