@@ -13,17 +13,20 @@ Authors:
 """
 import configparser
 import json
+import datetime
+from io import StringIO
 import requests
-
-import dash
 import numpy as np
 import pandas as pd
 
-from dash import html, callback
-from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import Map, TileLayer, LayersControl, BaseLayer
+from dash_leaflet import (Map,
+                          TileLayer,
+                          LayersControl,
+                          BaseLayer,
+                          CircleMarker,
+                          Popup)
 from dash_extensions.enrich import (Output,
                                     DashProxy,
                                     Input,
@@ -34,7 +37,9 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 from dash.exceptions import PreventUpdate
-
+from dash.dcc import Graph, Tab, Tabs
+from dash import html, callback
+import dash
 
 dash.register_page(__name__, path='/site')
 
@@ -204,8 +209,8 @@ def plot_coherence(coh_long):
         margin={'l': 65, 'r': 0, 't': 5, 'b': 5},
         coloraxis={
             'colorscale': CMAP_NAME,
-            'cmin': COH_LIMS[0],
-            'cmax': COH_LIMS[1],
+            'cmin': COH_LIM[0],
+            'cmax': COH_LIM[1],
             'colorbar': {
                 'title': 'Coherence',
                 'dtick': 0.1,
@@ -273,7 +278,7 @@ def plot_baseline(df_baseline, df_cohfull):
 
 
 def populate_beam_selector(vrrc_api_ip):
-    """creat dict of site_beams and centroid coordinates"""
+    """create dict of site_beams and centroid coordinates"""
     beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
     targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
     beam_dict = {}
@@ -318,16 +323,87 @@ def calc_polygon_centroid(coordinates):
     return round(centroid_x, 2), round(centroid_y, 2)
 
 
+def get_latest_quakes_chis_fsdn(initial_target):
+    """Query the CHIS fsdn for latest earthquakes"""
+    url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
+
+    # Initial lat long for initial target
+    center_lat_long = TARGET_CENTRES[initial_target]
+    center_latitude = center_lat_long[0]
+    center_longitude = center_lat_long[1]
+
+    # Geographic boundaries
+    min_latitude = center_latitude - 1
+    max_latitude = center_latitude + 1
+    min_longitude = center_longitude - 2
+    max_longitude = center_longitude + 2
+
+    # Parameters for the query
+    params = {
+        'format': 'text',
+        'starttime': (
+            datetime.datetime.today() - datetime.timedelta(days=365)
+            ).strftime('%Y-%m-%d'),
+        'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
+        'eventtype': 'earthquake',
+        'minlatitude': min_latitude,
+        'maxlatitude': max_latitude,
+        'minlongitude': min_longitude,
+        'maxlongitude': max_longitude,
+    }
+
+    # Initialize df to an empty df to ensure it is always defined
+    df = pd.DataFrame()
+
+    # Make the request
+    try:
+        response = requests.get(url,
+                                params=params,
+                                timeout=10)
+        if response.status_code == 200:
+            # Parse the response text to a dataframe
+            df = pd.read_csv(
+                StringIO(response.text), delimiter='|')
+            # Parse the boundary lat long
+            df = df[
+                (df['Latitude'] >= min_latitude) &
+                (df['Latitude'] <= max_latitude) &
+                (df['Longitude'] >= min_longitude) &
+                (df['Longitude'] <= max_longitude)
+            ]
+            # Create marker colour code based on event age
+            df['Time_Delta'] = pd.to_datetime(
+                df['Time'])-datetime.datetime.now(datetime.timezone.utc)
+            df['Time_Delta'] = pd.to_numeric(
+                -df['Time_Delta'].dt.days, downcast='integer')
+            conditions = [
+                (df['Time_Delta'] <= 2),
+                (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
+                (df['Time_Delta'] > 7) & (df['Time_Delta'] <= 31),
+                (df['Time_Delta'] > 31)
+            ]
+            values = ['red', 'orange', 'yellow', 'white']
+            df['quake_colour'] = np.select(conditions, values)
+            if '#EventID' in df.columns:
+                df.sort_values(by='#EventID')
+    except requests.exceptions.ConnectionError:
+        df = pd.DataFrame()
+        df['#EventID'] = None
+
+    return df
+
+
 # TODO further cleanup and organize code, make it more user friendly
+# TODO add support for some or all of the following parameters to config
 
 config = get_config_params('config.ini')
 TILES_BUCKET = config.get('AWS', 'tiles')
 TARGET_CENTRES_INI = populate_beam_selector(config.get('API', 'vrrc_api_ip'))
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
-SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
+SITE_INI, BEAM_INI = INITIAL_TARGET.rsplit('_', 1)
 
-# TODO add support for some or all of the following parameters to config
+epicenters_df = get_latest_quakes_chis_fsdn(INITIAL_TARGET)
 
 # dashboard configuration
 TEMPLATE = 'darkly'
@@ -348,7 +424,7 @@ BASELINE_MAX = 150
 BASELINE_DTICK = 24
 YEARS_MAX = 5
 CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
+COH_LIM = (0.2, 0.4)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
@@ -388,6 +464,33 @@ spatial_view = Map(
                 checked=True
             ),
         ),
+        *[
+            CircleMarker(
+                center=[row['Latitude'], row['Longitude']],
+                radius=3*row['Magnitude'],
+                fillColor=row['quake_colour'],
+                fillOpacity=0.6,
+                color='black',
+                weight=1,
+                # fill_colour='red',
+                # fill_opacity=0.6,
+                children=Popup(
+                    html.P([
+                        f"""Magnitude: {row['Magnitude']} {row['MagType']}""",
+                        html.Br(),
+                        f"Date: {row['Time'][0:10]}",
+                        html.Br(),
+                        f"Depth: {row['Depth/km']} km",
+                        html.Br(),
+                        f"EventID: {row['#EventID']}",
+                        html.Br(),
+                    ])
+                ),
+            )
+            for index, row in epicenters_df.sort_values(
+                by='#EventID'
+                ).iterrows()
+        ],
         TileLayer(
             id='tiles',
             url=(
@@ -445,12 +548,39 @@ baseline_tab = Tabs(id="tabs-example-graph",
                            'height': '25px'},
                     vertical=False)
 
+ini_info_text = html.P([
+    '20220821_HH_20220914_HH.adf.unw.geo.tif'
+], style={
+    'margin': 0,
+    'color': 'rgba(255, 255, 255, 0.9)',
+})
+
+ifg_info = html.Div(
+    ini_info_text,
+    id='ifg-info',
+    style={
+        'position': 'absolute',
+        'top': '1.5px',
+        'right': '11px',
+        'width': '340px',
+        'height': '35px',
+        'backgroundColor': 'rgba(255, 255, 255, 0.1)',
+        'padding': '10px',
+        'borderRadius': '5px',
+        'boxShadow': '0px 0px 10px rgba(0, 0, 0, 0.1)',
+        'zIndex': '1000',
+        'display': 'flex',
+        'alignItems': 'center',
+    }
+)
+
 layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
         dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
         dbc.Row(dbc.Col(baseline_tab)),  # add into row below
         dbc.Row(dbc.Col(temporal_view)),
+        dbc.Row(dbc.Col(ifg_info)),
     ],
     fluid=True,
     style={
@@ -467,42 +597,51 @@ layout = dbc.Container(
     Output(component_id='tiles',
            component_property='url',
            allow_duplicate=True),
+    Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
-    prevent_initial_call=True)
+    prevent_initial_call=True
+    )
 def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
-    SITE, BEAM = target_id.split('_')
+    site, beam = target_id.rsplit('_', 1)
     if not click_data:
         return (
             f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-            '{z}/{x}/{y}.png'
+            '{z}/{x}/{y}.png',
+            ""
         )
-
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
     layer = (
-        f'{TILES_BUCKET}/{SITE}/{BEAM}/{first_str}_{second_str}/'
+        f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
         '{z}/{x}/{y}.png'
     )
 
-    # Checking if the layer exists
     check_url = (layer.replace('{z}', '0')
                  .replace('{x}', '0')
                  .replace('{y}', '0'))
-    response = requests.head(check_url)
+    response = requests.head(check_url, timeout=10)
 
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
-        return layer
-    else:
-        print('Layer does not exist')
-        raise PreventUpdate
+
+        info_text = html.P([
+            f'{first_str}_HH_{second_str}_HH.adf.unw.geo.tif'
+            ], style={
+                'margin': 0,
+                'color': 'rgba(255, 255, 255, 0.9)'
+                }
+            )
+
+        return layer, info_text
+    print('Layer does not exist')
+    raise PreventUpdate
 
 
 @callback(
@@ -516,23 +655,7 @@ def update_coherence(target_id):
     coherence_csv = _coherence_csv(target_id)
     print(f'Loading: {coherence_csv}')
     coherence = _read_coherence(coherence_csv)
-
     return plot_coherence(coherence)
-
-
-@callback(
-    Output(component_id='interferogram-bg',
-           component_property='viewport',
-           allow_duplicate=True),
-    Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True)
-def recenter_map(target_id):
-    """Center map on new site."""
-    coords = TARGET_CENTRES[target_id]
-    print(f'Recentering: {coords}')
-    return dict(center=coords,
-                zoom=10,
-                transition="flyTo")
 
 
 @callback(
@@ -542,8 +665,8 @@ def recenter_map(target_id):
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True)
-def switch_temporal_viewl(tab, site):
-    """Switch between temporal and spatial basleine plots"""
+def switch_temporal_view(tab, site):
+    """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
         print(f'coherence for {site}')
         return plot_coherence(_read_coherence(_coherence_csv(site)))
@@ -552,3 +675,91 @@ def switch_temporal_viewl(tab, site):
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
+
+
+@callback(
+    Output(component_id='interferogram-bg',
+           component_property='viewport',
+           allow_duplicate=True),
+    Output('ifg-info', 'children', allow_duplicate=True),
+    Input(component_id='site-dropdown', component_property='value'),
+    prevent_initial_call=True)
+def recenter_map(target_id):
+    """Center map on new site."""
+    coords = TARGET_CENTRES[target_id]
+    print(f'Recentering: {coords}')
+    info_text = html.P([''], style={
+        'margin': 0,
+        'color': 'rgba(255, 255, 255, 0.9)'
+        })
+    return dict(center=coords,
+                zoom=10,
+                transition="flyTo"), info_text
+
+
+@callback(
+    Output('interferogram-bg', 'children'),
+    Input('site-dropdown', 'value'),
+    prevent_initial_call=True
+)
+def update_earthquake_markers(target_id):
+    """Update earthquake markers on map."""
+    if not target_id:
+        raise PreventUpdate
+    # Fetch the latest earthquake data for the selected target
+    new_epicenters_df = get_latest_quakes_chis_fsdn(target_id)
+
+    if '#EventID' in new_epicenters_df.columns:
+        # Create new CircleMarker elements
+        new_markers = [
+            CircleMarker(
+                center=[row['Latitude'], row['Longitude']],
+                radius=3*row['Magnitude'],
+                fillColor=row['quake_colour'],
+                fillOpacity=0.6,
+                color='black',
+                weight=1,
+                children=Popup(
+                    html.P([
+                        f"Magnitude: {row['Magnitude']} {row['MagType']}",
+                        html.Br(),
+                        f"Date: {row['Time'][0:10]}",
+                        html.Br(),
+                        f"Depth: {row['Depth/km']} km",
+                        html.Br(),
+                        f"EventID: {row['#EventID']}",
+                        html.Br(),
+                    ])
+                ),
+            )
+            for index, row in new_epicenters_df.sort_values(
+                by='#EventID'
+                ).iterrows()
+        ]
+    else:
+        new_markers = []
+        print("Note: No earthquakes found.")
+
+    # Create other layers to add back to the map
+    base_layers = [
+        TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+        LayersControl(
+            BaseLayer(
+                TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+                name=BASEMAP_NAME,
+                checked=True
+            ),
+        ),
+        TileLayer(
+            id='tiles',
+            url=(''),
+            maxZoom=30,
+            minZoom=1,
+            attribution='&copy; Open Street Map Contributors',
+            tms=True,
+            opacity=0.7)
+    ]
+
+    # Combine the base layers and the new markers
+    all_layers = base_layers + new_markers
+    return all_layers
