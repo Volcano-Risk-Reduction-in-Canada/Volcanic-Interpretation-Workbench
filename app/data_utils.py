@@ -17,7 +17,10 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 # TODO: organize the functions in a way that is more easy to follow
-# note: for now, it is mostly just copy and paste directly from files like overview.py and site.py
+
+# note: for now, it is mostly just copy and paste directly 
+# from files like overview.py and site.py
+
 
 def get_config_params():
     # Load variables from .env file into environment
@@ -32,14 +35,11 @@ def get_config_params():
         'WORKBENCH_HOST',
         'WORKBENCH_PORT'
     ]
-    
     # Dictionary to store configuration parameters
     config_params = {}
-    
     # Retrieve configuration parameters using os.getenv() and store them in the dictionary
     for var_name in env_variables:
         config_params[var_name] = os.getenv(var_name)
-    
     # Return the dictionary of configuration parameters
     return config_params
 
