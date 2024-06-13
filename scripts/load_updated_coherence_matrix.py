@@ -10,30 +10,21 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
 import argparse
-import configparser
 import boto3
+
+from app.data_utils import get_config_params
 
 
 def main():
     args = parse_args()
-    config = get_config_params("config.ini")
+    config = get_config_params()
 
     # Copy file from S3 into filesystem
     s3 = boto3.client('s3')
     s3.download_file(
-        Bucket=config.get('AWS', 'bucketName'),
+        Bucket=config['AWS_BUCKET_NAME'],
         Key=f'{args.site}/{args.beam}/CoherenceMatrix.csv',
         Filename=f'Data/{args.site}/{args.beam}/CoherenceMatrix.csv')
-
-
-def get_config_params(args):
-    """
-    Parse Input/Output columns from supplied *.ini file
-    """
-    configParseObj = configparser.ConfigParser()
-    configParseObj.read(args)
-    return configParseObj
-
 
 def parse_args():
     parser = argparse.ArgumentParser(

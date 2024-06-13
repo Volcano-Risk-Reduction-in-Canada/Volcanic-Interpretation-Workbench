@@ -32,7 +32,7 @@ from data_utils import (build_summary_table,
 
 dash.register_page(__name__, path='/')
 
-config = get_config_params('config.ini')
+# config = get_config_params()
 targets_geojson = read_targets_geojson()
 summary_table_df = build_summary_table(targets_geojson)
 
@@ -45,7 +45,7 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
-
+# TODO: create a file for global variables
 # basemap configuration
 BASEMAP_URL = (
     'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
