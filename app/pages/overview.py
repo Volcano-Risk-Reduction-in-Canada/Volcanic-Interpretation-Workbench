@@ -25,21 +25,16 @@ from dash_extensions.javascript import (assign)
 from global_variables import (
     BASEMAP_NAME,
     BASEMAP_ATTRIBUTION,
-    BASEMAP_URL
+    BASEMAP_URL,
+    summary_table_df
 )
-from data_utils import (build_summary_table,
+from data_utils import (
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
-                        get_red_volcanoes,
-                        read_targets_geojson
+                        get_red_volcanoes
                         )
 
 dash.register_page(__name__, path='/')
-
-# config = get_config_params()
-targets_geojson = read_targets_geojson()
-summary_table_df = build_summary_table(targets_geojson)
-
 
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
@@ -96,15 +91,18 @@ layout = html.Div([
     # TABLE (on top right corner)
     html.Div(
         id='table-container',
-        style={'position': 'absolute',
-               'top': '125px',
-               'right': '250px',
-               'width': '200px',
-               'zIndex': 1000},
+        style={
+            'position': 'absolute',
+            'top': '125px',
+            'right': '250px',
+            'width': '200px',
+            'zIndex': 1000
+            },
         children=[
             dash_table.DataTable(
                 columns=[
-                    {"name": i, "id": i} for i in summary_table_df.columns],
+                    {"name": i, "id": i} for i in summary_table_df.columns
+                ],
                 data=summary_table_df.to_dict('records'),
                 style_table={'color': 'black'},
                 style_data_conditional=[
@@ -125,8 +123,6 @@ layout = html.Div([
     INPUT: hidden div in Layout with ID 'trigger-reload'
     OUTPUT: various circle markers, generated from the updated map data
 """
-
-
 @callback(
     Output('circle-marker', 'children'),
     [Input('trigger-reload', 'children')]
@@ -176,8 +172,6 @@ def update_map_data(_):
     INPUT: any of the green or red volcanos
     OUTPUT: the url changes to '/site'
 """
-
-
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
     [[Input(

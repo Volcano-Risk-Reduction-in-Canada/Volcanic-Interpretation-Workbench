@@ -9,28 +9,33 @@ Copyright (C) 2021-2023 Government of Canada
 Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
-import json
 import datetime
-from io import StringIO
+import json
 import os
+from io import StringIO
 
-from dotenv import load_dotenv
+import numpy as np
+import pandas as pd
 import requests
 import dash
 from dash import html
-from dash_leaflet import (Marker,
-                          Tooltip)
-import numpy as np
-import pandas as pd
-
+from dash_leaflet import Marker, Tooltip
+from dotenv import load_dotenv
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
-import plotly.graph_objects as go
 
-# TODO: organize the functions in a way that is more easy to follow
-
-# note: for now, it is mostly just copy and paste directly
-# from files like overview.py and site.py
+from app.global_variables import (
+    BASELINE_DTICK,
+    BASELINE_MAX,
+    CMAP_NAME,
+    COH_LIMS,
+    DAYS_PER_YEAR,
+    MAX_YEARS,
+    YEAR_AXES_COUNT,
+    config,
+    targets_geojson,
+    summary_table_df
+)
 
 
 def get_config_params():
@@ -67,59 +72,6 @@ def get_config_params():
         config_params[var_name] = os.getenv(var_name)
     # Return the dictionary of configuration parameters
     return config_params
-
-
-def calculate_centroid(coords):
-    """Calculate a centroid given a list of x,y coordinates"""
-    num_points = len(coords)
-    total_x = 0
-    total_y = 0
-    for x, y in coords:
-        total_x += x
-        total_y += y
-    centroid_x = total_x / num_points
-    centroid_y = total_y / num_points
-    return [centroid_x, centroid_y]
-
-
-def calculate_and_append_centroids(geojson_dict):
-    "append polygon centroid to geojson object"
-    for feature in geojson_dict['features']:
-        geometry = feature['geometry']
-        centroid = calculate_centroid(geometry['coordinates'][0])
-        feature['geometry']['type'] = 'Point'
-        feature['geometry']['coordinates'] = centroid
-
-
-def read_targets_geojson():
-    """Query VRRC API for All Targets FootPrints"""
-    try:
-        vrrc_api_ip = config['API_VRRC_IP']
-        response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
-                                timeout=10)
-        response_geojson = json.loads(response.content)
-        unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
-        calculate_and_append_centroids(response_geojson)
-        for feature in response_geojson['features']:
-            if unrest_table_df.loc[unrest_table_df['Site'] ==
-                                   feature['properties']['name_en']
-                                   ]['Unrest'].values.size > 0:
-                unrest_bool = unrest_table_df.loc[
-                    unrest_table_df['Site'] == feature['properties']['name_en']
-                    ]['Unrest'].values[0]
-            feature['properties']['tooltip'] = html.Div([
-                html.Span(f"Site: {feature['id']}"), html.Br(),
-                html.Span("Last Checked by: None"), html.Br(),
-                html.Span("Most Recent SLC: None"), html.Br(),
-                html.Span("Unrest Observed: "),
-                html.Span(f"{unrest_bool}",
-                          style={
-                              'color': 'red' if unrest_bool else 'green'})])
-            # feature['properties']['icon'] = 'assets/greenVolcano.png'
-    except requests.exceptions.ConnectionError:
-        response_geojson = None
-        # pass
-    return response_geojson
 
 
 def get_latest_quakes_chis_fsdn():
@@ -163,42 +115,35 @@ def get_latest_quakes_chis_fsdn():
     return df
 
 
-def build_summary_table(targs_geojson):
-    """Build a summary table with volcanoes and info on their unrest"""
+def read_targets_geojson():
+    """Query VRRC API for All Targets FootPrints"""
     try:
-        targets_df = pd.json_normalize(targs_geojson,
-                                       record_path=['features'])
-        targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
-        targets_df['latest SAR Image Date'] = None
-        targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
+        vrrc_api_ip = config['API_VRRC_IP']
+        response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
+                                timeout=10)
+        response_geojson = json.loads(response.content)
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
-        # targets_df['Unrest'] = None
-        targets_df = pd.merge(targets_df,
-                              unrest_table_df,
-                              on='Site',
-                              how='left')
-        for site in targets_df['id']:
-            site_index = targets_df.loc[targets_df['id'] == site].index[0]
-            try:
-                url = config['API_VRRC_IP']
-                response = requests.get(
-                    f"http://{url}/targets/{site}",
-                    timeout=10)
-                response_geojson = json.loads(response.content)
-                if isinstance(response_geojson['last_slc_datetime'], str):
-                    last_slc_date = response_geojson['last_slc_datetime'][0:10]
-                    targets_df.loc[site_index,
-                                   'latest SAR Image Date'
-                                   ] = last_slc_date
-            except requests.exceptions.ConnectionError:
-                targets_df.loc[site_index, 'latest SAR Image Date'] = None
-        targets_df = targets_df.sort_values('id')
-    except NotImplementedError:
-        targets_df = pd.DataFrame(columns=['Site',
-                                           'latest SAR Image Date',
-                                           'Unrest'])
-        targets_df.loc[0] = ["API Connection Error"] * 3
-    return targets_df[['Site', 'latest SAR Image Date', 'Unrest']]
+        calculate_and_append_centroids(response_geojson)
+        for feature in response_geojson['features']:
+            if unrest_table_df.loc[unrest_table_df['Site'] ==
+                                   feature['properties']['name_en']
+                                   ]['Unrest'].values.size > 0:
+                unrest_bool = unrest_table_df.loc[
+                    unrest_table_df['Site'] == feature['properties']['name_en']
+                    ]['Unrest'].values[0]
+            feature['properties']['tooltip'] = html.Div([
+                html.Span(f"Site: {feature['id']}"), html.Br(),
+                html.Span("Last Checked by: None"), html.Br(),
+                html.Span("Most Recent SLC: None"), html.Br(),
+                html.Span("Unrest Observed: "),
+                html.Span(f"{unrest_bool}",
+                          style={
+                              'color': 'red' if unrest_bool else 'green'})])
+            # feature['properties']['icon'] = 'assets/greenVolcano.png'
+    except requests.exceptions.ConnectionError:
+        response_geojson = None
+        # pass
+    return response_geojson
 
 
 def get_green_volcanoes():
@@ -269,81 +214,72 @@ def get_red_volcanoes():
     return red_markers
 
 
-config = get_config_params()
-targets_geojson = read_targets_geojson()
-summary_table_df = build_summary_table(targets_geojson)
+def get_api_response(vrrc_api_ip, route):
+    """Get a response from the vrrc API given an ip and a route"""
+    try:
+        response = requests.get(f'http://{vrrc_api_ip}/{route}/',
+                                timeout=10)
+        response.raise_for_status()
+        response_dict = json.loads(response.text)
+        return response_dict
+    except requests.exceptions.RequestException as exception:
+        response_dict = {}
+        response_dict['API Response Error'] = [exception.args[0]]
+        return response_dict
+    
 
-# helpers from site.py
-
-# coherence plotting configuration
-YEAR_AXES_COUNT = 1
-BASELINE_MAX = 150
-BASELINE_DTICK = 24
-YEARS_MAX = 5
-CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
-TEMPORAL_HEIGHT = 300
-MAX_YEARS = 3
-DAYS_PER_YEAR = 365.25
-
-
-def _read_coherence(coherence_csv):
-    if coherence_csv is None:
-        return None
-    coh = pd.read_csv(
-        coherence_csv,
-        parse_dates=['Reference Date', 'Pair Date'])
-    coh.columns = ['first_date', 'second_date', 'coherence']
-    wrong_order = (coh.second_date < coh.first_date) & coh.coherence.notnull()
-    if wrong_order.any():
-        raise RuntimeError(
-            'Some intereferogram dates not ordered as expected:\n' +
-            coh[wrong_order].to_string())
-    return coh
+def calculate_centroid(coords):
+    """Calculate a centroid given a list of x,y coordinates"""
+    num_points = len(coords)
+    total_x = 0
+    total_y = 0
+    for x, y in coords:
+        total_x += x
+        total_y += y
+    centroid_x = total_x / num_points
+    centroid_y = total_y / num_points
+    return [centroid_x, centroid_y]
 
 
-def _read_baseline(baseline_csv):
-    if baseline_csv is None:
-        return None
-    baseline = pd.read_csv(
-        baseline_csv,
-        delimiter=' ',
-        header=None,
-        skipinitialspace=True)
-    baseline.columns = ['index',
-                        'first_date',
-                        'second_date',
-                        'bperp',
-                        'btemp',
-                        'bperp2',
-                        'x']
-    baseline = baseline.drop(['index',
-                              'btemp',
-                              'bperp2',
-                              'x'], axis=1)
-    baseline['first_date'] = pd.to_datetime(baseline['first_date'],
-                                            format="%Y%m%d")
-    baseline['second_date'] = pd.to_datetime(baseline['second_date'],
-                                             format="%Y%m%d")
-    return baseline
+def calculate_and_append_centroids(geojson_dict):
+    """append polygon centroid to geojson object"""
+    for feature in geojson_dict['features']:
+        geometry = feature['geometry']
+        centroid = calculate_centroid(geometry['coordinates'][0])
+        feature['geometry']['type'] = 'Point'
+        feature['geometry']['coordinates'] = centroid
 
 
-def _valid_dates(coh):
-    return coh.first_date.dropna().unique()
+def calc_polygon_centroid(coordinates):
+    """Calculate centroid from geojson coordinates"""
+    # Extract the coordinates
+    x_coords = [point[0] for point in coordinates]
+    y_coords = [point[1] for point in coordinates]
+    # Calculate the centroid
+    centroid_x = sum(x_coords) / len(coordinates)
+    centroid_y = sum(y_coords) / len(coordinates)
+    return round(centroid_x, 2), round(centroid_y, 2)
 
 
-def _coherence_csv(target_id):
-    if target_id == 'API Response Error':
-        return None
-    site, beam = target_id.rsplit('_', 1)
-    return f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
-
-
-def _baseline_csv(target_id):
-    if target_id == 'API Response Error':
-        return None
-    site, beam = target_id.rsplit('_', 1)
-    return f'app/Data/{site}/{beam}/bperp_all'
+def populate_beam_selector(vrrc_api_ip):
+    """creat dict of site_beams and centroid coordinates"""
+    beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
+    targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
+    beam_dict = {}
+    for beam in beam_response_dict:
+        try:
+            beam_string = beam['short_name']
+            for target in targets_response_dict:
+                if target['label'] == beam['target_label']:
+                    matching_target = target
+            site_string = matching_target['name_en']
+            site_beam_string = f'{site_string}_{beam_string}'
+            target_coordinates = matching_target['geometry']['coordinates'][0]
+            centroid_x, centroid_y = calc_polygon_centroid(target_coordinates)
+            beam_dict[site_beam_string] = [centroid_y, centroid_x]
+        except TypeError:
+            beam_dict['API Response Error'] = [50.64, -123.60]
+    return beam_dict
 
 
 def pivot_and_clean(coh_long):
@@ -512,47 +448,98 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 
-def populate_beam_selector(vrrc_api_ip):
-    """creat dict of site_beams and centroid coordinates"""
-    beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
-    targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
-    beam_dict = {}
-    for beam in beam_response_dict:
-        try:
-            beam_string = beam['short_name']
-            for target in targets_response_dict:
-                if target['label'] == beam['target_label']:
-                    matching_target = target
-            site_string = matching_target['name_en']
-            site_beam_string = f'{site_string}_{beam_string}'
-            target_coordinates = matching_target['geometry']['coordinates'][0]
-            centroid_x, centroid_y = calc_polygon_centroid(target_coordinates)
-            beam_dict[site_beam_string] = [centroid_y, centroid_x]
-        except TypeError:
-            beam_dict['API Response Error'] = [50.64, -123.60]
-    return beam_dict
-
-
-def get_api_response(vrrc_api_ip, route):
-    """Get a response from the vrrc API given an ip and a route"""
+def build_summary_table(targs_geojson):
+    """Build a summary table with volcanoes and info on their unrest"""
     try:
-        response = requests.get(f'http://{vrrc_api_ip}/{route}/',
-                                timeout=10)
-        response.raise_for_status()
-        response_dict = json.loads(response.text)
-        return response_dict
-    except requests.exceptions.RequestException as exception:
-        response_dict = {}
-        response_dict['API Response Error'] = [exception.args[0]]
-        return response_dict
+        targets_df = pd.json_normalize(targs_geojson,
+                                       record_path=['features'])
+        targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
+        targets_df['latest SAR Image Date'] = None
+        targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
+        unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
+        # targets_df['Unrest'] = None
+        targets_df = pd.merge(targets_df,
+                              unrest_table_df,
+                              on='Site',
+                              how='left')
+        for site in targets_df['id']:
+            site_index = targets_df.loc[targets_df['id'] == site].index[0]
+            try:
+                url = config['API_VRRC_IP']
+                response = requests.get(
+                    f"http://{url}/targets/{site}",
+                    timeout=10)
+                response_geojson = json.loads(response.content)
+                if isinstance(response_geojson['last_slc_datetime'], str):
+                    last_slc_date = response_geojson['last_slc_datetime'][0:10]
+                    targets_df.loc[site_index,
+                                   'latest SAR Image Date'
+                                   ] = last_slc_date
+            except requests.exceptions.ConnectionError:
+                targets_df.loc[site_index, 'latest SAR Image Date'] = None
+        targets_df = targets_df.sort_values('id')
+    except NotImplementedError:
+        targets_df = pd.DataFrame(columns=['Site',
+                                           'latest SAR Image Date',
+                                           'Unrest'])
+        targets_df.loc[0] = ["API Connection Error"] * 3
+    return targets_df[['Site', 'latest SAR Image Date', 'Unrest']]
 
 
-def calc_polygon_centroid(coordinates):
-    """Calculate centroid from geojson coordinates"""
-    # Extract the coordinates
-    x_coords = [point[0] for point in coordinates]
-    y_coords = [point[1] for point in coordinates]
-    # Calculate the centroid
-    centroid_x = sum(x_coords) / len(coordinates)
-    centroid_y = sum(y_coords) / len(coordinates)
-    return round(centroid_x, 2), round(centroid_y, 2)
+# def _read_coherence(coherence_csv):
+#     if coherence_csv is None:
+#         return None
+#     coh = pd.read_csv(
+#         coherence_csv,
+#         parse_dates=['Reference Date', 'Pair Date'])
+#     coh.columns = ['first_date', 'second_date', 'coherence']
+#     wrong_order = (coh.second_date < coh.first_date) & coh.coherence.notnull()
+#     if wrong_order.any():
+#         raise RuntimeError(
+#             'Some intereferogram dates not ordered as expected:\n' +
+#             coh[wrong_order].to_string())
+#     return coh
+
+
+# def _read_baseline(baseline_csv):
+#     if baseline_csv is None:
+#         return None
+#     baseline = pd.read_csv(
+#         baseline_csv,
+#         delimiter=' ',
+#         header=None,
+#         skipinitialspace=True)
+#     baseline.columns = ['index',
+#                         'first_date',
+#                         'second_date',
+#                         'bperp',
+#                         'btemp',
+#                         'bperp2',
+#                         'x']
+#     baseline = baseline.drop(['index',
+#                               'btemp',
+#                               'bperp2',
+#                               'x'], axis=1)
+#     baseline['first_date'] = pd.to_datetime(baseline['first_date'],
+#                                             format="%Y%m%d")
+#     baseline['second_date'] = pd.to_datetime(baseline['second_date'],
+#                                              format="%Y%m%d")
+#     return baseline
+
+
+# def _valid_dates(coh):
+#     return coh.first_date.dropna().unique()
+
+
+# def _coherence_csv(target_id):
+#     if target_id == 'API Response Error':
+#         return None
+#     site, beam = target_id.rsplit('_', 1)
+#     return f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
+
+
+# def _baseline_csv(target_id):
+#     if target_id == 'API Response Error':
+#         return None
+#     site, beam = target_id.rsplit('_', 1)
+#     return f'app/Data/{site}/{beam}/bperp_all'

@@ -39,14 +39,14 @@ from data_utils import (
 from global_variables import (
     BASEMAP_NAME,
     BASEMAP_ATTRIBUTION,
-    BASEMAP_URL
+    BASEMAP_URL,
+    TEMPORAL_HEIGHT
 )
-
+from app.data_utils import config
 # TODO further cleanup and organize code, make it more user friendly
 
 dash.register_page(__name__, path='/site')
 
-config = get_config_params()
 TILES_BUCKET = config['AWS_TILES_URL']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
@@ -58,17 +58,6 @@ SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
-
-# coherence plotting configuration
-YEAR_AXES_COUNT = 1
-BASELINE_MAX = 150
-BASELINE_DTICK = 24
-YEARS_MAX = 5
-CMAP_NAME = 'RdBu_r'
-COH_LIMS = (0.2, 0.4)
-TEMPORAL_HEIGHT = 300
-MAX_YEARS = 3
-DAYS_PER_YEAR = 365.25
 
 # construct dashboard
 load_figure_template('darkly')
