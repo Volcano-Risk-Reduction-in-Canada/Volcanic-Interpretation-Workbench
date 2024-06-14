@@ -185,7 +185,7 @@ def build_summary_table(targs_geojson):
                     f"http://{url}/targets/{site}",
                     timeout=10)
                 response_geojson = json.loads(response.content)
-                if isinstance(response_geojson['last_slc_datetime']) is str:
+                if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
                     targets_df.loc[site_index,
                                    'latest SAR Image Date'
