@@ -23,6 +23,7 @@ from dash_leaflet import Marker, Tooltip
 from dotenv import load_dotenv
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 
 from global_variables import (
     BASELINE_DTICK,
@@ -38,6 +39,7 @@ from global_variables import (
 config = None
 targets_geojson = None
 summary_table_df = None
+
 
 def get_config_params():
     """
@@ -227,7 +229,7 @@ def get_api_response(vrrc_api_ip, route):
         response_dict = {}
         response_dict['API Response Error'] = [exception.args[0]]
         return response_dict
-    
+
 
 def calculate_centroid(coords):
     """Calculate a centroid given a list of x,y coordinates"""
@@ -544,6 +546,7 @@ def _baseline_csv(target_id):
         return None
     site, beam = target_id.rsplit('_', 1)
     return f'app/Data/{site}/{beam}/bperp_all'
+
 
 config = get_config_params()
 targets_geojson = read_targets_geojson()

@@ -123,6 +123,8 @@ layout = html.Div([
     INPUT: hidden div in Layout with ID 'trigger-reload'
     OUTPUT: various circle markers, generated from the updated map data
 """
+
+
 @callback(
     Output('circle-marker', 'children'),
     [Input('trigger-reload', 'children')]
@@ -172,6 +174,8 @@ def update_map_data(_):
     INPUT: any of the green or red volcanos
     OUTPUT: the url changes to '/site'
 """
+
+
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
     [[Input(
