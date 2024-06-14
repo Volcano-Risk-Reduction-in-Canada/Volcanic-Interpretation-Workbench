@@ -9,12 +9,6 @@ Copyright (C) 2021-2023 Government of Canada
 Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
-from app.data_utils import build_summary_table, get_config_params, read_targets_geojson
-
-config = get_config_params()
-targets_geojson = read_targets_geojson()
-summary_table_df = build_summary_table(targets_geojson)
-
 # basemap configuration
 BASEMAP_URL = (
     'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'

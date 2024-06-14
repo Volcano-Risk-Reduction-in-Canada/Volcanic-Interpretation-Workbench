@@ -31,10 +31,10 @@ from data_utils import (
     _coherence_csv,
     _read_baseline,
     _read_coherence,
-    get_config_params,
     plot_baseline,
     plot_coherence,
-    populate_beam_selector
+    populate_beam_selector,
+    config
 )
 from global_variables import (
     BASEMAP_NAME,
@@ -42,7 +42,6 @@ from global_variables import (
     BASEMAP_URL,
     TEMPORAL_HEIGHT
 )
-from app.data_utils import config
 # TODO further cleanup and organize code, make it more user friendly
 
 dash.register_page(__name__, path='/site')

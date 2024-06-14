@@ -26,12 +26,12 @@ from global_variables import (
     BASEMAP_NAME,
     BASEMAP_ATTRIBUTION,
     BASEMAP_URL,
-    summary_table_df
 )
 from data_utils import (
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
-                        get_red_volcanoes
+                        get_red_volcanoes,
+                        summary_table_df
                         )
 
 dash.register_page(__name__, path='/')

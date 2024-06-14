@@ -24,19 +24,20 @@ from dotenv import load_dotenv
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 
-from app.global_variables import (
+from global_variables import (
     BASELINE_DTICK,
     BASELINE_MAX,
     CMAP_NAME,
     COH_LIMS,
     DAYS_PER_YEAR,
     MAX_YEARS,
-    YEAR_AXES_COUNT,
-    config,
-    targets_geojson,
-    summary_table_df
+    YEAR_AXES_COUNT
 )
 
+# Global variables used in data_utils file, will initialize at the end
+config = None
+targets_geojson = None
+summary_table_df = None
 
 def get_config_params():
     """
@@ -486,60 +487,64 @@ def build_summary_table(targs_geojson):
     return targets_df[['Site', 'latest SAR Image Date', 'Unrest']]
 
 
-# def _read_coherence(coherence_csv):
-#     if coherence_csv is None:
-#         return None
-#     coh = pd.read_csv(
-#         coherence_csv,
-#         parse_dates=['Reference Date', 'Pair Date'])
-#     coh.columns = ['first_date', 'second_date', 'coherence']
-#     wrong_order = (coh.second_date < coh.first_date) & coh.coherence.notnull()
-#     if wrong_order.any():
-#         raise RuntimeError(
-#             'Some intereferogram dates not ordered as expected:\n' +
-#             coh[wrong_order].to_string())
-#     return coh
+def _read_coherence(coherence_csv):
+    if coherence_csv is None:
+        return None
+    coh = pd.read_csv(
+        coherence_csv,
+        parse_dates=['Reference Date', 'Pair Date'])
+    coh.columns = ['first_date', 'second_date', 'coherence']
+    wrong_order = (coh.second_date < coh.first_date) & coh.coherence.notnull()
+    if wrong_order.any():
+        raise RuntimeError(
+            'Some intereferogram dates not ordered as expected:\n' +
+            coh[wrong_order].to_string())
+    return coh
 
 
-# def _read_baseline(baseline_csv):
-#     if baseline_csv is None:
-#         return None
-#     baseline = pd.read_csv(
-#         baseline_csv,
-#         delimiter=' ',
-#         header=None,
-#         skipinitialspace=True)
-#     baseline.columns = ['index',
-#                         'first_date',
-#                         'second_date',
-#                         'bperp',
-#                         'btemp',
-#                         'bperp2',
-#                         'x']
-#     baseline = baseline.drop(['index',
-#                               'btemp',
-#                               'bperp2',
-#                               'x'], axis=1)
-#     baseline['first_date'] = pd.to_datetime(baseline['first_date'],
-#                                             format="%Y%m%d")
-#     baseline['second_date'] = pd.to_datetime(baseline['second_date'],
-#                                              format="%Y%m%d")
-#     return baseline
+def _read_baseline(baseline_csv):
+    if baseline_csv is None:
+        return None
+    baseline = pd.read_csv(
+        baseline_csv,
+        delimiter=' ',
+        header=None,
+        skipinitialspace=True)
+    baseline.columns = ['index',
+                        'first_date',
+                        'second_date',
+                        'bperp',
+                        'btemp',
+                        'bperp2',
+                        'x']
+    baseline = baseline.drop(['index',
+                              'btemp',
+                              'bperp2',
+                              'x'], axis=1)
+    baseline['first_date'] = pd.to_datetime(baseline['first_date'],
+                                            format="%Y%m%d")
+    baseline['second_date'] = pd.to_datetime(baseline['second_date'],
+                                             format="%Y%m%d")
+    return baseline
 
 
-# def _valid_dates(coh):
-#     return coh.first_date.dropna().unique()
+def _valid_dates(coh):
+    return coh.first_date.dropna().unique()
 
 
-# def _coherence_csv(target_id):
-#     if target_id == 'API Response Error':
-#         return None
-#     site, beam = target_id.rsplit('_', 1)
-#     return f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
+def _coherence_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
+    site, beam = target_id.rsplit('_', 1)
+    return f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
-# def _baseline_csv(target_id):
-#     if target_id == 'API Response Error':
-#         return None
-#     site, beam = target_id.rsplit('_', 1)
-#     return f'app/Data/{site}/{beam}/bperp_all'
+def _baseline_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
+    site, beam = target_id.rsplit('_', 1)
+    return f'app/Data/{site}/{beam}/bperp_all'
+
+config = get_config_params()
+targets_geojson = read_targets_geojson()
+summary_table_df = build_summary_table(targets_geojson)
