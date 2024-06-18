@@ -1,0 +1,21 @@
+name: Docker Build
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker Image
+      run: docker build -t volc_interp_wb .
+    - name: Build Docker Container
+      run: |
+        docker run -p 8050:8050/tcp --name volc_interp_wb volc_interp_wb &
+        # FUTURE (when config PR is merged to main)
+        # docker-compose up
