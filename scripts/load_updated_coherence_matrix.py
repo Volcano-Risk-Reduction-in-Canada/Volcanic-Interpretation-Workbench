@@ -35,7 +35,8 @@ def main():
     s3.download_file(
         Bucket=config['AWS_BUCKET_NAME'],
         Key=f'{args.site}/{args.beam}/CoherenceMatrix.csv',
-        Filename=f'Data/{args.site}/{args.beam}/CoherenceMatrix.csv')
+        # Filename=f'Data/{args.site}/{args.beam}/CoherenceMatrix.csv')
+        Filename=f'Data{args.site}{args.beam}CoherenceMatrix.csv')
 
 
 def parse_args():
