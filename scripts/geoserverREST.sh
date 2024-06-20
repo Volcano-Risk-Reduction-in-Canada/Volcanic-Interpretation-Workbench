@@ -1,3 +1,5 @@
+#!/bin/bash
+
 docker run -d -p 8080:8080 --name geoserver-cog -e COMMUNITY_EXTENSIONS=cog-plugin kartoza/geoserver:2.19.0
 
 docker run -d -p 8080:8080 --name geoserver-s3 kartoza/geoserver:2.19.0
@@ -11,8 +13,8 @@ curl -v -u admin:geoserver -XPOST -H "Content-type: text/xml" \
 curl -v -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/workspaces | json_pp
 
 
-curl -v -u admin:geoserver -XPUT -H "Content-type: application/zip"
-  --data-binary @roads.zip
+curl -v -u admin:geoserver -XPUT -H "Content-type: application/zip" \
+  --data-binary @roads.zip \
   http://localhost:8080/geoserver/rest/workspaces/landslides/datastores/
 
 
@@ -21,7 +23,7 @@ curl -v -u admin:geoserver -XPUT -H "Content-type: application/zip"
 
 curl -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/layers.json
 
-curl -v -u admin:geoserver -XPUT -H "Content-type: application/zip"
+curl -v -u admin:geoserver -XPUT -H "Content-type: application/zip" \
   --data-binary /Users/drotheram/GitHub/Volcanic-Interpretation-Workbench/app/Data/20220411_HH_20220423_HH.adf.wrp.geo.tif
 
 curl -v -u admin:geoserver  http://localhost:8080/geoserver/rest/blobstores
@@ -42,11 +44,11 @@ curl -v -u admin:geoserver -XPOST -H 'Content-Type: application/xml' \
 
 curl -v -u admin:geoserver -XPUT -H "Content-type: text/plain"  \
     -d "file:///opt/geoserver/data_dir/workspaces/Volcano-InSAR/20220411_HH_20220427_HH.adf.wrp.geo.tif"  \
-        http://localhost:8080/geoserver/rest/workspaces/Volcano-InSAR/coveragestores/20220411_HH_20220427_HH/external.geotiff?configure=first\&coverageName=20220411_HH_20220427_HH.adf.wrp.geo
+        "http://localhost:8080/geoserver/rest/workspaces/Volcano-InSAR/coveragestores/20220411_HH_20220427_HH/external.geotiff?configure=first&coverageName=20220411_HH_20220427_HH.adf.wrp.geo"
 
 
 
-        ?configure=first\&coverageName=20220411_HH_20220427_HH
+        # ?configure=first&coverageName=20220411_HH_20220427_HH
 
 
 
@@ -69,14 +71,13 @@ curl -v -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/workspaces
 
 
 # Load interferograms
-for file in $INPUTDIR/*wrp.geo.tif
+for file in "$INPUTDIR"/*wrp.geo.tif
 do
-  echo $file
-  fileSplit=(${file//// })
-  filename=${fileSplit[7]}
-  dates=${fileSplit[7]:0:23}
+  echo "$file"
+  filename=$(basename "$file")
+  dates=${filename:0:23}
 
-  docker cp $file geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
+  docker cp "$file" geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
 
   curl -v -u admin:geoserver -XPOST -H 'Content-Type: application/xml' \
       -d "<coverageStore><name>${dates}.adf.wrp.geo</name>
@@ -87,18 +88,17 @@ do
 
   curl -v -u admin:geoserver -XPUT -H "Content-type: text/plain"  \
       -d "file:///opt/geoserver/data_dir/workspaces/${WORKSPACE}/${dates}.adf.wrp.geo.tif"  \
-          http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first\&coverageName=${dates}.adf.wrp.geo
+          "http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first&coverageName=${dates}.adf.wrp.geo"
 done
 
 # Load Backscatter imagery
 for file in /Users/drotheram/Projects/Volcano_InSAR/Meager/5M3/rmli/*tif
 do
-  echo $file
-  fileSplit=(${file//// })
-  filename=${fileSplit[7]}
-  date=${fileSplit[7]:0:8}
+  echo "$file"
+  filename=$(basename "$file")
+  date=${filename:0:8}
 
-  docker cp $file geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
+  docker cp "$file" geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
 
   curl -v -u admin:geoserver -XPOST -H 'Content-Type: application/xml' \
       -d "<coverageStore><name>${date}_HH.rmli.geo.db.tif</name>
@@ -109,7 +109,7 @@ do
 
   curl -v -u admin:geoserver -XPUT -H "Content-type: text/plain"  \
       -d "file:///opt/geoserver/data_dir/workspaces/${WORKSPACE}/${date}_HH.rmli.geo.db.tif"  \
-          http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${date}_HH.rmli.geo.db/external.geotiff?configure=first\&coverageName=${date}_HH.rmli.geo.db
+          "http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${date}_HH.rmli.geo.db/external.geotiff?configure=first&coverageName=${date}_HH.rmli.geo.db"
 done
 
 
@@ -128,15 +128,13 @@ curl -v -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/workspaces
 
 for file in ~/Projects/RGHRP/Thompson_River_Valley/NorthSlide/InSAR/insar/MSBAS_output/Run19_20220425_fixedunwrap/MSBAS_2*LOS.tif
 do
-  echo $file
-  fileSplit=(${file//// })
-  filename=${fileSplit[10]}
-  dates=${fileSplit[10]:6:8}
-  echo $fileSplit
-  echo $filename
-  echo $dates
+  echo "$file"
+  filename=$(basename "$file")
+  dates=${filename:6:8}
+  echo "$filename"
+  echo "$dates"
 
-  docker cp $file geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
+  docker cp "$file" geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
 
   # curl -v -u admin:geoserver -XPOST -H 'Content-Type: application/xml' \
   #     -d "<coverageStore><name>MSBAS_${dates}_LOS</name>
@@ -147,7 +145,7 @@ do
 
   curl -v -u admin:geoserver -XPUT -H "Content-type: text/plain"  \
       -d "file:///opt/geoserver/data_dir/workspaces/${WORKSPACE}/${filename}"  \
-          http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/MSBAS_${dates}_LOS/external.geotiff?configure=first\&coverageName=MSBAS_${dates}_LOS
+          "http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/MSBAS_${dates}_LOS/external.geotiff?configure=first&coverageName=MSBAS_${dates}_LOS"
 done
 
 
@@ -167,14 +165,13 @@ curl -v -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/workspaces
 
 
 
-for file in ${INPUTDIR}/*wrp.geo.tif
+for file in "${INPUTDIR}"/*wrp.geo.tif
 do
-  echo $file
-  fileSplit=(${file//// })
-  filename=${fileSplit[6]}
-  dates=${fileSplit[6]:0:23}
+  echo "$file"
+  filename=$(basename "$file")
+  dates=${filename:0:23}
 
-  docker cp $file geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
+  docker cp "$file" geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
 
   curl -v -u admin:geoserver -XPOST -H 'Content-Type: application/xml' \
       -d "<coverageStore><name>${dates}.adf.wrp.geo</name>
@@ -185,7 +182,7 @@ do
 
   curl -v -u admin:geoserver -XPUT -H "Content-type: text/plain"  \
       -d "file:///opt/geoserver/data_dir/workspaces/${WORKSPACE}/${dates}.adf.wrp.geo.tif"  \
-          http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first\&coverageName=${dates}.adf.wrp.geo
+          "http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first&coverageName=${dates}.adf.wrp.geo"
 done
 
 
@@ -208,14 +205,13 @@ curl -v -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/workspaces
 
 
 
-for file in ${INPUTDIR}/*wrp.geo.tif
+for file in "${INPUTDIR}"/*wrp.geo.tif
 do
-  echo $file
-  fileSplit=(${file//// })
-  filename=${fileSplit[6]}
-  dates=${fileSplit[6]:0:23}
+  echo "$file"
+  filename=$(basename "$file")
+  dates=${filename:0:23}
 
-  docker cp $file geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
+  docker cp "$file" geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
 
   curl -v -u admin:geoserver -XPOST -H 'Content-Type: application/xml' \
       -d "<coverageStore><name>${dates}.adf.wrp.geo</name>
@@ -226,7 +222,7 @@ do
 
   curl -v -u admin:geoserver -XPUT -H "Content-type: text/plain"  \
       -d "file:///opt/geoserver/data_dir/workspaces/${WORKSPACE}/${dates}.adf.wrp.geo.tif"  \
-          http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first\&coverageName=${dates}.adf.wrp.geo
+          "http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first&coverageName=${dates}.adf.wrp.geo"
 done
 
 
@@ -248,14 +244,13 @@ curl -v -u admin:geoserver -XPOST -H "Content-type: text/xml" \
 curl -v -u admin:geoserver -XGET http://localhost:8080/geoserver/rest/workspaces | json_pp
 
 
-for file in ${INPUTDIR}/*wrp.geo.tif
+for file in "${INPUTDIR}"/*wrp.geo.tif
 do
-  echo $file
-  fileSplit=(${file//// })
-  filename=${fileSplit[6]}
-  dates=${fileSplit[6]:0:23}
+  echo "$file"
+  filename=$(basename "$file")
+  dates=${filename:0:23}
 
-  docker cp $file geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
+  docker cp "$file" geoserver-cog:opt/geoserver/data_dir/workspaces/${WORKSPACE}/
 
   curl -v -u admin:geoserver -XPOST -H 'Content-Type: application/xml' \
       -d "<coverageStore><name>${dates}.adf.wrp.geo</name>
@@ -266,5 +261,5 @@ do
 
   curl -v -u admin:geoserver -XPUT -H "Content-type: text/plain"  \
       -d "file:///opt/geoserver/data_dir/workspaces/${WORKSPACE}/${dates}.adf.wrp.geo.tif"  \
-          http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first\&coverageName=${dates}.adf.wrp.geo
+          "http://localhost:8080/geoserver/rest/workspaces/${WORKSPACE}/coveragestores/${dates}.adf.wrp.geo/external.geotiff?configure=first&coverageName=${dates}.adf.wrp.geo"
 done
