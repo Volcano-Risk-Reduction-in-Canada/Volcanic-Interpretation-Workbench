@@ -35,10 +35,10 @@ def main():
     # Get the directory of the current script
     current_dir = os.path.dirname(__file__)
     csv_file_path = os.path.join(
-        current_dir, 
-        '../app/Data', 
-        args.site, 
-        args.beam, 
+        current_dir,
+        '../app/Data',
+        args.site,
+        args.beam,
         'CoherenceMatrix.csv'
     )
 
