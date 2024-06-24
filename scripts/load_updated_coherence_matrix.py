@@ -32,8 +32,15 @@ def main():
     config = get_config_params()
 
     # Determine the absolute path to the CSV file in the app directory
-    current_dir = os.path.dirname(__file__)  # Get the directory of the current script
-    csv_file_path = os.path.join(current_dir, '../app/Data', args.site, args.beam, 'CoherenceMatrix.csv')
+    # Get the directory of the current script
+    current_dir = os.path.dirname(__file__)
+    csv_file_path = os.path.join(
+        current_dir, 
+        '../app/Data', 
+        args.site, 
+        args.beam, 
+        'CoherenceMatrix.csv'
+    )
 
     # Copy file from S3 into filesystem
     s3 = boto3.client('s3')
