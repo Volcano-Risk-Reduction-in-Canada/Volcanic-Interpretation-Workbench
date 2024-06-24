@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+import xml.etree.ElementTree as ET
 
 from global_variables import (
     BASELINE_DTICK,
@@ -560,19 +561,18 @@ def get_glacier_geo():
     """
     print("GET glacier data")
     collection = 'msi'
-    url = f'https://datacube.services.geo.ca/api/collections/{collection}/'
+    url = f'https://open.canada.ca/data/api/action/package_show?id=9d96e8c9-22fe-4ad2-b5e8-94a6991b744b'
     # Parameters for the query
     # params = {
     #     'name': 'msi'
     # }
-    session = requests.Session()
-    session.mount('https://', requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3))
-
     # Make the request
-    response = requests.get(url, timeout=10, verify=True, headers={'Connection':'close'})  # Increase timeout to 10 seconds
+    response = requests.get(url, timeout=10)  # Increase timeout to 10 seconds
     # Check if the request was successful
     if response.status_code == 200:
-        # Return the JSON data
+        print(response.json())
+            
+        # Return the parsed XML data or do further processing
         return response.json()
     else:
         # Handle unsuccessful request

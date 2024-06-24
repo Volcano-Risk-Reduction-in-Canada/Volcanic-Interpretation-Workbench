@@ -28,6 +28,7 @@ from global_variables import (
     BASEMAP_URL,
 )
 from data_utils import (
+                        get_glacier_geo,
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
                         get_red_volcanoes,
