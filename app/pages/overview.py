@@ -22,20 +22,19 @@ from dash_extensions.enrich import (Output,
                                     Input)
 from dash_extensions.javascript import (assign)
 
-from data_utils import (build_summary_table,
-                        get_config_params,
+from global_variables import (
+    BASEMAP_NAME,
+    BASEMAP_ATTRIBUTION,
+    BASEMAP_URL,
+)
+from data_utils import (
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
                         get_red_volcanoes,
-                        read_targets_geojson
+                        summary_table_df
                         )
 
 dash.register_page(__name__, path='/')
-
-config = get_config_params('config.ini')
-targets_geojson = read_targets_geojson()
-summary_table_df = build_summary_table(targets_geojson)
-
 
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
@@ -44,16 +43,6 @@ epicenters_df = get_latest_quakes_chis_fsdn()
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
-
-
-# basemap configuration
-BASEMAP_URL = (
-    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
-    '/tile/{z}/{y}/{x}')
-BASEMAP_ATTRIBUTION = (
-    'Tiles courtesy of the '
-    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
-BASEMAP_NAME = 'USGS Topo'
 
 # spatial_view = html.Div()
 layout = html.Div([
@@ -102,15 +91,18 @@ layout = html.Div([
     # TABLE (on top right corner)
     html.Div(
         id='table-container',
-        style={'position': 'absolute',
-               'top': '125px',
-               'right': '250px',
-               'width': '200px',
-               'zIndex': 1000},
+        style={
+            'position': 'absolute',
+            'top': '125px',
+            'right': '250px',
+            'width': '200px',
+            'zIndex': 1000
+            },
         children=[
             dash_table.DataTable(
                 columns=[
-                    {"name": i, "id": i} for i in summary_table_df.columns],
+                    {"name": i, "id": i} for i in summary_table_df.columns
+                ],
                 data=summary_table_df.to_dict('records'),
                 style_table={'color': 'black'},
                 style_data_conditional=[
@@ -137,7 +129,7 @@ layout = html.Div([
     Output('circle-marker', 'children'),
     [Input('trigger-reload', 'children')]
 )
-def update_map_data(data):
+def update_map_data(_):
     """
         Call get_latest_quakes_chis_fsdn() on page reload.
         Generate and return circle markers for each data

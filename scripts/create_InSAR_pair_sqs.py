@@ -10,21 +10,21 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
 import argparse
-import configparser
 import boto3
+
+from data_utils import get_config_params
 
 
 def main():
     '''Main function, create SQS job for pair of
     SLC images for a given a site and beam'''
     args = parse_args()
-    config = get_config_params("config.ini")
+    config = get_config_params()
 
     # Create SQS client
     sqs = boto3.client('sqs', region_name='ca-central-1')
 
-    queue_url = config.get('AWS',
-                           'insarProcessQueue')
+    queue_url = config['AWS_INSAR_PROCESS_QUEUE']
     message_attributes = {
             'referenceDate': {
                 'DataType': 'String',
@@ -55,15 +55,6 @@ def main():
     )
 
     return response
-
-
-def get_config_params(args):
-    """
-    Parse Input/Output columns from supplied *.ini file
-    """
-    config_parse_obj = configparser.ConfigParser()
-    config_parse_obj.read(args)
-    return config_parse_obj
 
 
 def parse_args():

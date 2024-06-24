@@ -10,16 +10,17 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
 
-import configparser
 import os
 import yaml
 import boto3
+
+from data_utils import get_config_params
 
 
 def main():
     '''Main function, retrieve latest coherence
     matrix files for all site/beam combos'''
-    config = get_config_params("config.ini")
+    config = get_config_params()
     s_3 = boto3.client('s3')
 
     os.chdir('app/Data/')
@@ -32,18 +33,9 @@ def main():
             if not os.path.exists(f'{site}/{beam}'):
                 os.makedirs(f'{site}/{beam}')
 
-            s_3.download_file(Bucket=config.get('AWS', 'bucketName'),
+            s_3.download_file(Bucket=config['AWS_BUCKET_NAME'],
                               Key=f'{site}/{beam}/CoherenceMatrix.csv',
                               Filename=f'{site}/{beam}/CoherenceMatrix.csv')
-
-
-def get_config_params(args):
-    """
-    Parse Input/Output columns from supplied *.ini file
-    """
-    config_parse_obj = configparser.ConfigParser()
-    config_parse_obj.read(args)
-    return config_parse_obj
 
 
 if __name__ == '__main__':

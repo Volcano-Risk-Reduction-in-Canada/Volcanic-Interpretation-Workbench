@@ -10,9 +10,9 @@ A Docker-Dash application for interpreting InSAR measurements of Canadian Volcan
 
 ### General
 
-Before the first run, create `config.ini` from the sample and edit as necessary:
+Before the first run, create `.env` from the sample (`sample_.env`) and edit as necessary:
 ```
-cp -iv sample_config.ini onfig.ini
+cp -iv sample_.env .env
 ```
 
 ### Docker

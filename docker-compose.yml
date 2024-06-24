@@ -1,0 +1,16 @@
+version: '3'
+services:
+  volc_interp_wb:
+    image: volc_interp_wb  # Replace with the actual Docker image name if different
+    network_mode: host
+    build: .
+    env_file:
+      - .env
+    environment:
+      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
+      AWS_RAW_BUCKET: ${AWS_RAW_BUCKET}
+      AWS_INSAR_PROCESS_QUEUE: ${AWS_INSAR_PROCESS_QUEUE}
+      AWS_TILES_URL: ${AWS_TILES_URL}
+      API_VRRC_IP: ${API_VRRC_IP}
+      WORKBENCH_HOST: ${WORKBENCH_HOST}
+      WORKBENCH_PORT: ${WORKBENCH_PORT}
