@@ -10,6 +10,7 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
 import argparse
+import os
 import boto3
 
 from data_utils import get_config_params
@@ -30,13 +31,17 @@ def main():
     args = parse_args()
     config = get_config_params()
 
+    # Determine the absolute path to the CSV file in the app directory
+    current_dir = os.path.dirname(__file__)  # Get the directory of the current script
+    csv_file_path = os.path.join(current_dir, '../app/Data', args.site, args.beam, 'CoherenceMatrix.csv')
+
     # Copy file from S3 into filesystem
     s3 = boto3.client('s3')
     s3.download_file(
         Bucket=config['AWS_BUCKET_NAME'],
         Key=f'{args.site}/{args.beam}/CoherenceMatrix.csv',
         # Filename=f'Data/{args.site}/{args.beam}/CoherenceMatrix.csv')
-        Filename=f'Data{args.site}{args.beam}CoherenceMatrix.csv')
+        Filename=csv_file_path)
 
 
 def parse_args():
