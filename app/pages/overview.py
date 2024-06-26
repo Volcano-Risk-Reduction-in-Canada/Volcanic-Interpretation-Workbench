@@ -10,6 +10,7 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
+import os
 import dash
 from dash import html, dash_table, dcc, callback
 from dash_leaflet import (
@@ -91,7 +92,13 @@ layout = html.Div([
                     WMSTileLayer(
                         id='glacier-footprints-wms',
                         url="https://maps.geogratis.gc.ca/wms/canvec_en",
-                        layers="hydro",
+                        layers=(
+                            "snow_and_ice_50k,"
+                            "snow_and_ice_small,"
+                            "snow_and_ice_mid,"
+                            "snow_and_ice_large,"
+                            "snow_and_ice_250k"
+                        ),
                         format="image/png",
                         transparent=True,
                         attribution="Data source: Government of Canada",
@@ -145,12 +152,11 @@ layout = html.Div([
         children=[
             html.Img(
                 id='glacier-footprints-legend',
-                src=(
-                    "http://maps.geogratis.gc.ca/wms/canvec_en?"
-                    "version=1.3.0&service=WMS&request=GetLegendGraphic&"
-                    "sld_version=1.1.0&layer=hydro&format=image/png&STYLE=default"
-                ),
-                style={'display': 'block' if initial_show_glacier_information else 'none'}
+                src=dash.get_asset_url('glacier_legend.png'),
+                style={
+                    'width': '50%',
+                    'display': 'block' if initial_show_glacier_information else 'none'
+                }
             ),
             dcc.Checklist(
                 options=[
