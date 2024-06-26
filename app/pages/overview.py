@@ -29,7 +29,6 @@ from global_variables import (
     BASEMAP_URL,
 )
 from data_utils import (
-                        get_glacier_geo,
                         get_green_volcanoes,
                         get_latest_quakes_chis_fsdn,
                         get_red_volcanoes,
@@ -46,9 +45,9 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
-data = get_glacier_geo()
-if data is not None:
-    print(data)
+# data = get_glacier_geo()
+# if data is not None:
+#     print(data)
 
 # spatial_view = html.Div()
 layout = html.Div([
@@ -91,16 +90,15 @@ layout = html.Div([
                     # circle markers (earthquakes) populated in callback
                     html.Div(id='circle-marker'),
                     # WMS Layer for Glacier Footprints
-                    # https://app.geo.ca/map?rvKey=9d96e8c9-22fe-4ad2-b5e8-94a6991b744b
-                    # TODO: see if styles can be changed to be more visible
                     WMSTileLayer(
-                        id='wms-glacier',
+                        id='glacier-footprints-wms',
                         url="https://maps.geogratis.gc.ca/wms/canvec_en",
                         layers="hydro",
                         format="image/png",
                         transparent=True,
                         attribution="Data source: Government of Canada",
-                        styles="default"
+                        styles="default",
+                        opacity=0 #initially not visible
                     ),
                 ]
             ),       
@@ -133,8 +131,58 @@ layout = html.Div([
             )
         ]
     ),
+    # GLACIER FOOTPRINTS VISIBILITY (+ legend, in bottom right corner)
+    html.Div(
+        id='glacier-footprints-visiblity',
+        style={
+            'position': 'absolute',
+            'bottom': '25px',
+            'right': '100px',
+            'width': '250px',
+            'zIndex': 2000,
+            'color': 'black',
+            'background-color': 'white',
+            'margin-left': '5px'
+        },
+        children=[
+            html.Img(
+                id='glacier-footprints-legend',
+                src="http://maps.geogratis.gc.ca/wms/canvec_en?version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=hydro&format=image/png&STYLE=default",
+                style={'display': 'none'}  # Initially hide the image
+            ),
+            dcc.Checklist(
+                options=[
+                    {'label': 'Show Glacier Footprints', 'value': 'glacier-footprints'}
+                ],
+                value=[],
+                id='glacier-footprints-checkbox'
+            ),
+        ]
+    )
 ])
 
+
+# Define callback to toggle WMS Layer visibility based on checklist value
+@callback(
+    Output('glacier-footprints-wms', 'opacity'),
+    [Input('glacier-footprints-checkbox', 'value')]
+)
+def update_wms_visibility(value):
+    if 'glacier-footprints' in value:
+        return 100  # Show WMS Layer
+    else:
+        return 0   # Hide WMS Layer
+
+# Define callback to toggle image visibility based on checklist value
+@callback(
+    Output('glacier-footprints-legend', 'style'),
+    [Input('glacier-footprints-checkbox', 'value')]
+)
+def update_legend_visibility(value):
+    if 'glacier-footprints' in value:
+        return {'display': 'block'}  # Show the image
+    else:
+        return {'display': 'none'}   # Hide the image
 
 """
     Callback to update map data on page reload.

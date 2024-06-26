@@ -553,29 +553,3 @@ def _baseline_csv(target_id):
 config = get_config_params()
 targets_geojson = read_targets_geojson()
 summary_table_df = build_summary_table(targets_geojson)
-
-
-def get_glacier_geo():
-    """
-    Query GEO.ca for glacier data
-    """
-    print("GET glacier data")
-    collection = 'msi'
-    # url = f'https://open.canada.ca/data/api/action/package_show?id=9d96e8c9-22fe-4ad2-b5e8-94a6991b744b'
-    url = f'https://maps.geogratis.gc.ca/wms/canvec_en?request=getcapabilities&service=wms&layers=hydro&version=1.3.0&legend_format=image/png&feature_info_type=text/html'
-    # Parameters for the query
-    # params = {
-    #     'name': 'msi'
-    # }
-    # Make the request
-    response = requests.get(url, timeout=10)  # Increase timeout to 10 seconds
-    # Check if the request was successful
-    if response.status_code == 200:
-        # print(response.json())
-        print(response.text)
-        return response.text
-        # return response.json()
-    else:
-        # Handle unsuccessful request
-        print(f"Request failed with status code: {response.status_code}")
-        return None
