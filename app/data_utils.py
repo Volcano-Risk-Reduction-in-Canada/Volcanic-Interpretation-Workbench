@@ -13,7 +13,6 @@ import datetime
 import json
 import os
 from io import StringIO
-import ssl
 
 import numpy as np
 import pandas as pd
@@ -25,7 +24,6 @@ from dotenv import load_dotenv
 from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-import xml.etree.ElementTree as ET
 
 from global_variables import (
     BASELINE_DTICK,

@@ -12,15 +12,16 @@ Authors:
 """
 import dash
 from dash import html, dash_table, dcc, callback
-from dash_leaflet import (Map,
-                          TileLayer,
-                          WMSTileLayer,
-                          LayersControl,
-                          BaseLayer,
-                          CircleMarker,
-                          Popup)
-from dash_extensions.enrich import (Output,
-                                    Input)
+from dash_leaflet import (
+    Map,
+    TileLayer,
+    WMSTileLayer,
+    LayersControl,
+    BaseLayer,
+    CircleMarker,
+    Popup
+)
+from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
 from global_variables import (
@@ -41,15 +42,12 @@ markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
 
+initial_show_glacier_information = False
+
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
-# data = get_glacier_geo()
-# if data is not None:
-#     print(data)
-
-# spatial_view = html.Div()
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
     # Hidden div for triggering callback (for page reload)
@@ -98,7 +96,7 @@ layout = html.Div([
                         transparent=True,
                         attribution="Data source: Government of Canada",
                         styles="default",
-                        opacity=0 #initially not visible
+                        opacity= 100 if initial_show_glacier_information else 0
                     ),
                 ]
             ),       
@@ -113,7 +111,7 @@ layout = html.Div([
             'right': '250px',
             'width': '200px',
             'zIndex': 1000
-            },
+        },
         children=[
             dash_table.DataTable(
                 columns=[
@@ -147,14 +145,18 @@ layout = html.Div([
         children=[
             html.Img(
                 id='glacier-footprints-legend',
-                src="http://maps.geogratis.gc.ca/wms/canvec_en?version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=hydro&format=image/png&STYLE=default",
-                style={'display': 'none'}  # Initially hide the image
+                src=(
+                    "http://maps.geogratis.gc.ca/wms/canvec_en?"
+                    "version=1.3.0&service=WMS&request=GetLegendGraphic&"
+                    "sld_version=1.1.0&layer=hydro&format=image/png&STYLE=default"
+                ),
+                style={'display': 'block' if initial_show_glacier_information else 'none'}
             ),
             dcc.Checklist(
                 options=[
                     {'label': 'Show Glacier Footprints', 'value': 'glacier-footprints'}
                 ],
-                value=[],
+                value=['glacier-footprints'] if initial_show_glacier_information else [],
                 id='glacier-footprints-checkbox'
             ),
         ]
@@ -162,7 +164,13 @@ layout = html.Div([
 ])
 
 
-# Define callback to toggle WMS Layer visibility based on checklist value
+"""
+    Callback to toggle WMS Layer visibility based on checklist value
+    INPUT: Checklist item's value
+    OUTPUT: WMSTileLayer's opacity value (that controls visibility)
+"""
+
+
 @callback(
     Output('glacier-footprints-wms', 'opacity'),
     [Input('glacier-footprints-checkbox', 'value')]
@@ -173,7 +181,13 @@ def update_wms_visibility(value):
     else:
         return 0   # Hide WMS Layer
 
-# Define callback to toggle image visibility based on checklist value
+"""
+    Callback to toggle Glacier Legend visibility based on checklist value
+    INPUT: Checklist item's value
+    OUTPUT: glacier legend (an image) style display value
+"""
+
+
 @callback(
     Output('glacier-footprints-legend', 'style'),
     [Input('glacier-footprints-checkbox', 'value')]
