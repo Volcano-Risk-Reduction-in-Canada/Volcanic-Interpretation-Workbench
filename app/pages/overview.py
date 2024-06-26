@@ -14,6 +14,7 @@ import dash
 from dash import html, dash_table, dcc, callback
 from dash_leaflet import (Map,
                           TileLayer,
+                          WMSTileLayer,
                           LayersControl,
                           BaseLayer,
                           CircleMarker,
@@ -48,15 +49,6 @@ on_each_feature = assign("""function(feature, layer, context){
 data = get_glacier_geo()
 if data is not None:
     print(data)
-
-# basemap configuration
-BASEMAP_URL = (
-    'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
-    '/tile/{z}/{y}/{x}')
-BASEMAP_ATTRIBUTION = (
-    'Tiles courtesy of the '
-    '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
-BASEMAP_NAME = 'USGS Topo'
 
 # spatial_view = html.Div()
 layout = html.Div([
@@ -93,13 +85,24 @@ layout = html.Div([
                             checked=True
                         ),
                     ),
+                    # WMS Layer for Glacier Footprints
+                    # https://app.geo.ca/map?rvKey=9d96e8c9-22fe-4ad2-b5e8-94a6991b744b
+                    # TODO: see if styles can be changed to be more visible
+                    WMSTileLayer(
+                        url="https://maps.geogratis.gc.ca/wms/canvec_en",
+                        layers="hydro",
+                        format="image/png",
+                        transparent=True,
+                        attribution="Data source: Government of Canada",
+                        styles="default"
+                    ),
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,
                     # circle markers (earthquakes) populated in callback
                     html.Div(id='circle-marker')
                 ]
-            ),
+            ),       
         ]
     ),
     # TABLE (on top right corner)

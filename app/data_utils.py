@@ -561,7 +561,8 @@ def get_glacier_geo():
     """
     print("GET glacier data")
     collection = 'msi'
-    url = f'https://open.canada.ca/data/api/action/package_show?id=9d96e8c9-22fe-4ad2-b5e8-94a6991b744b'
+    # url = f'https://open.canada.ca/data/api/action/package_show?id=9d96e8c9-22fe-4ad2-b5e8-94a6991b744b'
+    url = f'https://maps.geogratis.gc.ca/wms/canvec_en?request=getcapabilities&service=wms&layers=hydro&version=1.3.0&legend_format=image/png&feature_info_type=text/html'
     # Parameters for the query
     # params = {
     #     'name': 'msi'
@@ -570,26 +571,11 @@ def get_glacier_geo():
     response = requests.get(url, timeout=10)  # Increase timeout to 10 seconds
     # Check if the request was successful
     if response.status_code == 200:
-        print(response.json())
-            
-        # Return the parsed XML data or do further processing
-        return response.json()
+        # print(response.json())
+        print(response.text)
+        return response.text
+        # return response.json()
     else:
         # Handle unsuccessful request
         print(f"Request failed with status code: {response.status_code}")
         return None
-
-    # try:
-    #     response = requests.get(url, timeout=10)
-    #     # Check if the request was successful
-    #     if response.status_code == 200:
-    #         # Return the JSON data
-    #         return response.json()
-    #     else:
-    #         # Handle unsuccessful request
-    #         print(f"Request failed with status code: {response.status_code}")
-    #         return None
-    # except requests.exceptions.ConnectionError:
-    #     # Handle connection error
-    #     print("Connection Error occurred.")
-    #     return None

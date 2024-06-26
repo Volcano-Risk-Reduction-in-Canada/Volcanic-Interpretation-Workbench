@@ -1,7 +1,6 @@
 virtualenv/*
 .venv
 *.pyc
-config.ini
 app/Data
 venv*
 **/CoherenceMatrix.csv
