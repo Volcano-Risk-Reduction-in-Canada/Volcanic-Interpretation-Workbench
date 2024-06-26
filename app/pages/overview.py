@@ -85,10 +85,16 @@ layout = html.Div([
                             checked=True
                         ),
                     ),
+                    # red and green volcano markers
+                    *markers_green,
+                    *markers_red,
+                    # circle markers (earthquakes) populated in callback
+                    html.Div(id='circle-marker'),
                     # WMS Layer for Glacier Footprints
                     # https://app.geo.ca/map?rvKey=9d96e8c9-22fe-4ad2-b5e8-94a6991b744b
                     # TODO: see if styles can be changed to be more visible
                     WMSTileLayer(
+                        id='wms-glacier',
                         url="https://maps.geogratis.gc.ca/wms/canvec_en",
                         layers="hydro",
                         format="image/png",
@@ -96,11 +102,6 @@ layout = html.Div([
                         attribution="Data source: Government of Canada",
                         styles="default"
                     ),
-                    # red and green volcano markers
-                    *markers_green,
-                    *markers_red,
-                    # circle markers (earthquakes) populated in callback
-                    html.Div(id='circle-marker')
                 ]
             ),       
         ]
