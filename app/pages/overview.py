@@ -154,7 +154,8 @@ layout = html.Div([
                 id='glacier-footprints-legend',
                 src=dash.get_asset_url('glacier_legend.png'),
                 style={
-                    'width': '50%',
+                    'width': '250px',
+                    'height': 'auto',
                     'display': 'block' if initial_show_glacier_information else 'none'
                 }
             ),
@@ -200,9 +201,17 @@ def update_wms_visibility(value):
 )
 def update_legend_visibility(value):
     if 'glacier-footprints' in value:
-        return {'display': 'block'}  # Show the image
+        return {
+            'width': '250px',
+            'height': 'auto',
+            'display': 'block' # Show the image
+        } 
     else:
-        return {'display': 'none'}   # Hide the image
+        return {
+            'width': '250px',
+            'height': 'auto',
+            'display': 'none' # Hide the image
+        } 
 
 """
     Callback to update map data on page reload.
