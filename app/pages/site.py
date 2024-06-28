@@ -16,16 +16,13 @@ import requests
 import dash
 import pandas as pd
 
-from dash import html, callback, dcc
+from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import (
-    Map, 
-    TileLayer, 
-    LayersControl, 
-    BaseLayer, 
-    WMSTileLayer
+    Map,
+    TileLayer,
 )
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
@@ -34,6 +31,7 @@ from dash_extensions.enrich import (
     Input,
     MultiplexerTransform
 )
+from global_components import generate_layers_control
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -45,9 +43,6 @@ from data_utils import (
     config
 )
 from global_variables import (
-    BASEMAP_NAME,
-    BASEMAP_ATTRIBUTION,
-    BASEMAP_URL,
     TEMPORAL_HEIGHT
 )
 # TODO further cleanup and organize code, make it more user friendly
@@ -93,16 +88,7 @@ selector = html.Div(
 spatial_view = Map(
     children=[
         TileLayer(),
-        LayersControl(
-            BaseLayer(
-                TileLayer(
-                    url=BASEMAP_URL,
-                    attribution=BASEMAP_ATTRIBUTION
-                ),
-                name=BASEMAP_NAME,
-                checked=True
-            ),
-        ),
+        generate_layers_control(),
         TileLayer(
             id='tiles',
             url=(
@@ -114,55 +100,6 @@ spatial_view = Map(
             attribution='&copy; Open Street Map Contributors',
             tms=True,
             opacity=0.7),
-            # WMS Layer for Glacier Footprints
-            WMSTileLayer(
-                id='glacier-footprints-wms',
-                url="https://maps.geogratis.gc.ca/wms/canvec_en",
-                layers=(
-                    "snow_and_ice_50k,"
-                    "snow_and_ice_small,"
-                    "snow_and_ice_mid,"
-                    "snow_and_ice_large,"
-                    "snow_and_ice_250k"
-                ),
-                format="image/png",
-                transparent=True,
-                attribution="Data source: Government of Canada",
-                styles="default",
-                opacity= 100 if initial_show_glacier_information else 0
-            ),
-            # GLACIER FOOTPRINTS VISIBILITY (+ legend, in bottom right corner)
-            html.Div(
-                id='glacier-footprints-visiblity',
-                style={
-                    'position': 'absolute',
-                    'bottom': '25px',
-                    'right': '100px',
-                    'width': '250px',
-                    'zIndex': 2000,
-                    'color': 'black',
-                    'background-color': 'white',
-                    'margin-left': '5px'
-                },
-                children=[
-                    html.Img(
-                        id='glacier-footprints-legend',
-                        src=dash.get_asset_url('glacier_legend.png'),
-                        style={
-                            'width': '250px',
-                            'height': 'auto',
-                            'display': 'block' if initial_show_glacier_information else 'none'
-                        }
-                    ),
-                    dcc.Checklist(
-                        options=[
-                            {'label': 'Show Glacier Footprints', 'value': 'glacier-footprints'}
-                        ],
-                        value=['glacier-footprints'] if initial_show_glacier_information else [],
-                        id='glacier-footprints-checkbox'
-                    ),
-                ]
-            )
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
