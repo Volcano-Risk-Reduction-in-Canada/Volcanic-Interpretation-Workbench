@@ -35,7 +35,7 @@ markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
 
-initial_show_glacier_information = False
+initial_show_glacier_information = True
 
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
@@ -65,7 +65,7 @@ layout = html.Div([
                 center=[54.64, -123.60],
                 zoom=6,
                 children=[
-                    generate_layers_control(),
+                    generate_layers_control(opacity=1),
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,

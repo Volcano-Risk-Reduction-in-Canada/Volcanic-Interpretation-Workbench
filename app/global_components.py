@@ -25,7 +25,7 @@ from global_variables import (
     BASEMAP_URL
 )
 
-def generate_layers_control():
+def generate_layers_control(opacity=0.5):
     """
     Generate a LayersControl object with base layers and overlays.
 
@@ -67,7 +67,7 @@ def generate_layers_control():
                             transparent=True,
                             attribution="Data source: Government of Canada",
                             styles="default",
-                            opacity=0.5,
+                            opacity=opacity,
                         ),
                         name='Glacier Footprints',
                         checked=True
