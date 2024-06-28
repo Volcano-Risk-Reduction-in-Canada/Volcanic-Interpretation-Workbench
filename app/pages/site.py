@@ -26,7 +26,7 @@ from dash_leaflet import (
 )
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
-    Output,                           
+    Output,                       
     DashProxy,
     Input,
     MultiplexerTransform
@@ -45,17 +45,15 @@ from data_utils import (
 from global_variables import (
     TEMPORAL_HEIGHT
 )
-# TODO further cleanup and organize code, make it more user friendly
 
 dash.register_page(__name__, path='/site')
 
+# VARIABLES
 TILES_BUCKET = config['AWS_TILES_URL']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
 SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
-
-# TODO add support for some or all of the following parameters to config
 
 # dashboard configuration
 TEMPLATE = 'darkly'
@@ -65,12 +63,11 @@ initial_show_glacier_information = False
 
 # construct dashboard
 load_figure_template('darkly')
-# app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
-
+# different components in page layout + styling variables
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
@@ -146,6 +143,7 @@ baseline_tab = Tabs(id="tabs-example-graph",
                            'height': '25px'},
                     vertical=False)
 
+# LAYOUT
 layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
@@ -162,6 +160,21 @@ layout = dbc.Container(
         'bottomMargin': 5,
     }
 )
+
+
+"""
+    Callback to Update interferogram display based on click data and selected site.
+
+    Parameters:
+    - click_data (dict): Click data from the coherence matrix.
+    - target_id (str): Selected site ID from the dropdown.
+
+    Returns:
+    - str: URL of the interferogram image to display.
+
+    Raises:
+    - PreventUpdate: If no target_id is provided or if the requested layer does not exist.
+"""
 
 
 @callback(
@@ -206,6 +219,17 @@ def update_interferogram(click_data, target_id):
     raise PreventUpdate
 
 
+"""
+    Display new coherence matrix for the selected site.
+
+    Parameters:
+    - target_id (str): Selected site ID from the dropdown.
+
+    Returns:
+    - dict: Plotly figure object of the coherence matrix.
+"""
+
+
 @callback(
     Output(component_id='coherence-matrix',
            component_property='figure',
@@ -221,6 +245,17 @@ def update_coherence(target_id):
     return plot_coherence(coherence)
 
 
+"""
+    Recenter map view on the coordinates of the selected site.
+
+    Parameters:
+    - target_id (str): Selected site ID from the dropdown.
+
+    Returns:
+    - dict: New viewport settings for the map.
+"""
+
+
 @callback(
     Output(component_id='interferogram-bg',
            component_property='viewport',
@@ -232,6 +267,22 @@ def recenter_map(target_id):
     coords = TARGET_CENTRES[target_id]
     print(f'Recentering: {coords}')
     return {"center": coords, "zoom": 10, "transition": 'flyTo'}
+
+
+
+"""
+    Switch between temporal and spatial baseline plots for the selected site.
+
+    Parameters:
+    - tab (str): Tab value indicating the desired plot (e.g., 'tab-1-coherence-graph', 'tab-2-baseline-graph').
+    - site (str): Selected site ID from the dropdown.
+
+    Returns:
+    - dict: Plotly figure object based on the selected tab and site.
+
+    Notes:
+    - If 'tab' does not match any recognized value, returns None.
+"""
 
 
 @callback(

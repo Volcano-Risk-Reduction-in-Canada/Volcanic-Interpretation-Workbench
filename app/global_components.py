@@ -26,6 +26,18 @@ from global_variables import (
 )
 
 def generate_layers_control():
+    """
+    Generate a LayersControl object with base layers and overlays.
+
+    Returns:
+    - LayersControl: Object containing base layers and overlays for the map.
+
+    Notes:
+    - BASEMAP_URL, BASEMAP_ATTRIBUTION, and BASEMAP_NAME should be defined (in global_variables) before calling this function.
+    - The function constructs a LayersControl with:
+      - One base layer: USGS Topo tile layer.
+      - One overlay layer: WMSTileLayer for displaying glacier footprints with specified parameters.
+    """
     LAYERS_CONTROL = LayersControl(
                 [
                     # base layer of the map

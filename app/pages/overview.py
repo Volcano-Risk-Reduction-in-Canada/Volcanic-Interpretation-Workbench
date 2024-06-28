@@ -30,6 +30,7 @@ from data_utils import (
 
 dash.register_page(__name__, path='/')
 
+# VARIABLES
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
@@ -40,6 +41,7 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
+# LAYOUT
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
     # Hidden div for triggering callback (for page reload)
@@ -100,82 +102,8 @@ layout = html.Div([
             )
         ]
     ),
-    # # GLACIER FOOTPRINTS VISIBILITY (+ legend, in bottom right corner)
-    # html.Div(
-    #     id='glacier-footprints-visiblity',
-    #     style={
-    #         'position': 'absolute',
-    #         'bottom': '25px',
-    #         'right': '100px',
-    #         'width': '250px',
-    #         'zIndex': 2000,
-    #         'color': 'black',
-    #         'background-color': 'white',
-    #         'margin-left': '5px'
-    #     },
-    #     children=[
-    #         html.Img(
-    #             id='glacier-footprints-legend',
-    #             src=dash.get_asset_url('glacier_legend.png'),
-    #             style={
-    #                 'width': '250px',
-    #                 'height': 'auto',
-    #                 'display': 'block' if initial_show_glacier_information else 'none'
-    #             }
-    #         ),
-    #         dcc.Checklist(
-    #             options=[
-    #                 {'label': 'Show Glacier Footprints', 'value': 'glacier-footprints'}
-    #             ],
-    #             value=['glacier-footprints'] if initial_show_glacier_information else [],
-    #             id='glacier-footprints-checkbox'
-    #         ),
-    #     ]
-    # )
 ])
 
-
-# """
-#     Callback to toggle WMS Layer visibility based on checklist value
-#     INPUT: Checklist item's value
-#     OUTPUT: WMSTileLayer's opacity value (that controls visibility)
-# """
-
-
-# @callback(
-#     Output('glacier-footprints-wms', 'opacity'),
-#     [Input('glacier-footprints-checkbox', 'value')]
-# )
-# def update_wms_visibility(value):
-#     if 'glacier-footprints' in value:
-#         return 100  # Show WMS Layer
-#     else:
-#         return 0   # Hide WMS Layer
-
-# """
-#     Callback to toggle Glacier Legend visibility based on checklist value
-#     INPUT: Checklist item's value
-#     OUTPUT: glacier legend (an image) style display value
-# """
-
-
-# @callback(
-#     Output('glacier-footprints-legend', 'style'),
-#     [Input('glacier-footprints-checkbox', 'value')]
-# )
-# def update_legend_visibility(value):
-#     if 'glacier-footprints' in value:
-#         return {
-#             'width': '250px',
-#             'height': 'auto',
-#             'display': 'block' # Show the image
-#         } 
-#     else:
-#         return {
-#             'width': '250px',
-#             'height': 'auto',
-#             'display': 'none' # Hide the image
-#         } 
 
 """
     Callback to update map data on page reload.
