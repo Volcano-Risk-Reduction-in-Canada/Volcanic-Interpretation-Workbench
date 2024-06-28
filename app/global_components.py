@@ -29,6 +29,9 @@ def generate_layers_control(opacity=0.5):
     """
     Generate a LayersControl object with base layers and overlays.
 
+    Parameters:
+    - opacity (float, optional): Opacity level of the WMS overlay layer. Defaults to 0.5.
+
     Returns:
     - LayersControl: Object containing base layers and overlays for the map.
 
