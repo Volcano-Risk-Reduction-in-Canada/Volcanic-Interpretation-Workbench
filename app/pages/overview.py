@@ -65,17 +65,17 @@ layout = html.Div([
                 center=[54.64, -123.60],
                 zoom=6,
                 children=[
-                    html.Div([generate_layers_control(opacity=1)], id='layers-control'),
+                    generate_layers_control(opacity=1),
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,
                     # circle markers (earthquakes) populated in callback
                     html.Div(id='circle-marker'),
                 ]
-            ),       
+            ),
         ]
     ),
-    html.Div([generate_legend()], id='legend', style={"display": 'block'}),
+    generate_legend(),
     # TABLE (on top right corner)
     html.Div(
         id='table-container',

@@ -10,8 +10,7 @@ Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
 
-import dash
-from dash import html, dcc
+from dash import html
 from dash_leaflet import (
     TileLayer,
     WMSTileLayer,
@@ -83,33 +82,43 @@ def generate_layers_control(opacity=0.5):
     )
     return LAYERS_CONTROL
 
+
 def generate_legend(bottom=105):
     # Static legend positioned over the map
-    legend = html.Div([
-        html.Div([
+    legend = html.Div(
+        [
             html.Div(
-                style={
-                    "background-color": "#e7f5f7", 
-                    "width": "15px", 
-                    "height": "15px", 
-                    "display": "inline-block",
-                    "vertical-align": "middle",  # Align vertically in the middle
-                    "margin-right": "5px"
-                }),
-            html.Span("Glacier", style={"color": "black", "font-size": "12px", "vertical-align": "middle"})
-        ], 
-        # style={"margin-bottom": "5px"}
-        ),
+                [
+                    html.Div(
+                        style={
+                            "background-color": "#e7f5f7",
+                            "width": "15px",
+                            "height": "15px",
+                            "display": "inline-block",
+                            "vertical-align": "middle",
+                            "margin-right": "5px"
+                        }),
+                    html.Span(
+                        "Glacier",
+                        style={
+                            "color": "black",
+                            "font-size": "12px",
+                            "vertical-align": "middle"
+                        }
+                    )
+                ],
+                # style={"margin-bottom": "5px"}
+            ),
         # Add more legend items as needed
-    ], 
-    style={
-        "position": "absolute", 
-        "bottom": f"{bottom}px", 
-        "right": "12px", 
-        "background-color": "white", 
-        "padding": "10px", 
-        "border": "1px solid #ccc", 
-        "z-index": "1000"
-    }
+        ],
+        style={
+            "position": "absolute",
+            "bottom": f"{bottom}px",
+            "right": "12px",
+            "background-color": "white",
+            "padding": "10px",
+            "border": "1px solid #ccc",
+            "z-index": "1000"
+        }
     )
     return legend

@@ -56,4 +56,4 @@ app.layout = html.Div([
 
 if __name__ == '__main__':
     print(f"Running server at {args.host}:{args.port}")
-    app.run(debug=False, host=args.host, port=args.port)
+    app.run(debug=True, host=args.host, port=args.port)

@@ -26,7 +26,7 @@ from dash_leaflet import (
 )
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
-    Output,                       
+    Output,                    
     DashProxy,
     Input,
     MultiplexerTransform
@@ -97,7 +97,7 @@ spatial_view = Map(
             attribution='&copy; Open Street Map Contributors',
             tms=True,
             opacity=0.7),
-            html.Div([generate_legend(bottom=30)], id='legend', style={"display": 'block'}),
+            generate_legend(bottom=30),
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
@@ -164,7 +164,8 @@ layout = dbc.Container(
 
 
 """
-    Callback to Update interferogram display based on click data and selected site.
+    Callback to Update interferogram display based on 
+    click data and selected site.
 
     Parameters:
     - click_data (dict): Click data from the coherence matrix.
@@ -174,7 +175,8 @@ layout = dbc.Container(
     - str: URL of the interferogram image to display.
 
     Raises:
-    - PreventUpdate: If no target_id is provided or if the requested layer does not exist.
+    - PreventUpdate: If no target_id is provided 
+        or if the requested layer does not exist.
 """
 
 
@@ -270,12 +272,12 @@ def recenter_map(target_id):
     return {"center": coords, "zoom": 10, "transition": 'flyTo'}
 
 
-
 """
     Switch between temporal and spatial baseline plots for the selected site.
 
     Parameters:
-    - tab (str): Tab value indicating the desired plot (e.g., 'tab-1-coherence-graph', 'tab-2-baseline-graph').
+    - tab (str): Tab value indicating the desired plot 
+        (e.g., 'tab-1-coherence-graph', 'tab-2-baseline-graph').
     - site (str): Selected site ID from the dropdown.
 
     Returns:
