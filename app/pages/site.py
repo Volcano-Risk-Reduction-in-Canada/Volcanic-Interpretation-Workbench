@@ -110,7 +110,7 @@ spatial_view = Map(
                 fillOpacity=0.6,
                 color='black',
                 weight=1,
-                # fill_colou='red',
+                # fill_colour='red',
                 # fill_opacity=0.6,
                 children=Popup(
                     html.P([
@@ -215,7 +215,7 @@ def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
-    SITE, BEAM = target_id.rsplit('_', 1)
+    site, beam = target_id.rsplit('_', 1)
     if not click_data:
         return (
             f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
@@ -228,7 +228,7 @@ def update_interferogram(click_data, target_id):
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
     layer = (
-        f'{TILES_BUCKET}/{SITE}/{BEAM}/{first_str}_{second_str}/'
+        f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
         '{z}/{x}/{y}.png'
     )
 
@@ -268,7 +268,7 @@ def update_coherence(target_id):
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True)
-def switch_temporal_viewl(tab, site):
+def switch_temporal_view(tab, site):
     """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
         print(f'coherence for {site}')
@@ -278,7 +278,6 @@ def switch_temporal_viewl(tab, site):
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
-
 
 
 @callback(
@@ -306,10 +305,10 @@ def update_earthquake_markers(target_id):
     if not target_id:
         raise PreventUpdate
     # Fetch the latest earthquake data for the selected target
-    epicenters_df = get_latest_quakes_chis_fsdn_site(
+    new_epicenters_df = get_latest_quakes_chis_fsdn_site(
         target_id, TARGET_CENTRES
     )
-    if '#EventID' in epicenters_df.columns:
+    if '#EventID' in new_epicenters_df.columns:
 
         # Create new CircleMarker elements
         new_markers = [
@@ -333,7 +332,9 @@ def update_earthquake_markers(target_id):
                     ])
                 ),
             )
-            for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
+            for index, row in new_epicenters_df.sort_values(
+                by='#EventID'
+                ).iterrows()
         ]
 
     else:
