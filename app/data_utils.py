@@ -185,12 +185,6 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     except requests.exceptions.ConnectionError:
         df = pd.DataFrame()
         df['#EventID'] = None
-    except Exception as e:
-        # Handle other possible exceptions
-        df = pd.DataFrame()
-        df['#EventID'] = None
-        # Optionally log the exception e for debugging
-        print(f"An error occurred: {e}")
     return df
 
 
