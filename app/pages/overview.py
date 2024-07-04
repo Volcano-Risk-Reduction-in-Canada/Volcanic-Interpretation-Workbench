@@ -20,7 +20,7 @@ from dash_leaflet import (
 from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
-from global_components import generate_layers_control
+from global_components import generate_layers_control, generate_legend
 from data_utils import (
     get_green_volcanoes,
     get_latest_quakes_chis_fsdn,
@@ -35,7 +35,7 @@ markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
 
-initial_show_glacier_information = True
+initial_show_glacier_information = False
 
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
@@ -65,7 +65,7 @@ layout = html.Div([
                 center=[54.64, -123.60],
                 zoom=6,
                 children=[
-                    generate_layers_control(opacity=1),
+                    html.Div([generate_layers_control(opacity=1)], id='layers-control'),
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,
@@ -75,6 +75,7 @@ layout = html.Div([
             ),       
         ]
     ),
+    html.Div([generate_legend()], id='legend', style={"display": 'block'}),
     # TABLE (on top right corner)
     html.Div(
         id='table-container',

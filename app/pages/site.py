@@ -31,7 +31,7 @@ from dash_extensions.enrich import (
     Input,
     MultiplexerTransform
 )
-from global_components import generate_layers_control
+from global_components import generate_layers_control, generate_legend
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -97,6 +97,7 @@ spatial_view = Map(
             attribution='&copy; Open Street Map Contributors',
             tms=True,
             opacity=0.7),
+            html.Div([generate_legend(bottom=30)], id='legend', style={"display": 'block'}),
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
