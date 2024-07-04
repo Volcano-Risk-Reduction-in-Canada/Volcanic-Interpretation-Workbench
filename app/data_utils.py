@@ -96,8 +96,9 @@ def get_latest_quakes_chis_fsdn():
                                 timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
-            df = pd.read_csv(StringIO(response.text),
-                             delimiter='|')
+            df = pd.read_csv(
+                StringIO(response.text), delimiter='|'
+                )
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
                 df['Time'])-datetime.datetime.now(datetime.timezone.utc)
@@ -146,7 +147,8 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
         'minlongitude': min_longitude,
         'maxlongitude': max_longitude,
     }
-    df = pd.DataFrame()  # Initialize df to an empty DataFrame
+    # Initialize df to an empty df to ensure it is always defined
+    df = pd.DataFrame()
     # Make the request
     try:
         response = requests.get(url,
@@ -154,8 +156,9 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
                                 timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
-            df = pd.read_csv(StringIO(response.text),
-                             delimiter='|')
+            df = pd.read_csv(
+                StringIO(response.text), delimiter='|'
+                )
             # Parse the boundary lat long
             df = df[
                 (df['Latitude'] >= min_latitude) &
@@ -166,8 +169,9 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
                 df['Time'])-datetime.datetime.now(datetime.timezone.utc)
-            df['Time_Delta'] = pd.to_numeric(-df['Time_Delta'].dt.days,
-                                             downcast='integer')
+            df['Time_Delta'] = pd.to_numeric(
+                -df['Time_Delta'].dt.days, downcast='integer'
+                )
             conditions = [
                 (df['Time_Delta'] <= 2),
                 (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
@@ -337,7 +341,7 @@ def calc_polygon_centroid(coordinates):
 
 
 def populate_beam_selector(vrrc_api_ip):
-    """creat dict of site_beams and centroid coordinates"""
+    """create dict of site_beams and centroid coordinates"""
     beam_response_dict = get_api_response(vrrc_api_ip, 'beams')
     targets_response_dict = get_api_response(vrrc_api_ip, 'targets')
     beam_dict = {}
