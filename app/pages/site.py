@@ -26,7 +26,7 @@ from dash_leaflet import (
 )
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
-    Output, 
+    Output,
     DashProxy,
     Input,
     MultiplexerTransform
