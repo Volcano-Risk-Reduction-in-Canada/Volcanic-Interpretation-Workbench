@@ -118,12 +118,12 @@ def get_latest_quakes_chis_fsdn():
     return df
 
 
-def get_latest_quakes_chis_fsdn_site(initial_target):
+def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     """Query the CHIS fsdn for latest earthquakes"""
     url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
 
     # Initial lat long for initial target
-    center_lat_long = TARGET_CENTRES[initial_target]
+    center_lat_long = target_centres[initial_target]
     center_latitude = center_lat_long[0]
     center_longitude = center_lat_long[1]
 
