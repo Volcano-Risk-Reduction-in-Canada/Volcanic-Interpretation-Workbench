@@ -118,6 +118,70 @@ def get_latest_quakes_chis_fsdn():
     return df
 
 
+def get_latest_quakes_chis_fsdn_site(initial_target):
+    """Query the CHIS fsdn for latest earthquakes"""
+    url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
+
+    # Initial lat long for initial target
+    center_lat_long = TARGET_CENTRES[initial_target]
+    center_latitude = center_lat_long[0]
+    center_longitude = center_lat_long[1]
+
+    # Geographic boundaries
+    min_latitude = center_latitude - 1
+    max_latitude = center_latitude + 1
+    min_longitude = center_longitude - 2
+    max_longitude = center_longitude + 2
+
+    # Parameters for the query
+    params = {
+        'format': 'text',
+        'starttime': (datetime.datetime.today() -
+                      datetime.timedelta(
+                          days=365)).strftime('%Y-%m-%d'),
+        'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
+        'eventtype': 'earthquake',
+        'minlatitude': min_latitude,
+        'maxlatitude': max_latitude,
+        'minlongitude': min_longitude,
+        'maxlongitude': max_longitude,
+    }
+    # Make the request
+    try:
+        response = requests.get(url,
+                                params=params,
+                                timeout=10)
+        if response.status_code == 200:
+            # Parse the response text to a dataframe
+            df = pd.read_csv(StringIO(response.text),
+                             delimiter='|')
+            # Parse the boundary lat long
+            df = df[
+                (df['Latitude'] >= min_latitude) &
+                (df['Latitude'] <= max_latitude) &
+                (df['Longitude'] >= min_longitude) &
+                (df['Longitude'] <= max_longitude)
+            ]
+            # Create marker colour code based on event age
+            df['Time_Delta'] = pd.to_datetime(
+                df['Time'])-datetime.datetime.now(datetime.timezone.utc)
+            df['Time_Delta'] = pd.to_numeric(-df['Time_Delta'].dt.days,
+                                             downcast='integer')
+            conditions = [
+                (df['Time_Delta'] <= 2),
+                (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
+                (df['Time_Delta'] > 7) & (df['Time_Delta'] <= 31),
+                (df['Time_Delta'] > 31)
+                ]
+            values = ['red', 'orange', 'yellow', 'white']
+            df['quake_colour'] = np.select(conditions, values)
+            df.sort_values(by='#EventID')
+    except requests.exceptions.ConnectionError:
+        df = pd.DataFrame()
+        df['#EventID'] = None
+    return df
+
+
 def read_targets_geojson():
     """Query VRRC API for All Targets FootPrints"""
     try:
