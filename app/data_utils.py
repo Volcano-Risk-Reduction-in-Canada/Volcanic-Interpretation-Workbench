@@ -146,6 +146,7 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
         'minlongitude': min_longitude,
         'maxlongitude': max_longitude,
     }
+    df = pd.DataFrame()  # Initialize df to an empty DataFrame
     # Make the request
     try:
         response = requests.get(url,
@@ -172,13 +173,20 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
                 (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
                 (df['Time_Delta'] > 7) & (df['Time_Delta'] <= 31),
                 (df['Time_Delta'] > 31)
-                ]
+            ]
             values = ['red', 'orange', 'yellow', 'white']
             df['quake_colour'] = np.select(conditions, values)
-            df.sort_values(by='#EventID')
+            if '#EventID' in df.columns:
+                df.sort_values(by='#EventID')
     except requests.exceptions.ConnectionError:
         df = pd.DataFrame()
         df['#EventID'] = None
+    except Exception as e:
+        # Handle other possible exceptions
+        df = pd.DataFrame()
+        df['#EventID'] = None
+        # Optionally log the exception e for debugging
+        print(f"An error occurred: {e}")
     return df
 
 
