@@ -59,7 +59,9 @@ TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
 SITE_INI, BEAM_INI = INITIAL_TARGET.split('_')
 
-epicenters_df = get_latest_quakes_chis_fsdn_site(INITIAL_TARGET)
+epicenters_df = get_latest_quakes_chis_fsdn_site(
+    INITIAL_TARGET, TARGET_CENTRES
+    )
 
 # dashboard configuration
 TEMPLATE = 'darkly'
