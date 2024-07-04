@@ -238,7 +238,8 @@ layout = dbc.Container(
     Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
-    prevent_initial_call=True)
+    prevent_initial_call=True
+    )
 def update_interferogram(click_data, target_id):
     """Update interferogram display."""
     if not target_id:
@@ -247,7 +248,8 @@ def update_interferogram(click_data, target_id):
     if not click_data:
         return (
             f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-            '{z}/{x}/{y}.png'
+            '{z}/{x}/{y}.png',
+            ""
         )
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
@@ -258,7 +260,6 @@ def update_interferogram(click_data, target_id):
         f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
         '{z}/{x}/{y}.png'
     )
-    # Checking if the layer exists
     check_url = (layer.replace('{z}', '0')
                  .replace('{x}', '0')
                  .replace('{y}', '0'))
@@ -283,7 +284,8 @@ def update_interferogram(click_data, target_id):
            component_property='figure',
            allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True)
+    prevent_initial_call=True
+    )
 def update_coherence(target_id):
     """Display new coherence matrix."""
     coherence_csv = _coherence_csv(target_id)
@@ -299,7 +301,8 @@ def update_coherence(target_id):
            allow_duplicate=True),
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
-    prevent_initial_call=True)
+    prevent_initial_call=True
+    )
 def switch_temporal_view(tab, site):
     """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
@@ -318,7 +321,8 @@ def switch_temporal_view(tab, site):
            allow_duplicate=True),
     Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True)
+    prevent_initial_call=True
+    )
 def recenter_map(target_id):
     """Center map on new site."""
     coords = TARGET_CENTRES[target_id]
@@ -341,13 +345,10 @@ def update_earthquake_markers(target_id):
     """Update earthquake markers on map."""
     if not target_id:
         raise PreventUpdate
-    # Fetch the latest earthquake data for the selected target
     new_epicenters_df = get_latest_quakes_chis_fsdn_site(
         target_id, TARGET_CENTRES
     )
     if '#EventID' in new_epicenters_df.columns:
-
-        # Create new CircleMarker elements
         new_markers = [
             CircleMarker(
                 center=[row['Latitude'], row['Longitude']],
@@ -373,12 +374,9 @@ def update_earthquake_markers(target_id):
                 by='#EventID'
                 ).iterrows()
         ]
-
     else:
         new_markers = []
         print("Note: No earthquakes found.")
-
-    # Create other layers to add back to the map
     base_layers = [
         TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
         LayersControl(
@@ -397,7 +395,5 @@ def update_earthquake_markers(target_id):
             tms=True,
             opacity=0.7)
     ]
-
-    # Combine the base layers and the new markers
     all_layers = base_layers + new_markers
     return all_layers
