@@ -20,26 +20,30 @@ from dash_leaflet import (
 )
 
 from global_variables import (
-    BASEMAP_ATTRIBUTION, 
-    BASEMAP_NAME, 
+    BASEMAP_ATTRIBUTION,
+    BASEMAP_NAME,
     BASEMAP_URL
 )
+
 
 def generate_layers_control(opacity=0.5):
     """
     Generate a LayersControl object with base layers and overlays.
 
     Parameters:
-    - opacity (float, optional): Opacity level of the WMS overlay layer. Defaults to 0.5.
+    - opacity (float, optional): Opacity level of the WMS 
+        overlay layer. Defaults to 0.5.
 
     Returns:
     - LayersControl: Object containing base layers and overlays for the map.
 
     Notes:
-    - BASEMAP_URL, BASEMAP_ATTRIBUTION, and BASEMAP_NAME should be defined (in global_variables) before calling this function.
+    - BASEMAP_URL, BASEMAP_ATTRIBUTION, and BASEMAP_NAME 
+        should be defined (in global_variables) before calling this function.
     - The function constructs a LayersControl with:
       - One base layer: USGS Topo tile layer.
-      - One overlay layer: WMSTileLayer for displaying glacier footprints with specified parameters.
+      - One overlay layer: WMSTileLayer for displaying 
+        glacier footprints with specified parameters.
     """
     LAYERS_CONTROL = LayersControl(
         id='container',
@@ -109,7 +113,7 @@ def generate_legend(bottom=105):
                 ],
                 # style={"margin-bottom": "5px"}
             ),
-        # Add more legend items as needed
+            # Add more legend items as needed
         ],
         style={
             "position": "absolute",

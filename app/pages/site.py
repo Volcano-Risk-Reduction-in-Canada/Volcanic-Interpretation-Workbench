@@ -26,7 +26,7 @@ from dash_leaflet import (
 )
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
-    Output,                    
+    Output,          
     DashProxy,
     Input,
     MultiplexerTransform
@@ -96,8 +96,9 @@ spatial_view = Map(
             minZoom=1,
             attribution='&copy; Open Street Map Contributors',
             tms=True,
-            opacity=0.7),
-            generate_legend(bottom=30),
+            opacity=0.7
+        ),
+        generate_legend(bottom=30),
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
@@ -175,7 +176,7 @@ layout = dbc.Container(
     - str: URL of the interferogram image to display.
 
     Raises:
-    - PreventUpdate: If no target_id is provided 
+    - PreventUpdate: If no target_id is provided
         or if the requested layer does not exist.
 """
 
@@ -276,7 +277,7 @@ def recenter_map(target_id):
     Switch between temporal and spatial baseline plots for the selected site.
 
     Parameters:
-    - tab (str): Tab value indicating the desired plot 
+    - tab (str): Tab value indicating the desired plot
         (e.g., 'tab-1-coherence-graph', 'tab-2-baseline-graph').
     - site (str): Selected site ID from the dropdown.
 
