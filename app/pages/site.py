@@ -113,20 +113,21 @@ spatial_view = Map(
                 # fill_colou='red',
                 # fill_opacity=0.6,
                 children=Popup(
-                    html.P(
-                        [f"""Magnitude: {row['Magnitude']} \
-                                        {row['MagType']}""",
-                            html.Br(),
-                            f"Date: {row['Time'][0:10]}",
-                            html.Br(),
-                            f"Depth: {row['Depth/km']} km",
-                            html.Br(),
-                            f"EventID: {row['#EventID']}",
-                            html.Br(),
-                            ])),
+                    html.P([
+                        f"""Magnitude: {row['Magnitude']} {row['MagType']}""",
+                        html.Br(),
+                        f"Date: {row['Time'][0:10]}",
+                        html.Br(),
+                        f"Depth: {row['Depth/km']} km",
+                        html.Br(),
+                        f"EventID: {row['#EventID']}",
+                        html.Br(),
+                    ])
+                ),
             )
             for index, row in epicenters_df.sort_values(
-                by='#EventID').iterrows()
+                by='#EventID'
+                ).iterrows()
         ],
         TileLayer(
             id='tiles',
@@ -235,7 +236,7 @@ def update_interferogram(click_data, target_id):
     check_url = (layer.replace('{z}', '0')
                  .replace('{x}', '0')
                  .replace('{y}', '0'))
-    response = requests.head(check_url)
+    response = requests.head(check_url, timeout=10)
 
     if response.status_code == 200:
         print(f'Updating interferogram: {layer}')
@@ -268,7 +269,7 @@ def update_coherence(target_id):
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True)
 def switch_temporal_viewl(tab, site):
-    """Switch between temporal and spatial basleine plots"""
+    """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
         print(f'coherence for {site}')
         return plot_coherence(_read_coherence(_coherence_csv(site)))
@@ -306,32 +307,38 @@ def update_earthquake_markers(target_id):
         raise PreventUpdate
     # Fetch the latest earthquake data for the selected target
     epicenters_df = get_latest_quakes_chis_fsdn_site(
-    target_id, TARGET_CENTRES
+        target_id, TARGET_CENTRES
     )
-    # Create new CircleMarker elements
-    new_markers = [
-        CircleMarker(
-            center=[row['Latitude'], row['Longitude']],
-            radius=3*row['Magnitude'],
-            fillColor=row['quake_colour'],
-            fillOpacity=0.6,
-            color='black',
-            weight=1,
-            children=Popup(
-                html.P([
-                    f"Magnitude: {row['Magnitude']} {row['MagType']}",
-                    html.Br(),
-                    f"Date: {row['Time'][0:10]}",
-                    html.Br(),
-                    f"Depth: {row['Depth/km']} km",
-                    html.Br(),
-                    f"EventID: {row['#EventID']}",
-                    html.Br(),
-                ])
-            ),
-        )
-        for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
-    ]
+    if '#EventID' in epicenters_df.columns:
+
+        # Create new CircleMarker elements
+        new_markers = [
+            CircleMarker(
+                center=[row['Latitude'], row['Longitude']],
+                radius=3*row['Magnitude'],
+                fillColor=row['quake_colour'],
+                fillOpacity=0.6,
+                color='black',
+                weight=1,
+                children=Popup(
+                    html.P([
+                        f"Magnitude: {row['Magnitude']} {row['MagType']}",
+                        html.Br(),
+                        f"Date: {row['Time'][0:10]}",
+                        html.Br(),
+                        f"Depth: {row['Depth/km']} km",
+                        html.Br(),
+                        f"EventID: {row['#EventID']}",
+                        html.Br(),
+                    ])
+                ),
+            )
+            for index, row in epicenters_df.sort_values(by='#EventID').iterrows()
+        ]
+
+    else:
+        new_markers = []
+        print("Note: No earthquakes found.")
 
     # Create other layers to add back to the map
     base_layers = [
