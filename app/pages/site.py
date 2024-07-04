@@ -186,12 +186,39 @@ baseline_tab = Tabs(id="tabs-example-graph",
                            'height': '25px'},
                     vertical=False)
 
+ini_info_text = html.P([
+    'Layer:'
+    'Layer: 20220821_HH_20220914_HH.adf.unw.geo.tif'
+], style={
+    'margin': 0  # Remove default margin
+})
+
+ifg_info = html.Div(
+    ini_info_text,
+    id='ifg-info',
+    style={
+        'position': 'absolute',
+        'top': '1px',
+        'right': '10px',
+        'width': '398px',
+        'height': '35px',
+        'backgroundColor': 'rgba(255, 255, 255, 0.1)',
+        'padding': '10px',
+        'borderRadius': '5px',
+        'boxShadow': '0px 0px 10px rgba(0, 0, 0, 0.1)',
+        'zIndex': '1000',
+        'display': 'flex',
+        'alignItems': 'center',
+    }
+)
+
 layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
         dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
         dbc.Row(dbc.Col(baseline_tab)),  # add into row below
         dbc.Row(dbc.Col(temporal_view)),
+        dbc.Row(dbc.Col(ifg_info)),
     ],
     fluid=True,
     style={
