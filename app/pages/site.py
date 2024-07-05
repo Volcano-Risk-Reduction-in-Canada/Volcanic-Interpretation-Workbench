@@ -205,7 +205,7 @@ ifg_info = html.Div(
     }
 )
 
-#LAYOUT
+# LAYOUT
 layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
@@ -223,6 +223,7 @@ layout = dbc.Container(
         'bottomMargin': 5,
     }
 )
+
 
 @callback(
     Output(component_id='tiles',
