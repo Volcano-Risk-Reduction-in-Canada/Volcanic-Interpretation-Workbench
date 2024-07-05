@@ -22,8 +22,6 @@ from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import (Map,
                           TileLayer,
-                          LayersControl,
-                          BaseLayer,
                           CircleMarker,
                           Popup)
 from dash.exceptions import PreventUpdate
@@ -48,8 +46,6 @@ from data_utils import (
 from global_variables import (
     TEMPORAL_HEIGHT
 )
-# TODO further cleanup and organize code, make it more user friendly
-# TODO add support for some or all of the following parameters to config
 
 dash.register_page(__name__, path='/site')
 
@@ -374,16 +370,7 @@ def update_earthquake_markers(target_id):
         print("Note: No earthquakes found.")
     base_layers = [
         TileLayer(),
-        LayersControl(
-            BaseLayer(
-                TileLayer(
-                    url=BASEMAP_URL,
-                    attribution=BASEMAP_ATTRIBUTION
-                ),
-                name=BASEMAP_NAME,
-                checked=True
-            ),
-        ),
+        generate_layers_control(),
         TileLayer(
             id='tiles',
             url=(''),

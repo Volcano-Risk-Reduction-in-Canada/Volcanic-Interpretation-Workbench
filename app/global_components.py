@@ -95,7 +95,7 @@ def generate_legend(bottom=105, overview=True):
     legend_items = [
         get_glacier_markers(),
         get_volcano_markers() if overview else None,
-        get_earthquake_markers() if overview else None,
+        get_earthquake_markers(),
         get_InSAR_phase_change() if not overview else None
         # Add more legend items as needed
     ]
@@ -111,7 +111,7 @@ def generate_legend(bottom=105, overview=True):
             "background-color": "white",
             "padding": "10px",
             "border": "1px solid #ccc",
-            "z-index": "1000"
+            "z-index": "2000"
         }
     )
     return legend
@@ -183,7 +183,7 @@ def get_earthquake_markers():
         # RED
         {
             'rgba': 'rgba(255, 0, 0, 0.6)',
-            'age': '2 Days'
+            'age': 'Day'
         },
         # ORANGE
         {
@@ -193,12 +193,12 @@ def get_earthquake_markers():
         # YELLOW
         {
             'rgba': 'rgba(255, 255, 0, 0.6)',
-            'age': 'month'
+            'age': 'Month'
         },
         # WHITE
         {
             'rgba': 'rgba(255, 255, 255, 0.6)',
-            'age':'older'
+            'age':'Older'
         }
     ]
     magnitudes = [1,2,3,4,5,6,7]
@@ -214,21 +214,26 @@ def get_earthquake_markers():
         magnitude_div = html.Div([
             html.Div(
                 style={
-                    "width": f"{magnitude * 3 + 3}px",
-                    "height": f"{magnitude * 3 + 3}px",
+                    "width": f"{magnitude * 6}px",
+                    "height": f"{magnitude * 6}px",
                     "display": "inline-block",
                     "vertical-align": "middle",
                     "borderRadius": "50%",
                     "border": "0.5px solid black",
                     "backgroundColor": 'white',
-                    "marginRight": "5px"
+                    "marginRight": "5px",
                 }
             ),
             html.Span(
                 f"{comparison_operator}{magnitude}",
                 style=LEGEND_TEXT_STYLING
             ),
-        ])
+        ], 
+        style={
+            "display": "flex",
+            "justifyContent": "center",
+            'alignItems': "center",
+        })
         magnitude_markers.append(magnitude_div)
     for color in age_colors:
         age_div = html.Div([
