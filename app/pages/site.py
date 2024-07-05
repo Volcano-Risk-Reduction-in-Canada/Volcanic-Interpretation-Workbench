@@ -22,8 +22,6 @@ from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import (Map,
                           TileLayer,
-                          LayersControl,
-                          BaseLayer,
                           CircleMarker,
                           Popup)
 from dash.exceptions import PreventUpdate
