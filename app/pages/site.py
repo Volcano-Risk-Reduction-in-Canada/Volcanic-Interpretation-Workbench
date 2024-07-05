@@ -98,7 +98,7 @@ spatial_view = Map(
             tms=True,
             opacity=0.7
         ),
-        generate_legend(bottom=30),
+        generate_legend(bottom=30, overview=False),
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],

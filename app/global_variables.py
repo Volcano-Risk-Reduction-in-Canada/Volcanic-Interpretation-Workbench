@@ -28,3 +28,9 @@ COH_LIMS = (0.2, 0.4)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
+
+LEGEND_TEXT_STYLING = {
+  "color": "black",
+  "font-size": "12px",
+  "vertical-align": "middle"
+}
