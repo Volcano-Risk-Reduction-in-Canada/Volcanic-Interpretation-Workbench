@@ -226,24 +226,6 @@ layout = dbc.Container(
     }
 )
 
-
-"""
-    Callback to Update interferogram display based on
-    click data and selected site.
-
-    Parameters:
-    - click_data (dict): Click data from the coherence matrix.
-    - target_id (str): Selected site ID from the dropdown.
-
-    Returns:
-    - str: URL of the interferogram image to display.
-
-    Raises:
-    - PreventUpdate: If no target_id is provided
-        or if the requested layer does not exist.
-"""
-
-
 @callback(
     Output(component_id='tiles',
            component_property='url',
@@ -292,17 +274,6 @@ def update_interferogram(click_data, target_id):
     raise PreventUpdate
 
 
-"""
-    Display new coherence matrix for the selected site.
-
-    Parameters:
-    - target_id (str): Selected site ID from the dropdown.
-
-    Returns:
-    - dict: Plotly figure object of the coherence matrix.
-"""
-
-
 @callback(
     Output(component_id='coherence-matrix',
            component_property='figure',
@@ -317,46 +288,6 @@ def update_coherence(target_id):
     coherence = _read_coherence(coherence_csv)
 
     return plot_coherence(coherence)
-
-
-"""
-    Recenter map view on the coordinates of the selected site.
-
-    Parameters:
-    - target_id (str): Selected site ID from the dropdown.
-
-    Returns:
-    - dict: New viewport settings for the map.
-"""
-
-
-@callback(
-    Output(component_id='interferogram-bg',
-           component_property='viewport',
-           allow_duplicate=True),
-    Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True)
-def recenter_map(target_id):
-    """Center map on new site."""
-    coords = TARGET_CENTRES[target_id]
-    print(f'Recentering: {coords}')
-    return {"center": coords, "zoom": 10, "transition": 'flyTo'}
-
-
-"""
-    Switch between temporal and spatial baseline plots for the selected site.
-
-    Parameters:
-    - tab (str): Tab value indicating the desired plot
-        (e.g., 'tab-1-coherence-graph', 'tab-2-baseline-graph').
-    - site (str): Selected site ID from the dropdown.
-
-    Returns:
-    - dict: Plotly figure object based on the selected tab and site.
-
-    Notes:
-    - If 'tab' does not match any recognized value, returns None.
-"""
 
 
 @callback(
