@@ -18,7 +18,7 @@ from dash_leaflet import (
     LayersControl,
     BaseLayer,
     Overlay,
-    CircleMarker
+    Colorbar
 )
 
 from global_variables import (
@@ -96,6 +96,7 @@ def generate_legend(bottom=105, overview=True):
         get_glacier_markers(),
         get_volcano_markers() if overview else None,
         get_earthquake_markers() if overview else None,
+        get_InSAR_phase_change() if not overview else None
         # Add more legend items as needed
     ]
     # Filter out None values (markers not included if overview is False)
@@ -253,14 +254,24 @@ def get_earthquake_markers():
         "display": "inline-block",
         "verticalAlign": "top"
     }
-    age_markers_div = html.Div(age_markers, style={**earthquake_styling, "marginRight": "10px"})
-    magnitude_markers_div = html.Div(magnitude_markers, style={**earthquake_styling, "marginLeft": "10px"})
+
     earthquake = html.Div(
         [
             html.H6('Earthquakes', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
-            age_markers_div,
-            magnitude_markers_div
+            html.Div(age_markers, style={**earthquake_styling, "marginRight": "10px"}),
+            html.Div(magnitude_markers, style={**earthquake_styling, "marginLeft": "10px"})
         ],
         style={"margin-bottom": "5px"}
     )
     return earthquake
+
+def get_InSAR_phase_change():
+    colorscale = ['red', 'yellow', 'green', 'blue', 'purple']  # rainbow
+    inSAR_phase_change = html.Div(
+        [
+            html.H6('InSAR Phase Change', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+            Colorbar(colorscale=colorscale, width=20, height=200, min=0, max=50, position="bottomright")
+        ],
+        style={"margin-bottom": "5px"}
+    )
+    return inSAR_phase_change
