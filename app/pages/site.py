@@ -378,10 +378,13 @@ def update_earthquake_markers(target_id):
         new_markers = []
         print("Note: No earthquakes found.")
     base_layers = [
-        TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+        TileLayer(),
         LayersControl(
             BaseLayer(
-                TileLayer(url=BASEMAP_URL, attribution=BASEMAP_ATTRIBUTION),
+                TileLayer(
+                    url=BASEMAP_URL,
+                    attribution=BASEMAP_ATTRIBUTION
+                ),
                 name=BASEMAP_NAME,
                 checked=True
             ),
