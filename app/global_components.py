@@ -17,8 +17,7 @@ from dash_leaflet import (
     WMSTileLayer,
     LayersControl,
     BaseLayer,
-    Overlay,
-    Colorbar
+    Overlay
 )
 
 from global_variables import (
@@ -27,6 +26,9 @@ from global_variables import (
     BASEMAP_URL,
     LEGEND_TEXT_STYLING
 )
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np; np.random.seed(1)
 
 
 def generate_layers_control(opacity=0.5):
@@ -96,7 +98,9 @@ def generate_legend(bottom=105, overview=True):
         get_glacier_markers(),
         get_volcano_markers() if overview else None,
         get_earthquake_markers(),
-        get_InSAR_phase_change() if not overview else None
+        html.Div(
+            get_InSAR_phase_change() if not overview else None
+        )
         # Add more legend items as needed
     ]
     # Filter out None values (markers not included if overview is False)
@@ -212,28 +216,35 @@ def get_earthquake_markers():
         elif magnitude == 7: comparison_operator = f"\u2265 "
 
         magnitude_div = html.Div([
-            html.Div(
-                style={
-                    "width": f"{magnitude * 6}px",
-                    "height": f"{magnitude * 6}px",
-                    "display": "inline-block",
-                    "vertical-align": "middle",
-                    "borderRadius": "50%",
-                    "border": "0.5px solid black",
-                    "backgroundColor": 'white',
-                    "marginRight": "5px",
-                }
-            ),
+            html.Div([
+                html.Div(
+                    style={
+                        "width": f"{magnitude * 6}px",
+                        "height": f"{magnitude * 6}px",
+                        "display": "inline-block",
+                        "vertical-align": "middle",
+                        "borderRadius": "50%",
+                        "border": "0.5px solid black",
+                        "backgroundColor": 'white',
+                        "marginRight": "5px",
+                    }
+                ),
+            ], style={
+                "width": "44px",
+                "display": "flex",
+                "justifyContent": "center",  # Center horizontally
+                "alignItems": "center",
+            }),
             html.Span(
                 f"{comparison_operator}{magnitude}",
-                style=LEGEND_TEXT_STYLING
+                style={
+                    **LEGEND_TEXT_STYLING,
+                    "display": "flex",
+                    "justifyContent": "center",  # Center horizontally
+                    "alignItems": "center",
+                }
             ),
-        ], 
-        style={
-            "display": "flex",
-            "justifyContent": "center",
-            'alignItems': "center",
-        })
+        ], style={"display": "inline-block",})
         magnitude_markers.append(magnitude_div)
     for color in age_colors:
         age_div = html.Div([
@@ -245,7 +256,7 @@ def get_earthquake_markers():
                     "display": "inline-block",
                     "vertical-align": "middle",
                     "border": "0.5px solid black",
-                    "margin-right": "5px"
+                    "margin-right": "5px",
                 }
             ),
             html.Span(
@@ -271,12 +282,81 @@ def get_earthquake_markers():
     return earthquake
 
 def get_InSAR_phase_change():
-    colorscale = ['red', 'yellow', 'green', 'blue', 'purple']  # rainbow
+    # Define RGBA colors
+    colors_rgba = [
+        {'rgba':'rgba(0,191,169,255)', 'label': '-3.14'},
+        {'rgba':'rgba(0,60,248,255)', 'label': '-2.36'},
+        {'rgba':'rgba(102,0,234,255)', 'label': '-1.57'},
+        {'rgba':'rgba(217,0,133,255)', 'label': '-0.79'},
+        {'rgba':'rgba(255,0,0,255)', 'label': '0.00'},
+        {'rgba':'rgba(212,142,0,255)', 'label': '0.79'},
+        {'rgba':'rgba(98,236,0,255)', 'label': '1.57'},
+        {'rgba':'rgba(0,253,35,255)', 'label': '2.36'},
+        {'rgba':'rgba(0,191,169,255)', 'label': '3.14'}
+    ]
+    # Join colors into linear gradient format
+    gradient_colors = ', '.join([color['rgba'] for color in colors_rgba])
+
+    # inSAR_phase_change = html.Div(
+    #     [
+    #         html.H6('InSAR Phase Change', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+    #         html.Div(
+    #             style={
+    #                 "width": "100%",
+    #                 "height": "50px",
+    #                 "background": f"linear-gradient(to right, {gradient_colors})"
+    #             }
+    #         ),
+    #         html.Div(
+    #             [
+    #                 html.Span(color['label'], style={"flex": "1", "text-align": "center", **LEGEND_TEXT_STYLING}) for color in colors_rgba
+    #             ],
+    #             style={
+    #                 "display": "flex",
+    #                 "justifyContent": "space-between",
+    #                 "padding": "10px",
+    #             }
+    #         )
+    #     ],
+    #     style={"margin-bottom": "5px"}
+    # )
     inSAR_phase_change = html.Div(
         [
-            html.H6('InSAR Phase Change', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
-            Colorbar(colorscale=colorscale, width=20, height=200, min=0, max=50, position="bottomright")
+            html.H6('InSAR Phase Change', style={"fontWeight": "bold"}),
+            html.Div(
+                style={
+                    "position": "relative",
+                    "width": "100%",
+                    "height": "50px",
+                    "background": f"linear-gradient(to right, {gradient_colors})"
+                },
+                children=[
+                    html.Div(
+                        style={
+                            "position": "absolute",
+                            "bottom": "-30px",
+                            "left": f"{i * (100/len(colors_rgba))}%",
+                            "width": f"{100/len(colors_rgba)}%",
+                            "textAlign": "center",
+                            "color": "white"
+                        },
+                        children=[
+                            html.Div(
+                                style={
+                                    "width": "1px",
+                                    "height": "10px",
+                                    "background": 'black',
+                                    "margin": "0 auto",
+                                    "marginTop": "5px"
+                                }
+                            ),
+                            html.Span(color['label'], style={**LEGEND_TEXT_STYLING}),
+                        ]
+                    )
+                    for i, color in enumerate(colors_rgba)
+                ]
+            )
         ],
-        style={"margin-bottom": "5px"}
+        style={"margin-bottom": "20px"}
     )
     return inSAR_phase_change
