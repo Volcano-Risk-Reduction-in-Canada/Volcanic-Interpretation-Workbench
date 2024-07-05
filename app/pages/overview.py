@@ -69,6 +69,7 @@ layout = html.Div([
                 zoom=6,
                 children=[
                     # base layer of the map
+                    TileLayer(),
                     LayersControl(
                         BaseLayer(
                             TileLayer(
