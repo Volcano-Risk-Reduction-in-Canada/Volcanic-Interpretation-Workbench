@@ -65,7 +65,17 @@ layout = html.Div([
                 center=[54.64, -123.60],
                 zoom=6,
                 children=[
-                    generate_layers_control(opacity=1),
+                    # base layer of the map
+                    LayersControl(
+                        BaseLayer(
+                            TileLayer(
+                                url=BASEMAP_URL,
+                                attribution=BASEMAP_ATTRIBUTION
+                            ),
+                            name=BASEMAP_NAME,
+                            checked=True
+                        ),
+                    ),
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,
