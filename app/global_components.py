@@ -26,9 +26,6 @@ from global_variables import (
     BASEMAP_URL,
     LEGEND_TEXT_STYLING
 )
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import numpy as np; np.random.seed(1)
 
 
 def generate_layers_control(opacity=0.5):
@@ -283,51 +280,34 @@ def get_earthquake_markers():
 
 def get_InSAR_phase_change():
     # Define RGBA colors
+    # \u03C0
     colors_rgba = [
-        {'rgba':'rgba(0,191,169,255)', 'label': '-3.14'},
-        {'rgba':'rgba(0,60,248,255)', 'label': '-2.36'},
-        {'rgba':'rgba(102,0,234,255)', 'label': '-1.57'},
-        {'rgba':'rgba(217,0,133,255)', 'label': '-0.79'},
-        {'rgba':'rgba(255,0,0,255)', 'label': '0.00'},
-        {'rgba':'rgba(212,142,0,255)', 'label': '0.79'},
-        {'rgba':'rgba(98,236,0,255)', 'label': '1.57'},
-        {'rgba':'rgba(0,253,35,255)', 'label': '2.36'},
-        {'rgba':'rgba(0,191,169,255)', 'label': '3.14'}
+        'rgba(0,191,169,255)',
+        'rgba(0,60,248,255)',
+        'rgba(102,0,234,255)',
+        'rgba(217,0,133,255)',
+        'rgba(255,0,0,255)',
+        'rgba(212,142,0,255)',
+        'rgba(98,236,0,255)',
+        'rgba(0,253,35,255)',
+        'rgba(0,191,169,255)',
+    ]
+    labels = [
+        {'position': '0%', 'label': '-\u03C0'},
+        {'position': '50%', 'label': '0'},
+        {'position': '100%', 'label': '\u03C0'}
     ]
     # Join colors into linear gradient format
-    gradient_colors = ', '.join([color['rgba'] for color in colors_rgba])
+    gradient_colors = ', '.join(colors_rgba)
 
-    # inSAR_phase_change = html.Div(
-    #     [
-    #         html.H6('InSAR Phase Change', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
-    #         html.Div(
-    #             style={
-    #                 "width": "100%",
-    #                 "height": "50px",
-    #                 "background": f"linear-gradient(to right, {gradient_colors})"
-    #             }
-    #         ),
-    #         html.Div(
-    #             [
-    #                 html.Span(color['label'], style={"flex": "1", "text-align": "center", **LEGEND_TEXT_STYLING}) for color in colors_rgba
-    #             ],
-    #             style={
-    #                 "display": "flex",
-    #                 "justifyContent": "space-between",
-    #                 "padding": "10px",
-    #             }
-    #         )
-    #     ],
-    #     style={"margin-bottom": "5px"}
-    # )
     inSAR_phase_change = html.Div(
         [
-            html.H6('InSAR Phase Change', style={"fontWeight": "bold"}),
+            html.H6('InSAR Phase Change', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
             html.Div(
                 style={
                     "position": "relative",
                     "width": "100%",
-                    "height": "50px",
+                    "height": "10px",
                     "background": f"linear-gradient(to right, {gradient_colors})"
                 },
                 children=[
@@ -335,8 +315,8 @@ def get_InSAR_phase_change():
                         style={
                             "position": "absolute",
                             "bottom": "-30px",
-                            "left": f"{i * (100/len(colors_rgba))}%",
-                            "width": f"{100/len(colors_rgba)}%",
+                            "left": f"{label['position']}",
+                            # "width": f"{100/len(colors_rgba)}%",
                             "textAlign": "center",
                             "color": "white"
                         },
@@ -350,10 +330,10 @@ def get_InSAR_phase_change():
                                     "marginTop": "5px"
                                 }
                             ),
-                            html.Span(color['label'], style={**LEGEND_TEXT_STYLING}),
+                            html.Span(f'{label['label']}', style={**LEGEND_TEXT_STYLING}),
                         ]
                     )
-                    for i, color in enumerate(colors_rgba)
+                    for label in labels
                 ]
             )
         ],
