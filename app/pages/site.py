@@ -31,7 +31,7 @@ from dash_extensions.enrich import (
     Input,
     MultiplexerTransform
 )
-from global_components import generate_layers_control, generate_legend
+from global_components import generate_controls, generate_layers_control, generate_legend
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -90,7 +90,8 @@ selector = html.Div(
 spatial_view = Map(
     children=[
         TileLayer(),
-        generate_layers_control(),
+        # generate_layers_control(overview=False),
+        generate_controls(overview=False),
         *[
             CircleMarker(
                 center=[row['Latitude'], row['Longitude']],
@@ -130,7 +131,7 @@ spatial_view = Map(
             tms=True,
             opacity=0.7
         ),
-        generate_legend(overview=False),
+        # generate_legend(overview=False),
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],

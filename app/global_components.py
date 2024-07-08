@@ -11,7 +11,7 @@ Authors:
 """
 
 import dash
-from dash import html
+from dash import html, callback
 from dash_leaflet import (
     TileLayer,
     WMSTileLayer,
@@ -19,6 +19,7 @@ from dash_leaflet import (
     BaseLayer,
     Overlay
 )
+from dash_extensions.enrich import (Output, Input, State)
 
 from global_variables import (
     BASEMAP_ATTRIBUTION,
@@ -27,6 +28,43 @@ from global_variables import (
     LEGEND_TEXT_STYLING
 )
 
+def generate_controls(overview=True, opacity=0.5):
+    controls = html.Div(
+        [
+            generate_legend_visibility_control(overview),
+            generate_layers_control(opacity),
+        ]
+        # style={"display": "inline-block"}
+    )
+    return controls
+
+def generate_legend_visibility_control(overview):
+    legend_button_style = {
+        **LEGEND_TEXT_STYLING,
+        "position": "absolute",
+        "top": f"10px",
+        "right": "70px",
+        "background-color": "white",
+        "padding": "5px",
+        "borderRadius": "5px",
+        "border": "1px solid #ccc",
+        "z-index": "2000"
+    }
+    legend_visibility = html.Div(
+        [
+            html.Button(
+                html.H6('Show Legend', id='show-legend-button-overview'),
+                style=legend_button_style
+            ) if overview else html.Div(),
+            html.Button(
+                html.H6('Show Legend', id='show-legend-button-site'),
+                style=legend_button_style
+            ) if not overview else html.Div(),
+            
+            html.Div(id='legend-container')
+        ]
+    )
+    return legend_visibility
 
 def generate_layers_control(opacity=0.5):
     """
@@ -357,3 +395,71 @@ def get_InSAR_phase_change():
         style={"margin-bottom": "20px"}
     )
     return inSAR_phase_change
+
+# # Callback to toggle legend visibility
+# @callback(
+#     Output('legend-container', 'children', allow_duplicate=True),
+#     [Input('show-legend-button-overview', 'n_clicks')],
+#     prevent_initial_call=True
+# )
+# def toggle_legend_visibility(n_clicks):
+#     if n_clicks is None:
+#         return dash.no_update
+#     if n_clicks % 2 == 1:  # Toggle visibility based on odd/even clicks
+#         return generate_legend(overview=True)
+#     else:
+#         return html.Div()  # Return an empty div to hide the legend
+    
+# @callback(
+#     Output('legend-container', 'children', allow_duplicate=True),
+#     [Input('show-legend-button-site', 'n_clicks')],
+#     prevent_initial_call=True
+# )
+# def toggle_legend_visibility(n_clicks):
+#     if n_clicks is None:
+#         return dash.no_update
+#     if n_clicks % 2 == 1:  # Toggle visibility based on odd/even clicks
+#         return generate_legend(overview=False)
+#     else:
+#         return html.Div()  # Return an empty div to hide the legend
+
+# Callback to toggle overview legend visibility and update button text
+@callback(
+    [
+        Output('legend-container', 'children', allow_duplicate=True),
+        Output('show-legend-button-overview', 'children')
+    ],
+    [Input('show-legend-button-overview', 'n_clicks')],
+    prevent_initial_call=True
+)
+def toggle_legend_visibility_overview(n_clicks):
+    if n_clicks is None:
+        return dash.no_update, dash.no_update
+    
+    show_legend = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
+    
+    legend_content = generate_legend(overview=True) if show_legend else html.Div()
+    button_text = 'Hide Legend' if show_legend else 'Show Legend'
+    
+    return legend_content, button_text
+
+# Callback to toggle site legend visibility and update button text
+@callback(
+    [
+        Output('legend-container', 'children', allow_duplicate=True),
+        Output('show-legend-button-site', 'children')
+    ],
+    [Input('show-legend-button-site', 'n_clicks')],
+    prevent_initial_call=True
+)
+def toggle_legend_visibility_site(n_clicks):
+    if n_clicks is None:
+        return dash.no_update, dash.no_update
+    
+    show_legend = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
+    
+    legend_content = generate_legend(overview=False) if show_legend else html.Div()
+    button_text = 'Hide Legend' if show_legend else 'Show Legend'
+    
+    return legend_content, button_text
+

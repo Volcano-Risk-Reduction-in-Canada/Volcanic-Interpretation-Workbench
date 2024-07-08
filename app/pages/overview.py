@@ -20,7 +20,7 @@ from dash_leaflet import (
 from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
-from global_components import generate_layers_control, generate_legend
+from global_components import generate_controls, generate_layers_control, generate_legend
 from data_utils import (
     get_green_volcanoes,
     get_latest_quakes_chis_fsdn,
@@ -66,7 +66,8 @@ layout = html.Div([
                 zoom=6,
                 children=[
                     # base layer of the map
-                    generate_layers_control(),
+                    # generate_layers_control(),
+                    generate_controls(),
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,
@@ -76,7 +77,7 @@ layout = html.Div([
             ),
         ]
     ),
-    generate_legend(),
+    # generate_legend(),
     # TABLE (on top right corner)
     html.Div(
         id='table-container',
