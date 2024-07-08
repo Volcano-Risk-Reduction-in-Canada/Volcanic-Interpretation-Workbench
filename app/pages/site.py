@@ -22,15 +22,16 @@ from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
 from dash_leaflet import (Map,
                           TileLayer,
-                          LayersControl,
-                          BaseLayer,
                           CircleMarker,
                           Popup)
 from dash.exceptions import PreventUpdate
-from dash_extensions.enrich import (Output,
-                                    DashProxy,
-                                    Input,
-                                    MultiplexerTransform)
+from dash_extensions.enrich import (
+    Output,
+    DashProxy,
+    Input,
+    MultiplexerTransform
+)
+from global_components import generate_layers_control, generate_legend
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -43,16 +44,12 @@ from data_utils import (
     get_latest_quakes_chis_fsdn_site
 )
 from global_variables import (
-    BASEMAP_NAME,
-    BASEMAP_ATTRIBUTION,
-    BASEMAP_URL,
     TEMPORAL_HEIGHT
 )
-# TODO further cleanup and organize code, make it more user friendly
-# TODO add support for some or all of the following parameters to config
 
 dash.register_page(__name__, path='/site')
 
+# VARIABLES
 TILES_BUCKET = config['AWS_TILES_URL']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
@@ -67,14 +64,15 @@ epicenters_df = get_latest_quakes_chis_fsdn_site(
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
 
+initial_show_glacier_information = False
+
 # construct dashboard
 load_figure_template('darkly')
-# app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
-
+# different components in page layout + styling variables
 selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
@@ -92,16 +90,7 @@ selector = html.Div(
 spatial_view = Map(
     children=[
         TileLayer(),
-        LayersControl(
-            BaseLayer(
-                TileLayer(
-                    url=BASEMAP_URL,
-                    attribution=BASEMAP_ATTRIBUTION
-                ),
-                name=BASEMAP_NAME,
-                checked=True
-            ),
-        ),
+        generate_layers_control(),
         *[
             CircleMarker(
                 center=[row['Latitude'], row['Longitude']],
@@ -139,7 +128,9 @@ spatial_view = Map(
             minZoom=1,
             attribution='&copy; Open Street Map Contributors',
             tms=True,
-            opacity=0.7)
+            opacity=0.7
+        ),
+        generate_legend(bottom=30),
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
@@ -212,6 +203,7 @@ ifg_info = html.Div(
     }
 )
 
+# LAYOUT
 layout = dbc.Container(
     [
         dbc.Row(dbc.Col(selector, width='auto')),
@@ -379,16 +371,7 @@ def update_earthquake_markers(target_id):
         print("Note: No earthquakes found.")
     base_layers = [
         TileLayer(),
-        LayersControl(
-            BaseLayer(
-                TileLayer(
-                    url=BASEMAP_URL,
-                    attribution=BASEMAP_ATTRIBUTION
-                ),
-                name=BASEMAP_NAME,
-                checked=True
-            ),
-        ),
+        generate_layers_control(),
         TileLayer(
             id='tiles',
             url=(''),

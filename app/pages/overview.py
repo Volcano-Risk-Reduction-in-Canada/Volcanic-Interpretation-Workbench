@@ -12,39 +12,36 @@ Authors:
 """
 import dash
 from dash import html, dash_table, dcc, callback
-from dash_leaflet import (Map,
-                          TileLayer,
-                          LayersControl,
-                          BaseLayer,
-                          CircleMarker,
-                          Popup)
-from dash_extensions.enrich import (Output,
-                                    Input)
+from dash_leaflet import (
+    Map,
+    CircleMarker,
+    Popup,
+)
+from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
-from global_variables import (
-    BASEMAP_NAME,
-    BASEMAP_ATTRIBUTION,
-    BASEMAP_URL,
-)
+from global_components import generate_layers_control, generate_legend
 from data_utils import (
-                        get_green_volcanoes,
-                        get_latest_quakes_chis_fsdn,
-                        get_red_volcanoes,
-                        summary_table_df
-                        )
+    get_green_volcanoes,
+    get_latest_quakes_chis_fsdn,
+    get_red_volcanoes,
+    summary_table_df
+)
 
 dash.register_page(__name__, path='/')
 
+# VARIABLES
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
+
+initial_show_glacier_information = False
 
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
-# spatial_view = html.Div()
+# LAYOUT
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
     # Hidden div for triggering callback (for page reload)
@@ -69,26 +66,17 @@ layout = html.Div([
                 zoom=6,
                 children=[
                     # base layer of the map
-                    TileLayer(),
-                    LayersControl(
-                        BaseLayer(
-                            TileLayer(
-                                url=BASEMAP_URL,
-                                attribution=BASEMAP_ATTRIBUTION
-                            ),
-                            name=BASEMAP_NAME,
-                            checked=True
-                        ),
-                    ),
+                    generate_layers_control(),
                     # red and green volcano markers
                     *markers_green,
                     *markers_red,
                     # circle markers (earthquakes) populated in callback
-                    html.Div(id='circle-marker')
+                    html.Div(id='circle-marker'),
                 ]
             ),
         ]
     ),
+    generate_legend(),
     # TABLE (on top right corner)
     html.Div(
         id='table-container',
@@ -98,7 +86,7 @@ layout = html.Div([
             'right': '250px',
             'width': '200px',
             'zIndex': 1000
-            },
+        },
         children=[
             dash_table.DataTable(
                 columns=[
