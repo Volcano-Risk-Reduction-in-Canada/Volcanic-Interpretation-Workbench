@@ -11,7 +11,7 @@ Authors:
 """
 
 import dash
-from dash import html, callback
+from dash import html, callback, dash_table
 from dash_leaflet import (
     TileLayer,
     WMSTileLayer,
@@ -19,7 +19,7 @@ from dash_leaflet import (
     BaseLayer,
     Overlay
 )
-from dash_extensions.enrich import (Output, Input, State)
+from dash_extensions.enrich import (Output, Input)
 
 from global_variables import (
     BASEMAP_ATTRIBUTION,
@@ -27,6 +27,10 @@ from global_variables import (
     BASEMAP_URL,
     LEGEND_BUTTON_STYLING,
     LEGEND_TEXT_STYLING
+)
+
+from data_utils import (
+    summary_table_df
 )
 
 def generate_controls(overview=True, opacity=0.5):
@@ -41,10 +45,16 @@ def generate_controls(overview=True, opacity=0.5):
     return controls
 
 def generate_data_table_visibility_control():
-    return html.Button(
-        html.H6('Show Data Table', id='show-data-table-overview'),
-        style={**LEGEND_BUTTON_STYLING, "right": "200px"}
+    data_table_visibility = html.Div(
+        [
+            html.Button(
+                html.H6('Show Data Table', id='show-data-table-overview'),
+                style={**LEGEND_BUTTON_STYLING, "right": "200px"}
+            ),
+            html.Div(id='data-table-container')
+        ]
     )
+    return data_table_visibility
 
 def generate_legend_visibility_control(overview):
     legend_visibility = html.Div(
@@ -123,6 +133,36 @@ def generate_layers_control(opacity=0.5):
     )
     return LAYERS_CONTROL
 
+# def generate_data_table():
+#     data_table = html.Div(
+#         id='table-container',
+#         style={
+#             'position': 'absolute',
+#             'top': '125px',
+#             'right': '250px',
+#             'width': '200px',
+#             'zIndex': 1000,
+#             # initially not visible, visibility changes with button control
+#             "display": "none"
+#         },
+#         children=[
+#             dash_table.DataTable(
+#                 columns=[
+#                     {"name": i, "id": i} for i in summary_table_df.columns
+#                 ],
+#                 data=summary_table_df.to_dict('records'),
+#                 style_table={'color': 'black'},
+#                 style_data_conditional=[
+#                     {
+#                         'if': {'column_id': 'Unrest', 'row_index': i},
+#                         'color': 'red' if unrest else 'green',
+#                     } for i, unrest in enumerate(summary_table_df['Unrest'])
+#                     # Add beam mode to latest slc date
+#                 ],
+#             )
+#         ]
+#     )
+#     return data_table
 
 def generate_legend(bottom=30, overview=True):
     # Static legend positioned over the map
@@ -445,5 +485,7 @@ def toggle_legend_visibility_site(n_clicks):
         return dash.no_update, dash.no_update
     
     show_table = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
+    # data_table_content = generate_data_table() if show_table else html.Div()
     button_text = 'Hide Data Table' if show_table else 'Show Data Table'
+    # return data_table_content, button_text
     return {"display": "block" if show_table else "none"}, button_text

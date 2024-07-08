@@ -33,7 +33,7 @@ from dash_extensions.enrich import (
     Input,
     MultiplexerTransform
 )
-from global_components import generate_controls
+from global_components import generate_controls, generate_layers_control
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -378,7 +378,8 @@ def update_earthquake_markers(target_id):
         print("Note: No earthquakes found.")
     base_layers = [
         TileLayer(),
-        generate_controls(),
+        # generate_controls(overview=False),
+        generate_layers_control(),
         TileLayer(
             id='tiles',
             url=(''),
