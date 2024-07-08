@@ -33,11 +33,6 @@ from data_utils import (
     get_red_volcanoes,
     summary_table_df
 )
-    get_green_volcanoes,
-    get_latest_quakes_chis_fsdn,
-    get_red_volcanoes,
-    summary_table_df
-)
 
 dash.register_page(__name__, path='/')
 
@@ -89,7 +84,6 @@ layout = html.Div([
             ),
         ]
     ),
-    generate_legend(),
     # TABLE (on top right corner)
     html.Div(
         html.Div(
