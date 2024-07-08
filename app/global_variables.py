@@ -29,17 +29,18 @@ TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
 
+# styling for legend text
 LEGEND_TEXT_STYLING = {
   "color": "black",
   "font-size": "12px",
   "vertical-align": "middle"
 }
 
+# styling for legend button
 LEGEND_BUTTON_STYLING = {
     **LEGEND_TEXT_STYLING,
     "position": "absolute",
     "top": f"10px",
-    "right": "70px",
     "background-color": "white",
     "padding": "5px",
     "borderRadius": "5px",

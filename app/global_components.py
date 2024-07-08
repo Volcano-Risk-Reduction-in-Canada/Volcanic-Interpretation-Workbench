@@ -29,7 +29,22 @@ from global_variables import (
     LEGEND_TEXT_STYLING
 )
 
+"""
+ABOUT THIS FILE: This file compiles a list of functions that aid in generating the general control functions (LayerControl, Legend, Data Table)
+"""
+
+
 def generate_controls(overview=True, opacity=0.5):
+    """
+    Generates control components for the dashboard.
+
+    Parameters:
+    - overview (bool, optional): Indicates whether to generate controls for overview. Defaults to True.
+    - opacity (float, optional): Opacity level for (glacier) layers. Defaults to 0.5.
+
+    Returns:
+    - dash.html.Div: HTML div containing control components including legend visibility, data table visibility, and layers control.
+    """
     controls = html.Div(
         [
             generate_legend_visibility_control(overview),
@@ -40,11 +55,17 @@ def generate_controls(overview=True, opacity=0.5):
     return controls
 
 def generate_data_table_visibility_control():
+    """
+    Generates control for data table visibility.
+
+    Returns:
+    - dash.html.Div: HTML div containing a button to show/hide data table and a container for data table content.
+    """
     data_table_visibility = html.Div(
         [
             html.Button(
                 html.H6('Show Data Table', id='show-data-table-overview'),
-                style={**LEGEND_BUTTON_STYLING, "right": "200px"}
+                style={**LEGEND_BUTTON_STYLING, "right": "240px"}
             ),
             html.Div(id='data-table-container')
         ]
@@ -52,15 +73,24 @@ def generate_data_table_visibility_control():
     return data_table_visibility
 
 def generate_legend_visibility_control(overview):
+    """
+    Generates control for legend visibility based on overview parameter.
+
+    Parameters:
+    - overview (bool): Indicates whether to generate controls for overview (True) or site (False).
+
+    Returns:
+    - dash.html.Div: HTML div containing buttons to show/hide legend and a container for legend content.
+    """
     legend_visibility = html.Div(
         [
             html.Button(
                 html.H6('Show Legend', id='show-legend-button-overview'),
-                style=LEGEND_BUTTON_STYLING
+                style={**LEGEND_BUTTON_STYLING, "right": "90px",}
             ) if overview else html.Div(),
             html.Button(
                 html.H6('Show Legend', id='show-legend-button-site'),
-                style=LEGEND_BUTTON_STYLING
+                style={**LEGEND_BUTTON_STYLING, "right": "90px",}
             ) if not overview else html.Div(),
             
             html.Div(id='legend-container')
@@ -129,14 +159,23 @@ def generate_layers_control(opacity=0.5):
     return LAYERS_CONTROL
 
 def generate_legend(bottom=30, overview=True):
+    """
+    Generates a legend with markers and labels.
+
+    Parameters:
+    - bottom (int, optional): Distance from the bottom of the container in pixels. Default is 30.
+    - overview (bool, optional): Indicates whether to generate the legend for overview (True) or site (False). Default is True.
+
+    Returns:
+    - dash.html.Div: HTML div containing legend items such as glacier, volcano, earthquake markers, and InSAR phase change legend.
+    """
     # Static legend positioned over the map
     legend_items = [
         get_glacier_markers(),
         get_volcano_markers() if overview else None,
         get_earthquake_markers(),
-        html.Div(
-            get_InSAR_phase_change() if not overview else None
-        )
+        get_InSAR_phase_change() if not overview else None
+        
     ]
     # Filter out None values (markers not included if overview is False)
     legend_items = [item for item in legend_items if item is not None]
@@ -157,6 +196,12 @@ def generate_legend(bottom=30, overview=True):
 
 
 def get_glacier_markers():
+    """
+    Retrieves Glacier legend label for glacier footprints.
+
+    Returns:
+    - dash.html.Div: HTML div containing glacier legend label.
+    """
     glacier = html.Div(
         [
             html.H6('Glacier Footprints', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
@@ -181,6 +226,15 @@ def get_glacier_markers():
 
 
 def get_volcano_markers(icon_width=15):
+    """
+    Retrieves content for volcano legend label.
+
+    Parameters:
+    - icon_width (int, optional): Width of the volcano icon. Default is 15 pixels.
+
+    Returns:
+    - dash.html.Div: HTML div containing volcano legend label.
+    """
     icon_styling ={
         "width":f"{icon_width}px",
         "height": "auto",
@@ -218,6 +272,12 @@ def get_volcano_markers(icon_width=15):
 
 
 def get_earthquake_markers():
+    """
+    Retrieves content for earthquake legend label.
+
+    Returns:
+    - dash.html.Div: HTML div containing earthquake legend label.
+    """
     age_colors = [
         # RED
         {
@@ -328,6 +388,12 @@ def get_earthquake_markers():
     return earthquake
 
 def get_InSAR_phase_change():
+    """
+    Retrieves content for InSAR phase change legend label.
+
+    Returns:
+    - dash.html.Div: HTML div containing InSAR phase change legend label.
+    """
     # Define RGBA colors
     colors_rgba = [
         'rgba(0,191,169,255)',
@@ -397,6 +463,19 @@ def get_InSAR_phase_change():
     return inSAR_phase_change
 
 
+"""
+    Callback to toggle the visibility of the legend for OVERVIEW and update the button text.
+
+    Parameters:
+    - n_clicks (int or None): Number of times the button 'show-legend-button-overview' has been clicked.
+
+    Returns:
+    - tuple: A tuple containing:
+      - dash.html.Div: HTML content to update the legend container ('legend-container').
+      - str: Updated text for the 'show-legend-button-overview' button.
+    """
+
+
 @callback(
     [
         Output('legend-container', 'children', allow_duplicate=True),
@@ -417,7 +496,19 @@ def toggle_legend_visibility_overview(n_clicks):
     return legend_content, button_text
 
 
-# Callback to toggle site legend visibility and update button text
+"""
+    Callback to toggle the visibility of the legend for SITE and update the button text.
+
+    Parameters:
+    - n_clicks (int or None): Number of times the button 'show-legend-button-site' has been clicked.
+
+    Returns:
+    - tuple: A tuple containing:
+      - dash.html.Div: HTML content to update the legend container ('legend-container').
+      - str: Updated text for the 'show-legend-button-site' button.
+    """
+
+
 @callback(
     [
         Output('legend-container', 'children', allow_duplicate=True),
@@ -438,7 +529,19 @@ def toggle_legend_visibility_site(n_clicks):
     return legend_content, button_text
 
 
-# Callback to toggle site legend visibility and update button text
+"""
+    Callback to toggle the visibility of the data table for overview and update the button text.
+
+    Parameters:
+    - n_clicks (int or None): Number of times the button 'show-data-table-overview' has been clicked.
+
+    Returns:
+    - tuple: A tuple containing:
+      - dict: CSS style dictionary to update the 'data-table-container' display property.
+      - str: Updated text for the 'show-data-table-overview' button.
+    """
+
+
 @callback(
     [
         Output('data-table-container', 'style'),

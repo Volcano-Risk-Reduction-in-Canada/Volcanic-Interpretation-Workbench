@@ -89,7 +89,7 @@ layout = html.Div([
             style={
                 'position': 'absolute',
                 'top': '125px',
-                'right': '250px',
+                'right': '12px',
                 'width': '200px',
                 'zIndex': 1000
             },
