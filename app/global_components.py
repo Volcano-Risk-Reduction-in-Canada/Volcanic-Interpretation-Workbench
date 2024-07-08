@@ -214,34 +214,37 @@ def get_earthquake_markers():
 
         magnitude_div = html.Div([
             html.Div([
-                html.Div(
-                    style={
-                        "width": f"{magnitude * 6}px",
-                        "height": f"{magnitude * 6}px",
-                        "display": "inline-block",
-                        "vertical-align": "middle",
-                        "borderRadius": "50%",
-                        "border": "0.5px solid black",
-                        "backgroundColor": 'white',
-                        "marginRight": "5px",
-                    }
-                ),
+                html.Div([
+                    html.Div(
+                        style={
+                            "width": f"{magnitude * 6}px",
+                            "height": f"{magnitude * 6}px",
+                            "borderRadius": "50%",
+                            "border": "0.5px solid black",
+                            "backgroundColor": 'white',
+                            "marginRight": "5px",
+                        }
+                    ),
+                    html.Span(
+                        f"{comparison_operator}{magnitude}",
+                        style={
+                            **LEGEND_TEXT_STYLING,
+                            "display": "inline-block",
+                            "verticalAlign": "middle",  # Align text vertically
+                            "width": "35px"
+                        }
+                    ),
+                ], style={
+                    "display": "flex",
+                    "alignItems": "center",
+                }),
             ], style={
                 "width": "44px",
                 "display": "flex",
                 "justifyContent": "center",  # Center horizontally
                 "alignItems": "center",
             }),
-            html.Span(
-                f"{comparison_operator}{magnitude}",
-                style={
-                    **LEGEND_TEXT_STYLING,
-                    "display": "flex",
-                    "justifyContent": "center",  # Center horizontally
-                    "alignItems": "center",
-                }
-            ),
-        ], style={"display": "inline-block",})
+        ], style={"display": "block", "margin": "5px 10px"})
         magnitude_markers.append(magnitude_div)
     for color in age_colors:
         age_div = html.Div([
@@ -280,7 +283,6 @@ def get_earthquake_markers():
 
 def get_InSAR_phase_change():
     # Define RGBA colors
-    # \u03C0
     colors_rgba = [
         'rgba(0,191,169,255)',
         'rgba(0,60,248,255)',
@@ -327,10 +329,18 @@ def get_InSAR_phase_change():
                                     "height": "10px",
                                     "background": 'black',
                                     "margin": "0 auto",
+                                    "marginLeft": "-1px", 
                                     "marginTop": "5px"
                                 }
                             ),
-                            html.Span(f'{label['label']}', style={**LEGEND_TEXT_STYLING}),
+                            html.Span(
+                                f'{label['label']}', 
+                                style={
+                                    **LEGEND_TEXT_STYLING, 
+                                    "marginLeft": "-3px", 
+                                    "verticalAlign": "middle"
+                                },
+                            ),
                         ]
                     )
                     for label in labels
