@@ -80,31 +80,37 @@ layout = html.Div([
     # generate_legend(),
     # TABLE (on top right corner)
     html.Div(
-        id='table-container',
+        html.Div(
+            id='table-container',
+            style={
+                'position': 'absolute',
+                'top': '125px',
+                'right': '250px',
+                'width': '200px',
+                'zIndex': 1000
+            },
+            children=[
+                dash_table.DataTable(
+                    columns=[
+                        {"name": i, "id": i} for i in summary_table_df.columns
+                    ],
+                    data=summary_table_df.to_dict('records'),
+                    style_table={'color': 'black'},
+                    style_data_conditional=[
+                        {
+                            'if': {'column_id': 'Unrest', 'row_index': i},
+                            'color': 'red' if unrest else 'green',
+                        } for i, unrest in enumerate(summary_table_df['Unrest'])
+                        # Add beam mode to latest slc date
+                    ],
+                )
+            ]
+        ),
+        id="data-table-container",
         style={
-            'position': 'absolute',
-            'top': '125px',
-            'right': '250px',
-            'width': '200px',
-            'zIndex': 1000
-        },
-        children=[
-            dash_table.DataTable(
-                columns=[
-                    {"name": i, "id": i} for i in summary_table_df.columns
-                ],
-                data=summary_table_df.to_dict('records'),
-                style_table={'color': 'black'},
-                style_data_conditional=[
-                    {
-                        'if': {'column_id': 'Unrest', 'row_index': i},
-                        'color': 'red' if unrest else 'green',
-                    } for i, unrest in enumerate(summary_table_df['Unrest'])
-                    # Add beam mode to latest slc date
-                ],
-            )
-        ]
-    ),
+            "display": "none"
+        }
+    )
 ])
 
 

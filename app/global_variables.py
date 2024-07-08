@@ -34,3 +34,15 @@ LEGEND_TEXT_STYLING = {
   "font-size": "12px",
   "vertical-align": "middle"
 }
+
+LEGEND_BUTTON_STYLING = {
+    **LEGEND_TEXT_STYLING,
+    "position": "absolute",
+    "top": f"10px",
+    "right": "70px",
+    "background-color": "white",
+    "padding": "5px",
+    "borderRadius": "5px",
+    "border": "1px solid #ccc",
+    "z-index": "2000"
+}
