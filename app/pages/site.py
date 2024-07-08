@@ -20,10 +20,12 @@ from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import (Map,
-                          TileLayer,
-                          CircleMarker,
-                          Popup)
+from dash_leaflet import (
+    Map,
+    TileLayer,
+    CircleMarker,
+    Popup
+)
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
     Output,
@@ -31,7 +33,7 @@ from dash_extensions.enrich import (
     Input,
     MultiplexerTransform
 )
-from global_components import generate_controls, generate_layers_control, generate_legend
+from global_components import generate_controls
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -58,7 +60,7 @@ SITE_INI, BEAM_INI = INITIAL_TARGET.rsplit('_', 1)
 
 epicenters_df = get_latest_quakes_chis_fsdn_site(
     INITIAL_TARGET, TARGET_CENTRES
-    )
+)
 
 # dashboard configuration
 TEMPLATE = 'darkly'
@@ -90,7 +92,6 @@ selector = html.Div(
 spatial_view = Map(
     children=[
         TileLayer(),
-        # generate_layers_control(overview=False),
         generate_controls(overview=False),
         *[
             CircleMarker(
@@ -372,7 +373,7 @@ def update_earthquake_markers(target_id):
         print("Note: No earthquakes found.")
     base_layers = [
         TileLayer(),
-        generate_layers_control(),
+        generate_controls(),
         TileLayer(
             id='tiles',
             url=(''),
