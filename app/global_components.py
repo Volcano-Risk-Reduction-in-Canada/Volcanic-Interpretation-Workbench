@@ -89,7 +89,7 @@ def generate_layers_control(opacity=0.5):
     return LAYERS_CONTROL
 
 
-def generate_legend(bottom=105, overview=True):
+def generate_legend(bottom=30, overview=True):
     # Static legend positioned over the map
     legend_items = [
         get_glacier_markers(),
@@ -274,8 +274,16 @@ def get_earthquake_markers():
     earthquake = html.Div(
         [
             html.H6('Earthquakes', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
-            html.Div(age_markers, style={**earthquake_styling, "marginRight": "10px"}),
-            html.Div(magnitude_markers, style={**earthquake_styling, "marginLeft": "10px"})
+            html.Div(
+                [
+                    html.H6('Age (Past)', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+                ] + age_markers, 
+                style={**earthquake_styling, "marginRight": "10px"}),
+            html.Div(
+                [
+                    html.H6('Magnitude', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+                ] + magnitude_markers,
+                style={**earthquake_styling, "marginLeft": "10px"})
         ],
         style={"margin-bottom": "5px"}
     )
@@ -318,7 +326,6 @@ def get_InSAR_phase_change():
                             "position": "absolute",
                             "bottom": "-30px",
                             "left": f"{label['position']}",
-                            # "width": f"{100/len(colors_rgba)}%",
                             "textAlign": "center",
                             "color": "white"
                         },
