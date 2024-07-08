@@ -52,7 +52,6 @@ from global_variables import (
 dash.register_page(__name__, path='/site')
 
 # VARIABLES
-# VARIABLES
 TILES_BUCKET = config['AWS_TILES_URL']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
@@ -77,7 +76,6 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
-# different components in page layout + styling variables
 # different components in page layout + styling variables
 selector = html.Div(
     title=TITLE,
@@ -105,8 +103,6 @@ spatial_view = Map(
                 fillOpacity=0.6,
                 color='black',
                 weight=1,
-                # fill_colour='red',
-                # fill_opacity=0.6,
                 children=Popup(
                     html.P([
                         f"""Magnitude: {row['Magnitude']} {row['MagType']}""",
@@ -120,7 +116,7 @@ spatial_view = Map(
                     ])
                 ),
             )
-            for index, row in epicenters_df.sort_values(
+            for _, row in epicenters_df.sort_values(
                 by='#EventID'
                 ).iterrows()
         ],
@@ -209,7 +205,6 @@ ifg_info = html.Div(
     }
 )
 
-# LAYOUT
 # LAYOUT
 layout = dbc.Container(
     [

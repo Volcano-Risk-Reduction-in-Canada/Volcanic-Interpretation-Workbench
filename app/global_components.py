@@ -11,7 +11,7 @@ Authors:
 """
 
 import dash
-from dash import html, callback, dash_table
+from dash import html, callback
 from dash_leaflet import (
     TileLayer,
     WMSTileLayer,
@@ -29,10 +29,6 @@ from global_variables import (
     LEGEND_TEXT_STYLING
 )
 
-from data_utils import (
-    summary_table_df
-)
-
 def generate_controls(overview=True, opacity=0.5):
     controls = html.Div(
         [
@@ -40,7 +36,6 @@ def generate_controls(overview=True, opacity=0.5):
             generate_data_table_visibility_control() if overview else html.Div(),
             generate_layers_control(opacity),
         ]
-        # style={"display": "inline-block"}
     )
     return controls
 
@@ -133,37 +128,6 @@ def generate_layers_control(opacity=0.5):
     )
     return LAYERS_CONTROL
 
-# def generate_data_table():
-#     data_table = html.Div(
-#         id='table-container',
-#         style={
-#             'position': 'absolute',
-#             'top': '125px',
-#             'right': '250px',
-#             'width': '200px',
-#             'zIndex': 1000,
-#             # initially not visible, visibility changes with button control
-#             "display": "none"
-#         },
-#         children=[
-#             dash_table.DataTable(
-#                 columns=[
-#                     {"name": i, "id": i} for i in summary_table_df.columns
-#                 ],
-#                 data=summary_table_df.to_dict('records'),
-#                 style_table={'color': 'black'},
-#                 style_data_conditional=[
-#                     {
-#                         'if': {'column_id': 'Unrest', 'row_index': i},
-#                         'color': 'red' if unrest else 'green',
-#                     } for i, unrest in enumerate(summary_table_df['Unrest'])
-#                     # Add beam mode to latest slc date
-#                 ],
-#             )
-#         ]
-#     )
-#     return data_table
-
 def generate_legend(bottom=30, overview=True):
     # Static legend positioned over the map
     legend_items = [
@@ -173,7 +137,6 @@ def generate_legend(bottom=30, overview=True):
         html.Div(
             get_InSAR_phase_change() if not overview else None
         )
-        # Add more legend items as needed
     ]
     # Filter out None values (markers not included if overview is False)
     legend_items = [item for item in legend_items if item is not None]
@@ -433,6 +396,7 @@ def get_InSAR_phase_change():
     )
     return inSAR_phase_change
 
+
 @callback(
     [
         Output('legend-container', 'children', allow_duplicate=True),
@@ -451,6 +415,7 @@ def toggle_legend_visibility_overview(n_clicks):
     button_text = 'Hide Legend' if show_legend else 'Show Legend'
     
     return legend_content, button_text
+
 
 # Callback to toggle site legend visibility and update button text
 @callback(
@@ -472,6 +437,7 @@ def toggle_legend_visibility_site(n_clicks):
     
     return legend_content, button_text
 
+
 # Callback to toggle site legend visibility and update button text
 @callback(
     [
@@ -485,7 +451,5 @@ def toggle_legend_visibility_site(n_clicks):
         return dash.no_update, dash.no_update
     
     show_table = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
-    # data_table_content = generate_data_table() if show_table else html.Div()
     button_text = 'Hide Data Table' if show_table else 'Show Data Table'
-    # return data_table_content, button_text
     return {"display": "block" if show_table else "none"}, button_text

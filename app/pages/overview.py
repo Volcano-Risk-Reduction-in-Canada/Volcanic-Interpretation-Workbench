@@ -37,7 +37,6 @@ from data_utils import (
 dash.register_page(__name__, path='/')
 
 # VARIABLES
-# VARIABLES
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
@@ -48,7 +47,6 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
-# LAYOUT
 # LAYOUT
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
@@ -161,7 +159,7 @@ def update_map_data(_):
                      html.Br(),
                      ])),
         )
-        for index, row in epicenters_df.sort_values(
+        for _, row in epicenters_df.sort_values(
             by='#EventID').iterrows()
     ]
 
