@@ -52,6 +52,7 @@ from global_variables import (
 dash.register_page(__name__, path='/site')
 
 # VARIABLES
+# VARIABLES
 TILES_BUCKET = config['AWS_TILES_URL']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
@@ -68,12 +69,15 @@ TITLE = 'Volcano InSAR Interpretation Workbench'
 
 initial_show_glacier_information = False
 
+initial_show_glacier_information = False
+
 # construct dashboard
 load_figure_template('darkly')
 app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
+# different components in page layout + styling variables
 # different components in page layout + styling variables
 selector = html.Div(
     title=TITLE,
@@ -205,6 +209,7 @@ ifg_info = html.Div(
     }
 )
 
+# LAYOUT
 # LAYOUT
 layout = dbc.Container(
     [

@@ -18,6 +18,12 @@ from dash_leaflet import (
     Popup,
 )
 from dash_extensions.enrich import (Output, Input)
+from dash_leaflet import (
+    Map,
+    CircleMarker,
+    Popup,
+)
+from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
 from global_components import generate_controls
@@ -27,9 +33,15 @@ from data_utils import (
     get_red_volcanoes,
     summary_table_df
 )
+    get_green_volcanoes,
+    get_latest_quakes_chis_fsdn,
+    get_red_volcanoes,
+    summary_table_df
+)
 
 dash.register_page(__name__, path='/')
 
+# VARIABLES
 # VARIABLES
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
@@ -41,6 +53,7 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
+# LAYOUT
 # LAYOUT
 layout = html.Div([
     dcc.Location(id='url', refresh=True),
@@ -76,6 +89,7 @@ layout = html.Div([
             ),
         ]
     ),
+    generate_legend(),
     # TABLE (on top right corner)
     html.Div(
         html.Div(
