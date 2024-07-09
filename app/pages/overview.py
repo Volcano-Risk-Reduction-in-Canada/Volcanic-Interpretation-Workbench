@@ -89,7 +89,7 @@ layout = html.Div([
             style={
                 'position': 'absolute',
                 'top': '125px',
-                'right': '12px',
+                'right': '170px',
                 'width': '200px',
                 'zIndex': 1000
             },
@@ -112,7 +112,7 @@ layout = html.Div([
         ),
         id="data-table-container",
         # initially not visible, visibility changes with button control
-        style={"display": "none"}
+        style={"display": "block"}
     )
 ])
 

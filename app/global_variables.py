@@ -47,3 +47,13 @@ LEGEND_BUTTON_STYLING = {
     "border": "1px solid #ccc",
     "z-index": "2000"
 }
+
+LEGEND_PLACEMENT_STYLING = {
+    "position": "absolute",
+    "bottom": "30px",
+    "right": "12px",
+    "background-color": "red",
+    # "padding": "10px",
+    # "border": "1px solid #ccc",
+    "z-index": "2000"
+  }

@@ -26,6 +26,7 @@ from global_variables import (
     BASEMAP_NAME,
     BASEMAP_URL,
     LEGEND_BUTTON_STYLING,
+    LEGEND_PLACEMENT_STYLING,
     LEGEND_TEXT_STYLING
 )
 
@@ -64,7 +65,7 @@ def generate_data_table_visibility_control():
     data_table_visibility = html.Div(
         [
             html.Button(
-                html.H6('Show Data Table', id='show-data-table-overview'),
+                html.H6('Hide Data Table', id='show-data-table-overview'),
                 style={**LEGEND_BUTTON_STYLING, "right": "240px"}
             ),
             html.Div(id='data-table-container')
@@ -85,15 +86,15 @@ def generate_legend_visibility_control(overview):
     legend_visibility = html.Div(
         [
             html.Button(
-                html.H6('Show Legend', id='show-legend-button-overview'),
+                html.H6('Hide Legend', id='show-legend-button-overview'),
                 style={**LEGEND_BUTTON_STYLING, "right": "90px",}
             ) if overview else html.Div(),
             html.Button(
-                html.H6('Show Legend', id='show-legend-button-site'),
+                html.H6('Hide Legend', id='show-legend-button-site'),
                 style={**LEGEND_BUTTON_STYLING, "right": "90px",}
             ) if not overview else html.Div(),
             
-            html.Div(id='legend-container')
+            html.Div(generate_legend(overview = overview), id='legend-container', style={**LEGEND_PLACEMENT_STYLING, "display": "block"})
         ]
     )
     return legend_visibility
@@ -158,7 +159,7 @@ def generate_layers_control(opacity=0.5):
     )
     return LAYERS_CONTROL
 
-def generate_legend(bottom=30, overview=True):
+def generate_legend(bottom=0, overview=True):
     """
     Generates a legend with markers and labels.
 
@@ -182,10 +183,8 @@ def generate_legend(bottom=30, overview=True):
     
     legend = html.Div(
         legend_items,
+        # style=LEGEND_PLACEMENT_STYLING(bottom)
         style={
-            "position": "absolute",
-            "bottom": f"{bottom}px",
-            "right": "12px",
             "background-color": "white",
             "padding": "10px",
             "border": "1px solid #ccc",
@@ -478,7 +477,7 @@ def get_InSAR_phase_change():
 
 @callback(
     [
-        Output('legend-container', 'children', allow_duplicate=True),
+        Output('legend-container', 'style', allow_duplicate=True),
         Output('show-legend-button-overview', 'children')
     ],
     [Input('show-legend-button-overview', 'n_clicks')],
@@ -489,11 +488,9 @@ def toggle_legend_visibility_overview(n_clicks):
         return dash.no_update, dash.no_update
     
     show_legend = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
-    
-    legend_content = generate_legend(overview=True) if show_legend else html.Div()
     button_text = 'Hide Legend' if show_legend else 'Show Legend'
     
-    return legend_content, button_text
+    return {**LEGEND_PLACEMENT_STYLING, "display": "block" if show_legend else "none"}, button_text
 
 
 """
@@ -511,7 +508,7 @@ def toggle_legend_visibility_overview(n_clicks):
 
 @callback(
     [
-        Output('legend-container', 'children', allow_duplicate=True),
+        Output('legend-container', 'style', allow_duplicate=True),
         Output('show-legend-button-site', 'children')
     ],
     [Input('show-legend-button-site', 'n_clicks')],
@@ -521,12 +518,10 @@ def toggle_legend_visibility_site(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
     
-    show_legend = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
-    
-    legend_content = generate_legend(overview=False) if show_legend else html.Div()
+    show_legend = n_clicks % 2 == 0  # Toggle visibility based on odd/even clicks
     button_text = 'Hide Legend' if show_legend else 'Show Legend'
     
-    return legend_content, button_text
+    return {**LEGEND_PLACEMENT_STYLING, "display": "block" if show_legend else "none"}, button_text
 
 
 """
@@ -553,6 +548,6 @@ def toggle_legend_visibility_site(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
     
-    show_table = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
+    show_table = n_clicks % 2 == 0  # Toggle visibility based on odd/even clicks
     button_text = 'Hide Data Table' if show_table else 'Show Data Table'
     return {"display": "block" if show_table else "none"}, button_text
