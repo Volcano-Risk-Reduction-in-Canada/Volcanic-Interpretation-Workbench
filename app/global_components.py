@@ -40,11 +40,14 @@ def generate_controls(overview=True, opacity=0.5):
     Generates control components for the dashboard.
 
     Parameters:
-    - overview (bool, optional): Indicates whether to generate controls for overview. Defaults to True.
-    - opacity (float, optional): Opacity level for (glacier) layers. Defaults to 0.5.
+    - overview (bool, optional): Indicates whether to generate controls
+        for overview. Defaults to True.
+    - opacity (float, optional): Opacity level for (glacier) layers.
+        Defaults to 0.5.
 
     Returns:
-    - dash.html.Div: HTML div containing control components including legend visibility, data table visibility, and layers control.
+    - dash.html.Div: HTML div containing control components
+        including legend visibility, data table visibility, and layers control.
     """
     controls = html.Div(
         [
@@ -60,7 +63,8 @@ def generate_data_table_visibility_control():
     Generates control for data table visibility.
 
     Returns:
-    - dash.html.Div: HTML div containing a button to show/hide data table and a container for data table content.
+    - dash.html.Div: HTML div containing a button to
+    show/hide data table and a container for data table content.
     """
     data_table_visibility = html.Div(
         [
@@ -73,31 +77,39 @@ def generate_data_table_visibility_control():
     )
     return data_table_visibility
 
+
 def generate_legend_visibility_control(overview):
     """
     Generates control for legend visibility based on overview parameter.
 
     Parameters:
-    - overview (bool): Indicates whether to generate controls for overview (True) or site (False).
+    - overview (bool): Indicates whether to generate controls
+        for overview (True) or site (False).
 
     Returns:
-    - dash.html.Div: HTML div containing buttons to show/hide legend and a container for legend content.
+    - dash.html.Div: HTML div containing buttons to
+        show/hide legend and a container for legend content.
     """
     legend_visibility = html.Div(
         [
             html.Button(
                 html.H6('Hide Legend', id='show-legend-button-overview'),
-                style={**LEGEND_BUTTON_STYLING, "right": "90px",}
+                style={**LEGEND_BUTTON_STYLING, "right": "90px"}
             ) if overview else html.Div(),
             html.Button(
                 html.H6('Hide Legend', id='show-legend-button-site'),
-                style={**LEGEND_BUTTON_STYLING, "right": "90px",}
+                style={**LEGEND_BUTTON_STYLING, "right": "90px"}
             ) if not overview else html.Div(),
-            
-            html.Div(generate_legend(overview = overview), id='legend-container', style={**LEGEND_PLACEMENT_STYLING, "display": "block"})
+
+            html.Div(
+                generate_legend(overview = overview),
+                id='legend-container',
+                style={**LEGEND_PLACEMENT_STYLING, "display": "block"}
+            )
         ]
     )
     return legend_visibility
+
 
 def generate_layers_control(opacity=0.5):
     """
@@ -159,16 +171,20 @@ def generate_layers_control(opacity=0.5):
     )
     return LAYERS_CONTROL
 
-def generate_legend(bottom=0, overview=True):
+
+def generate_legend(overview=True):
     """
     Generates a legend with markers and labels.
 
     Parameters:
-    - bottom (int, optional): Distance from the bottom of the container in pixels. Default is 30.
-    - overview (bool, optional): Indicates whether to generate the legend for overview (True) or site (False). Default is True.
+    - bottom (int, optional): Distance from the bottom of the
+        container in pixels. Default is 30.
+    - overview (bool, optional): Indicates whether to generate the legend
+        for overview (True) or site (False). Default is True.
 
     Returns:
-    - dash.html.Div: HTML div containing legend items such as glacier, volcano, earthquake markers, and InSAR phase change legend.
+    - dash.html.Div: HTML div containing legend items such as glacier,
+        volcano, earthquake markers, and InSAR phase change legend.
     """
     # Static legend positioned over the map
     legend_items = [
@@ -176,11 +192,10 @@ def generate_legend(bottom=0, overview=True):
         get_volcano_markers() if overview else None,
         get_earthquake_markers(),
         get_InSAR_phase_change() if not overview else None
-        
     ]
     # Filter out None values (markers not included if overview is False)
     legend_items = [item for item in legend_items if item is not None]
-    
+
     legend = html.Div(
         legend_items,
         # style=LEGEND_PLACEMENT_STYLING(bottom)
@@ -203,7 +218,10 @@ def get_glacier_markers():
     """
     glacier = html.Div(
         [
-            html.H6('Glacier Footprints', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+            html.H6(
+                'Glacier Footprints',
+                style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}
+            ),
             html.Div(
                 style={
                     "background-color": "#e7f5f7",
@@ -229,13 +247,14 @@ def get_volcano_markers(icon_width=15):
     Retrieves content for volcano legend label.
 
     Parameters:
-    - icon_width (int, optional): Width of the volcano icon. Default is 15 pixels.
+    - icon_width (int, optional): Width of the volcano icon.
+        Default is 15 pixels.
 
     Returns:
     - dash.html.Div: HTML div containing volcano legend label.
     """
-    icon_styling ={
-        "width":f"{icon_width}px",
+    icon_styling = {
+        "width": f"{icon_width}px",
         "height": "auto",
         "margin-right": "5px"
     }
@@ -249,7 +268,10 @@ def get_volcano_markers(icon_width=15):
     )
     volcano = html.Div(
         [
-            html.H6('Volcanoes', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+            html.H6(
+                'Volcanoes',
+                style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}
+            ),
             html.Div([
                 red_icon,
                 html.Span(
@@ -296,18 +318,19 @@ def get_earthquake_markers():
         # WHITE
         {
             'rgba': 'rgba(255, 255, 255, 0.6)',
-            'age':'Older'
+            'age': 'Older'
         }
     ]
-    magnitudes = [1,2,3,4,5,6,7]
-    
+    magnitudes = [1, 2, 3, 4, 5, 6, 7]
     magnitude_markers = []
     age_markers = []
 
     for magnitude in magnitudes:
         comparison_operator = ""
-        if magnitude == 1: comparison_operator = f"\u2264 "
-        elif magnitude == 7: comparison_operator = f"\u2265 "
+        if magnitude == 1:
+            comparison_operator = "\u2264 "
+        elif magnitude == 7:
+            comparison_operator = "\u2265 "
 
         magnitude_div = html.Div([
             html.Div([
@@ -362,7 +385,6 @@ def get_earthquake_markers():
             ),
         ])
         age_markers.append(age_div)
-    
     earthquake_styling = {
         "display": "inline-block",
         "verticalAlign": "top"
@@ -370,21 +392,31 @@ def get_earthquake_markers():
 
     earthquake = html.Div(
         [
-            html.H6('Earthquakes', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+            html.H6(
+                'Earthquakes',
+                style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}
+            ),
             html.Div(
                 [
-                    html.H6('Age (Past)', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
-                ] + age_markers, 
+                    html.H6(
+                        'Age (Past)',
+                        style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}
+                    ),
+                ] + age_markers,
                 style={**earthquake_styling, "marginRight": "10px"}),
             html.Div(
                 [
-                    html.H6('Magnitude', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+                    html.H6(
+                        'Magnitude',
+                        style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}
+                    ),
                 ] + magnitude_markers,
                 style={**earthquake_styling, "marginLeft": "10px"})
         ],
         style={"margin-bottom": "5px"}
     )
     return earthquake
+
 
 def get_InSAR_phase_change():
     """
@@ -415,13 +447,19 @@ def get_InSAR_phase_change():
 
     inSAR_phase_change = html.Div(
         [
-            html.H6('InSAR Phase Change', style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}),
+            html.H6(
+                'InSAR Phase Change',
+                style={**LEGEND_TEXT_STYLING, "fontWeight": "bold"}
+            ),
             html.Div(
                 style={
                     "position": "relative",
                     "width": "100%",
                     "height": "10px",
-                    "background": f"linear-gradient(to right, {gradient_colors})"
+                    "background": (
+                        f"linear-gradient(to right, "
+                        f"{gradient_colors}"
+                    )
                 },
                 children=[
                     html.Div(
@@ -439,15 +477,15 @@ def get_InSAR_phase_change():
                                     "height": "10px",
                                     "background": 'black',
                                     "margin": "0 auto",
-                                    "marginLeft": "-1px", 
+                                    "marginLeft": "-1px",
                                     "marginTop": "5px"
                                 }
                             ),
                             html.Span(
                                 f"{label['label']}", 
                                 style={
-                                    **LEGEND_TEXT_STYLING, 
-                                    "marginLeft": "-3px", 
+                                    **LEGEND_TEXT_STYLING,
+                                    "marginLeft": "-3px",
                                     "verticalAlign": "middle"
                                 },
                             ),
@@ -463,14 +501,17 @@ def get_InSAR_phase_change():
 
 
 """
-    Callback to toggle the visibility of the legend for OVERVIEW and update the button text.
+    Callback to toggle the visibility of the legend
+    for OVERVIEW and update the button text.
 
     Parameters:
-    - n_clicks (int or None): Number of times the button 'show-legend-button-overview' has been clicked.
+    - n_clicks (int or None): Number of times the button
+    'show-legend-button-overview' has been clicked.
 
     Returns:
     - tuple: A tuple containing:
-      - dash.html.Div: HTML content to update the legend container ('legend-container').
+      - dash.html.Div: HTML content to update
+      the legend container ('legend-container').
       - str: Updated text for the 'show-legend-button-overview' button.
     """
 
@@ -486,22 +527,28 @@ def get_InSAR_phase_change():
 def toggle_legend_visibility_overview(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
-    
-    show_legend = n_clicks % 2 == 1  # Toggle visibility based on odd/even clicks
+    # Toggle visibility based on odd/even clicks
+    show_legend = n_clicks % 2 == 0
     button_text = 'Hide Legend' if show_legend else 'Show Legend'
     
-    return {**LEGEND_PLACEMENT_STYLING, "display": "block" if show_legend else "none"}, button_text
+    return {
+        **LEGEND_PLACEMENT_STYLING,
+        "display": "block" if show_legend else "none"
+    }, button_text
 
 
 """
-    Callback to toggle the visibility of the legend for SITE and update the button text.
+    Callback to toggle the visibility of the legend for
+    SITE and update the button text.
 
     Parameters:
-    - n_clicks (int or None): Number of times the button 'show-legend-button-site' has been clicked.
+    - n_clicks (int or None): Number of times the button
+        'show-legend-button-site' has been clicked.
 
     Returns:
     - tuple: A tuple containing:
-      - dash.html.Div: HTML content to update the legend container ('legend-container').
+      - dash.html.Div: HTML content to update the
+        legend container ('legend-container').
       - str: Updated text for the 'show-legend-button-site' button.
     """
 
@@ -517,22 +564,28 @@ def toggle_legend_visibility_overview(n_clicks):
 def toggle_legend_visibility_site(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
-    
-    show_legend = n_clicks % 2 == 0  # Toggle visibility based on odd/even clicks
+    # Toggle visibility based on odd/even clicks
+    show_legend = n_clicks % 2 == 0
     button_text = 'Hide Legend' if show_legend else 'Show Legend'
     
-    return {**LEGEND_PLACEMENT_STYLING, "display": "block" if show_legend else "none"}, button_text
+    return {
+        **LEGEND_PLACEMENT_STYLING, 
+        "display": "block" if show_legend else "none"
+    }, button_text
 
 
 """
-    Callback to toggle the visibility of the data table for overview and update the button text.
+    Callback to toggle the visibility of the data table for
+    overview and update the button text.
 
     Parameters:
-    - n_clicks (int or None): Number of times the button 'show-data-table-overview' has been clicked.
+    - n_clicks (int or None): Number of times the button
+        'show-data-table-overview' has been clicked.
 
     Returns:
     - tuple: A tuple containing:
-      - dict: CSS style dictionary to update the 'data-table-container' display property.
+      - dict: CSS style dictionary to update the
+        'data-table-container' display property.
       - str: Updated text for the 'show-data-table-overview' button.
     """
 
@@ -544,10 +597,10 @@ def toggle_legend_visibility_site(n_clicks):
     ],
     [Input('show-data-table-overview', 'n_clicks')],
 )
-def toggle_legend_visibility_site(n_clicks):
+def toggle_data_table_visibility(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
-    
-    show_table = n_clicks % 2 == 0  # Toggle visibility based on odd/even clicks
+    # Toggle visibility based on odd/even clicks
+    show_table = n_clicks % 2 == 0
     button_text = 'Hide Data Table' if show_table else 'Show Data Table'
     return {"display": "block" if show_table else "none"}, button_text

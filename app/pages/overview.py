@@ -98,7 +98,7 @@ layout = html.Div([
                         {
                             'if': {'column_id': 'Unrest', 'row_index': i},
                             'color': 'red' if unrest else 'green',
-                        } 
+                        }
                         for i, unrest in enumerate(summary_table_df['Unrest'])
                         # Add beam mode to latest slc date
                     ],

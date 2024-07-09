@@ -226,7 +226,7 @@ layout = dbc.Container(
 
 
 """
-Update interferogram display and information text 
+Update interferogram display and information text
 based on click data and site selection.
 
 Parameters:
@@ -316,7 +316,7 @@ def update_coherence(target_id):
 
 
 """
-Switch between temporal and spatial baseline plots 
+Switch between temporal and spatial baseline plots
 based on tab selection and site.
 
 Parameters:
