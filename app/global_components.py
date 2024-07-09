@@ -54,8 +54,8 @@ def generate_controls(overview=True, opacity=0.5):
         [
             generate_legend_visibility_control(overview),
             (
-                generate_data_table_visibility_control() 
-                if overview 
+                generate_data_table_visibility_control()
+                if overview
                 else html.Div()
             ),
             generate_layers_control(opacity),
