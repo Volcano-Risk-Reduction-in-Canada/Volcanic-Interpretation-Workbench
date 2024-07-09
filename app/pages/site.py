@@ -20,10 +20,12 @@ from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import (Map,
-                          TileLayer,
-                          CircleMarker,
-                          Popup)
+from dash_leaflet import (
+    Map,
+    TileLayer,
+    CircleMarker,
+    Popup
+)
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
     Output,
@@ -31,7 +33,7 @@ from dash_extensions.enrich import (
     Input,
     MultiplexerTransform
 )
-from global_components import generate_layers_control, generate_legend
+from global_components import generate_controls
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -58,11 +60,13 @@ SITE_INI, BEAM_INI = INITIAL_TARGET.rsplit('_', 1)
 
 epicenters_df = get_latest_quakes_chis_fsdn_site(
     INITIAL_TARGET, TARGET_CENTRES
-    )
+)
 
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
+
+initial_show_glacier_information = False
 
 initial_show_glacier_information = False
 
@@ -90,7 +94,7 @@ selector = html.Div(
 spatial_view = Map(
     children=[
         TileLayer(),
-        generate_layers_control(),
+        generate_controls(overview=False),
         *[
             CircleMarker(
                 center=[row['Latitude'], row['Longitude']],
@@ -99,8 +103,6 @@ spatial_view = Map(
                 fillOpacity=0.6,
                 color='black',
                 weight=1,
-                # fill_colour='red',
-                # fill_opacity=0.6,
                 children=Popup(
                     html.P([
                         f"""Magnitude: {row['Magnitude']} {row['MagType']}""",
@@ -114,7 +116,7 @@ spatial_view = Map(
                     ])
                 ),
             )
-            for index, row in epicenters_df.sort_values(
+            for _, row in epicenters_df.sort_values(
                 by='#EventID'
                 ).iterrows()
         ],
@@ -130,7 +132,7 @@ spatial_view = Map(
             tms=True,
             opacity=0.7
         ),
-        generate_legend(bottom=30),
+        # generate_legend(overview=False),
     ],
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
@@ -223,6 +225,21 @@ layout = dbc.Container(
 )
 
 
+"""
+Update interferogram display and information text
+based on click data and site selection.
+
+Parameters:
+- click_data (dict or None): Click data from the 'coherence-matrix' component.
+- target_id (str or None): Selected site and beam ID from 'site-dropdown'.
+
+Returns:
+- tuple: A tuple containing:
+    - str: Updated URL for the 'tiles' component to display the interferogram.
+    - dash.html.P: HTML paragraph with information about the interferogram.
+"""
+
+
 @callback(
     Output(component_id='tiles',
            component_property='url',
@@ -271,6 +288,17 @@ def update_interferogram(click_data, target_id):
     raise PreventUpdate
 
 
+"""
+Display a new coherence matrix based on the selected site.
+
+Parameters:
+- target_id (str or None): Selected site ID from 'site-dropdown'.
+
+Returns:
+- plotly.graph_objs.Figure: Updated coherence matrix plot.
+"""
+
+
 @callback(
     Output(component_id='coherence-matrix',
            component_property='figure',
@@ -285,6 +313,19 @@ def update_coherence(target_id):
     coherence = _read_coherence(coherence_csv)
 
     return plot_coherence(coherence)
+
+
+"""
+Switch between temporal and spatial baseline plots
+based on tab selection and site.
+
+Parameters:
+- tab (str): Selected tab ID from 'tabs-example-graph'.
+- site (str): Selected site ID from 'site-dropdown'.
+
+Returns:
+- plotly.graph_objs.Figure: Updated coherence matrix or baseline plot.
+"""
 
 
 @callback(
@@ -307,6 +348,18 @@ def switch_temporal_view(tab, site):
     return None
 
 
+"""
+Recenter the map on a new site and update information text.
+
+Parameters:
+- target_id (str or None): Selected site ID from 'site-dropdown'.
+
+Returns:
+- dict: Updated viewport parameters for the 'interferogram-bg' component.
+- dash.html.P: HTML paragraph with information about the new site.
+"""
+
+
 @callback(
     Output(component_id='interferogram-bg',
            component_property='viewport',
@@ -326,6 +379,18 @@ def recenter_map(target_id):
     return dict(center=coords,
                 zoom=10,
                 transition="flyTo"), info_text
+
+
+"""
+Update earthquake markers on the map based on the selected site.
+
+Parameters:
+- target_id (str or None): Selected site ID from 'site-dropdown'.
+
+Returns:
+- list: Updated layers including earthquake markers for
+    the 'interferogram-bg' component.
+"""
 
 
 @callback(
@@ -371,7 +436,7 @@ def update_earthquake_markers(target_id):
         print("Note: No earthquakes found.")
     base_layers = [
         TileLayer(),
-        generate_layers_control(),
+        generate_controls(overview=False),
         TileLayer(
             id='tiles',
             url=(''),

@@ -28,3 +28,32 @@ COH_LIMS = (0.2, 0.4)
 TEMPORAL_HEIGHT = 300
 MAX_YEARS = 3
 DAYS_PER_YEAR = 365.25
+
+# styling for legend text
+LEGEND_TEXT_STYLING = {
+  "color": "black",
+  "font-size": "12px",
+  "vertical-align": "middle"
+}
+
+# styling for legend button
+LEGEND_BUTTON_STYLING = {
+    **LEGEND_TEXT_STYLING,
+    "position": "absolute",
+    "top": "10px",
+    "background-color": "white",
+    "padding": "5px",
+    "borderRadius": "5px",
+    "border": "1px solid #ccc",
+    "z-index": "2000"
+}
+
+LEGEND_PLACEMENT_STYLING = {
+    "position": "absolute",
+    "bottom": "30px",
+    "right": "12px",
+    "background-color": "red",
+    # "padding": "10px",
+    # "border": "1px solid #ccc",
+    "z-index": "2000"
+  }
