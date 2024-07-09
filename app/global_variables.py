@@ -40,7 +40,7 @@ LEGEND_TEXT_STYLING = {
 LEGEND_BUTTON_STYLING = {
     **LEGEND_TEXT_STYLING,
     "position": "absolute",
-    "top": f"10px",
+    "top": "10px",
     "background-color": "white",
     "padding": "5px",
     "borderRadius": "5px",

@@ -444,7 +444,7 @@ def get_InSAR_phase_change():
                                 }
                             ),
                             html.Span(
-                                f'{label['label']}', 
+                                f"{label['label']}", 
                                 style={
                                     **LEGEND_TEXT_STYLING, 
                                     "marginLeft": "-3px", 

@@ -226,7 +226,8 @@ layout = dbc.Container(
 
 
 """
-Update interferogram display and information text based on click data and site selection.
+Update interferogram display and information text 
+based on click data and site selection.
 
 Parameters:
 - click_data (dict or None): Click data from the 'coherence-matrix' component.
@@ -315,7 +316,8 @@ def update_coherence(target_id):
 
 
 """
-Switch between temporal and spatial baseline plots based on tab selection and site.
+Switch between temporal and spatial baseline plots 
+based on tab selection and site.
 
 Parameters:
 - tab (str): Selected tab ID from 'tabs-example-graph'.
@@ -386,7 +388,8 @@ Parameters:
 - target_id (str or None): Selected site ID from 'site-dropdown'.
 
 Returns:
-- list: Updated layers including earthquake markers for the 'interferogram-bg' component.
+- list: Updated layers including earthquake markers for
+    the 'interferogram-bg' component.
 """
 
 

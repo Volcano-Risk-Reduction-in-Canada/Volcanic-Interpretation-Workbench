@@ -18,12 +18,6 @@ from dash_leaflet import (
     Popup,
 )
 from dash_extensions.enrich import (Output, Input)
-from dash_leaflet import (
-    Map,
-    CircleMarker,
-    Popup,
-)
-from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
 from global_components import generate_controls
@@ -104,7 +98,8 @@ layout = html.Div([
                         {
                             'if': {'column_id': 'Unrest', 'row_index': i},
                             'color': 'red' if unrest else 'green',
-                        } for i, unrest in enumerate(summary_table_df['Unrest'])
+                        } 
+                        for i, unrest in enumerate(summary_table_df['Unrest'])
                         # Add beam mode to latest slc date
                     ],
                 )
