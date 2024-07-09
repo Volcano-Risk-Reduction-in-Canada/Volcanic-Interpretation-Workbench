@@ -31,7 +31,8 @@ from global_variables import (
 )
 
 """
-ABOUT THIS FILE: This file compiles a list of functions that aid in generating the general control functions (LayerControl, Legend, Data Table)
+ABOUT THIS FILE: This file compiles a list of functions that aid
+in generating the general control functions (LayerControl, Legend, Data Table)
 """
 
 
@@ -52,11 +53,16 @@ def generate_controls(overview=True, opacity=0.5):
     controls = html.Div(
         [
             generate_legend_visibility_control(overview),
-            generate_data_table_visibility_control() if overview else html.Div(),
+            (
+                generate_data_table_visibility_control() 
+                if overview 
+                else html.Div()
+            ),
             generate_layers_control(opacity),
         ]
     )
     return controls
+
 
 def generate_data_table_visibility_control():
     """
@@ -102,7 +108,7 @@ def generate_legend_visibility_control(overview):
             ) if not overview else html.Div(),
 
             html.Div(
-                generate_legend(overview = overview),
+                generate_legend(overview=overview),
                 id='legend-container',
                 style={**LEGEND_PLACEMENT_STYLING, "display": "block"}
             )
@@ -482,7 +488,7 @@ def get_InSAR_phase_change():
                                 }
                             ),
                             html.Span(
-                                f"{label['label']}", 
+                                f"{label['label']}",
                                 style={
                                     **LEGEND_TEXT_STYLING,
                                     "marginLeft": "-3px",
@@ -530,7 +536,7 @@ def toggle_legend_visibility_overview(n_clicks):
     # Toggle visibility based on odd/even clicks
     show_legend = n_clicks % 2 == 0
     button_text = 'Hide Legend' if show_legend else 'Show Legend'
-    
+
     return {
         **LEGEND_PLACEMENT_STYLING,
         "display": "block" if show_legend else "none"
@@ -567,9 +573,9 @@ def toggle_legend_visibility_site(n_clicks):
     # Toggle visibility based on odd/even clicks
     show_legend = n_clicks % 2 == 0
     button_text = 'Hide Legend' if show_legend else 'Show Legend'
-    
+
     return {
-        **LEGEND_PLACEMENT_STYLING, 
+        **LEGEND_PLACEMENT_STYLING,
         "display": "block" if show_legend else "none"
     }, button_text
 
