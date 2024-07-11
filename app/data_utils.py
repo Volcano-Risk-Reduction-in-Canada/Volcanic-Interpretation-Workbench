@@ -375,6 +375,27 @@ def pivot_and_clean(coh_long):
     return coh_wide
 
 
+def pivot_and_clean_insar(insar_long):
+    """Convert long-form coherence to wide-form and clean it up."""
+    insar_wide = insar_long.pivot(
+        index='delta_days',
+        columns='second_date',
+        values='insar_pair')
+    # include zero baseline even though it will never be valid
+    insar_wide.loc[0, :] = np.NaN
+    insar_wide.sort_index(inplace=True)
+    # because hovertemplate 'f' format doesn't handle NaN properly
+    insar_wide = insar_wide.round(2)
+    # trim empty edges
+    first_valid_row_index = insar_wide.dropna(how='all').index[0]
+    last_valid_row_index = insar_wide.dropna(how='all').index[-1]
+    first_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[0]
+    last_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[-1]
+    insar_wide = insar_wide.loc[first_valid_row_index:last_valid_row_index,
+                                first_valid_col_index:last_valid_col_index]
+    return insar_wide
+
+
 def pivot_and_clean_dates(coh_long, coh_wide):
     """Convert long-form df to wide-form date matrix matching coh_wide."""
     coh_long = coh_long.drop(coh_long[coh_long.second_date <
