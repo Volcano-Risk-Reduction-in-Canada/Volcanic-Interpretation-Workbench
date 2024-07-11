@@ -629,6 +629,13 @@ def _coherence_csv(target_id):
     return f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
 
 
+def _insar_pair_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
+    site, beam = target_id.rsplit('_', 1)
+    return f'app/Data/{site}/{beam}/InSAR_Pair_All.csv'
+
+
 def _baseline_csv(target_id):
     if target_id == 'API Response Error':
         return None
