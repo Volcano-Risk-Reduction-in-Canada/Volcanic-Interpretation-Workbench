@@ -574,6 +574,24 @@ def _read_coherence(coherence_csv):
     return coh
 
 
+def _read_insar_pair(insar_pair_csv):
+    if insar_pair_csv is None:
+        return None
+    insar = pd.read_csv(
+        insar_pair_csv,
+        parse_dates=['Reference_Date', 'Pair_Date'])
+    insar.columns = ['first_date', 'second_date', 'insar_pair']
+    wrong_order = (
+        (insar.second_date < insar.first_date)
+        & insar.insar_pair.notnull()
+        )
+    if wrong_order.any():
+        raise RuntimeError(
+            'Some intereferogram dates not ordered as expected:\n' +
+            insar[wrong_order].to_string())
+    return insar
+
+
 def _read_baseline(baseline_csv):
     if baseline_csv is None:
         return None
