@@ -416,7 +416,7 @@ def pivot_and_clean_dates(coh_long, coh_wide):
     return date_wide
 
 
-def plot_coherence(coh_long):
+def plot_coherence(coh_long, insar_long):
     """Plot coherence for different baselines as a function of time."""
     if coh_long is None:
         fig = make_subplots(
@@ -424,19 +424,45 @@ def plot_coherence(coh_long):
             start_cell='bottom-left', vertical_spacing=0.02,
             y_title='Temporal baseline [days]')
         return fig
-    coh_long['delta_days'] = (coh_long.second_date -
-                              coh_long.first_date).dt.days
+    coh_long['delta_days'] = (coh_long.second_date - coh_long.first_date).dt.days
+    insar_long['delta_days'] = (insar_long.second_date - insar_long.first_date).dt.days
     coh_wide = pivot_and_clean(coh_long)
+    insar_wide = pivot_and_clean_insar(insar_long)
     date_wide = pivot_and_clean_dates(coh_long, coh_wide)
+    insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
 
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
         start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
 
+    insar_colorscale = [
+        [0, 'rgba(0,0,0,0)'],
+        [1, 'grey']
+        ]
+
     for year in range(YEAR_AXES_COUNT):
+        # Grey heatmap for potential insar pair
         fig.add_trace(
-            trace=Heatmap(
+            go.Heatmap(
+                z=insar_wide.values,
+                x=insar_wide.columns,
+                y=insar_wide.index,
+                xgap=1,
+                ygap=1,
+                customdata=insar_date_wide,
+                hovertemplate=(
+                    'Start Date: %{customdata}<br>'
+                    'End Date: %{x}<br>'
+                    'Temporal Baseline: %{y} days<br>'
+                    'Value: %{z}'),
+                colorscale=insar_colorscale,
+                showscale=False,
+                opacity=0.5),
+            row=year + 1, col=1)
+        # Colored heatmap for processed insar pairs
+        fig.add_trace(
+            go.Heatmap(
                 z=coh_wide.values,
                 x=coh_wide.columns,
                 y=coh_wide.index,
@@ -453,14 +479,20 @@ def plot_coherence(coh_long):
         if year == 0:
             baseline_limits = [0, BASELINE_MAX]
         else:
-            baseline_limits = list(int(year*DAYS_PER_YEAR) +
-                                   BASELINE_MAX/2*np.array([-1, 1]))
+            baseline_limits = list(
+                int(
+                    year * DAYS_PER_YEAR
+                    ) + BASELINE_MAX / 2 * np.array([-1, 1])
+                )
         second_date_limits = [
-            max(coh_wide.columns.min(),
-                coh_wide.columns.max() -
-                pd.to_timedelta(DAYS_PER_YEAR*MAX_YEARS, 'days')) -
-            pd.to_timedelta(4, 'days'),
-            coh_wide.columns.max() + pd.to_timedelta(4, 'days')]
+            max(
+                coh_wide.columns.min(),
+                coh_wide.columns.max() - pd.to_timedelta(
+                    DAYS_PER_YEAR * MAX_YEARS, 'days'
+                    )
+                ) - pd.to_timedelta(4, 'days'),
+            coh_wide.columns.max() + pd.to_timedelta(4, 'days')
+            ]
         fig.update_yaxes(
             range=baseline_limits,
             dtick=BASELINE_DTICK,
