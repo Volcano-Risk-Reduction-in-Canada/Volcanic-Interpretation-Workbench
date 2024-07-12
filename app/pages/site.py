@@ -144,7 +144,10 @@ spatial_view = Map(
 
 temporal_view = Graph(
     id='coherence-matrix',
-    figure=plot_coherence(_read_coherence(_coherence_csv(INITIAL_TARGET))),
+    figure=plot_coherence(
+        _read_coherence(_coherence_csv(INITIAL_TARGET)),
+        _read_insar_pair(_insar_pair_csv(INITIAL_TARGET))
+        ),
     style={'height': TEMPORAL_HEIGHT},
 )
 
