@@ -37,8 +37,10 @@ from global_components import generate_controls
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
+    _insar_pair_csv,
     _read_baseline,
     _read_coherence,
+    _read_insar_pair,
     plot_baseline,
     plot_coherence,
     populate_beam_selector,
