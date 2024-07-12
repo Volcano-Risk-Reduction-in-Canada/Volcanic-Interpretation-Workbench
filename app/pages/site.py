@@ -314,10 +314,12 @@ Returns:
 def update_coherence(target_id):
     """Display new coherence matrix."""
     coherence_csv = _coherence_csv(target_id)
+    insar_pair_csv = _insar_pair_csv(target_id)
     print(f'Loading: {coherence_csv}')
+    print(f'Loading: {insar_pair_csv}')
     coherence = _read_coherence(coherence_csv)
-
-    return plot_coherence(coherence)
+    insar_pair = _read_coherence(insar_pair_csv)
+    return plot_coherence(coherence, insar_pair)
 
 
 """
@@ -345,7 +347,10 @@ def switch_temporal_view(tab, site):
     """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
         print(f'coherence for {site}')
-        return plot_coherence(_read_coherence(_coherence_csv(site)))
+        return plot_coherence(
+            _read_coherence(_coherence_csv(site)),
+            _read_insar_pair(_insar_pair_csv(site))
+            )
     if tab == 'tab-2-baseline-graph':
         print(f'Baseline for {site}')
         return plot_baseline(_read_baseline(_baseline_csv(site)),
