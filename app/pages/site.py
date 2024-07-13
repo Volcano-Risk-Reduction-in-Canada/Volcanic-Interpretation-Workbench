@@ -318,7 +318,7 @@ def update_coherence(target_id):
     print(f'Loading: {coherence_csv}')
     print(f'Loading: {insar_pair_csv}')
     coherence = _read_coherence(coherence_csv)
-    insar_pair = _read_coherence(insar_pair_csv)
+    insar_pair = _read_insar_pair(insar_pair_csv)
     return plot_coherence(coherence, insar_pair)
 
 
