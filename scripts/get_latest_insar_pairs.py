@@ -30,11 +30,10 @@ def main():
             if not os.path.exists(f'app/Data/{site}/{beam}'):
                 os.makedirs(f'app/Data/{site}/{beam}')
             try:
+                filename = f'app/Data/{site}/{beam}/InSAR_Pair_All.csv'
                 s_3.download_file(Bucket=config['AWS_BUCKET_NAME'],
                                   Key=f'{site}/{beam}/InSAR_Pair_All.csv',
-                                  Filename=(
-                                      f'app/Data/{site}/{beam}/InSAR_Pair_All.csv'
-                                      )
+                                  Filename=filename
                                   )
             except botocore.exceptions.ClientError:
                 print('InSAR_Pair_All.csv File not found')

@@ -21,7 +21,6 @@ import dash
 from dash import html
 from dash_leaflet import Marker, Tooltip
 from dotenv import load_dotenv
-from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
@@ -424,8 +423,12 @@ def plot_coherence(coh_long, insar_long):
             start_cell='bottom-left', vertical_spacing=0.02,
             y_title='Temporal baseline [days]')
         return fig
-    coh_long['delta_days'] = (coh_long.second_date - coh_long.first_date).dt.days
-    insar_long['delta_days'] = (insar_long.second_date - insar_long.first_date).dt.days
+    coh_long['delta_days'] = (
+        coh_long.second_date - coh_long.first_date
+        ).dt.days
+    insar_long['delta_days'] = (
+        insar_long.second_date - insar_long.first_date
+        ).dt.days
     coh_wide = pivot_and_clean(coh_long)
     insar_wide = pivot_and_clean_insar(insar_long)
     date_wide = pivot_and_clean_dates(coh_long, coh_wide)
