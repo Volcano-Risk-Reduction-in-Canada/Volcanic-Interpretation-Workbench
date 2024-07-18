@@ -11,6 +11,7 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
   - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
+import boto3
 import requests
 
 import dash
@@ -78,6 +79,7 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
+
 # different components in page layout + styling variables
 selector = html.Div(
     title=TITLE,
@@ -124,10 +126,16 @@ spatial_view = Map(
         ],
         TileLayer(
             id='tiles',
-            url=(
-                f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-                '{z}/{x}/{y}.png'
-            ),
+            # url=(
+            #     f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+            #     '{z}/{x}/{y}.png'
+            # ),
+            # url=(get_signed_url(
+            #         TILES_BUCKET,
+            #         f'Meager/5M3/20220809_20220914/{z}/{x}/{y}.png'
+            #         # 'Meager/5M3/20220809_20220914/6/10/42.png'
+            #     )
+            # ),
             maxZoom=30,
             minZoom=1,
             attribution='&copy; Open Street Map Contributors',
@@ -252,45 +260,49 @@ Returns:
     Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
+    Input('tiles', 'zoom'),
+    Input('tiles', 'bounds'),
     prevent_initial_call=True
     )
-def update_interferogram(click_data, target_id):
+# def update_interferogram(click_data, target_id):
+def update_interferogram(click_data, target_id, zoom, bounds):
     """Update interferogram display."""
-    if not target_id:
-        raise PreventUpdate
-    site, beam = target_id.rsplit('_', 1)
-    if not click_data:
-        return (
-            f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-            '{z}/{x}/{y}.png',
-            ""
-        )
-    second = pd.to_datetime(click_data['points'][0]['x'])
-    delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
-    first = second - delta
-    first_str = first.strftime('%Y%m%d')
-    second_str = second.strftime('%Y%m%d')
-    layer = (
-        f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
-        '{z}/{x}/{y}.png'
-    )
-    check_url = (layer.replace('{z}', '0')
-                 .replace('{x}', '0')
-                 .replace('{y}', '0'))
-    response = requests.head(check_url, timeout=10)
-    if response.status_code == 200:
-        print(f'Updating interferogram: {layer}')
-        info_text = html.P([
-            f'{first_str}_HH_{second_str}_HH.adf.unw.geo.tif'
-            ], style={
-                'margin': 0,
-                'color': 'rgba(255, 255, 255, 0.9)'
-                }
-            )
-        return layer, info_text
+    # if not target_id:
+    #     raise PreventUpdate
+    # site, beam = target_id.rsplit('_', 1)
+    # if not click_data:
+    #     return (
+    #         f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
+    #         '{z}/{x}/{y}.png',
+    #         ""
+    #     )
+    # second = pd.to_datetime(click_data['points'][0]['x'])
+    # delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
+    # first = second - delta
+    # first_str = first.strftime('%Y%m%d')
+    # second_str = second.strftime('%Y%m%d')
+    # layer = (
+    #     f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
+    #     '{z}/{x}/{y}.png'
+    # )
+    # check_url = (layer.replace('{z}', '0')
+    #              .replace('{x}', '0')
+    #              .replace('{y}', '0'))
+    # response = requests.head(check_url, timeout=10)
+    # if response.status_code == 200:
+    #     print(f'Updating interferogram: {layer}')
+    #     info_text = html.P([
+    #         f'{first_str}_HH_{second_str}_HH.adf.unw.geo.tif'
+    #         ], style={
+    #             'margin': 0,
+    #             'color': 'rgba(255, 255, 255, 0.9)'
+    #             }
+    #         )
+    #     return layer, info_text
     # else
-    print('Layer does not exist')
-    raise PreventUpdate
+    # print('Layer does not exist')
+    # raise PreventUpdate
+    return "/getTileUrl?x={x}&y={y}&z={z}", "test info text"
 
 
 """

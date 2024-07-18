@@ -44,6 +44,7 @@ app = Dash(__name__,
            prevent_initial_callbacks=True,
            external_stylesheets=[dbc.themes.DARKLY],
            use_pages=True,)
+server = app.server
 # app = DashProxy(prevent_initial_callbacks=True,
 #                 suppress_callback_exceptions=True,
 #                 transforms=[MultiplexerTransform()],
