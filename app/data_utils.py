@@ -21,7 +21,6 @@ import dash
 from dash import html
 from dash_leaflet import Marker, Tooltip
 from dotenv import load_dotenv
-from plotly.graph_objects import Heatmap
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
@@ -375,6 +374,27 @@ def pivot_and_clean(coh_long):
     return coh_wide
 
 
+def pivot_and_clean_insar(insar_long):
+    """Convert long-form coherence to wide-form and clean it up."""
+    insar_wide = insar_long.pivot(
+        index='delta_days',
+        columns='second_date',
+        values='insar_pair')
+    # include zero baseline even though it will never be valid
+    insar_wide.loc[0, :] = np.NaN
+    insar_wide.sort_index(inplace=True)
+    # because hovertemplate 'f' format doesn't handle NaN properly
+    insar_wide = insar_wide.round(2)
+    # trim empty edges
+    first_valid_row_index = insar_wide.dropna(how='all').index[0]
+    last_valid_row_index = insar_wide.dropna(how='all').index[-1]
+    first_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[0]
+    last_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[-1]
+    insar_wide = insar_wide.loc[first_valid_row_index:last_valid_row_index,
+                                first_valid_col_index:last_valid_col_index]
+    return insar_wide
+
+
 def pivot_and_clean_dates(coh_long, coh_wide):
     """Convert long-form df to wide-form date matrix matching coh_wide."""
     coh_long = coh_long.drop(coh_long[coh_long.second_date <
@@ -395,7 +415,7 @@ def pivot_and_clean_dates(coh_long, coh_wide):
     return date_wide
 
 
-def plot_coherence(coh_long):
+def plot_coherence(coh_long, insar_long):
     """Plot coherence for different baselines as a function of time."""
     if coh_long is None:
         fig = make_subplots(
@@ -403,19 +423,49 @@ def plot_coherence(coh_long):
             start_cell='bottom-left', vertical_spacing=0.02,
             y_title='Temporal baseline [days]')
         return fig
-    coh_long['delta_days'] = (coh_long.second_date -
-                              coh_long.first_date).dt.days
+    coh_long['delta_days'] = (
+        coh_long.second_date - coh_long.first_date
+        ).dt.days
+    insar_long['delta_days'] = (
+        insar_long.second_date - insar_long.first_date
+        ).dt.days
     coh_wide = pivot_and_clean(coh_long)
+    insar_wide = pivot_and_clean_insar(insar_long)
     date_wide = pivot_and_clean_dates(coh_long, coh_wide)
+    insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
 
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
         start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
 
+    insar_colorscale = [
+        [0, 'rgba(0,0,0,0)'],
+        [1, 'grey']
+        ]
+
     for year in range(YEAR_AXES_COUNT):
+        # Grey heatmap for potential insar pair
         fig.add_trace(
-            trace=Heatmap(
+            go.Heatmap(
+                z=insar_wide.values,
+                x=insar_wide.columns,
+                y=insar_wide.index,
+                xgap=1,
+                ygap=1,
+                customdata=insar_date_wide,
+                hovertemplate=(
+                    'Start Date: %{customdata}<br>'
+                    'End Date: %{x}<br>'
+                    'Temporal Baseline: %{y} days<br>'
+                    'Value: %{z}'),
+                colorscale=insar_colorscale,
+                showscale=False,
+                opacity=0.5),
+            row=year + 1, col=1)
+        # Colored heatmap for processed insar pairs
+        fig.add_trace(
+            go.Heatmap(
                 z=coh_wide.values,
                 x=coh_wide.columns,
                 y=coh_wide.index,
@@ -432,14 +482,20 @@ def plot_coherence(coh_long):
         if year == 0:
             baseline_limits = [0, BASELINE_MAX]
         else:
-            baseline_limits = list(int(year*DAYS_PER_YEAR) +
-                                   BASELINE_MAX/2*np.array([-1, 1]))
+            baseline_limits = list(
+                int(
+                    year * DAYS_PER_YEAR
+                    ) + BASELINE_MAX / 2 * np.array([-1, 1])
+                )
         second_date_limits = [
-            max(coh_wide.columns.min(),
-                coh_wide.columns.max() -
-                pd.to_timedelta(DAYS_PER_YEAR*MAX_YEARS, 'days')) -
-            pd.to_timedelta(4, 'days'),
-            coh_wide.columns.max() + pd.to_timedelta(4, 'days')]
+            max(
+                coh_wide.columns.min(),
+                coh_wide.columns.max() - pd.to_timedelta(
+                    DAYS_PER_YEAR * MAX_YEARS, 'days'
+                    )
+                ) - pd.to_timedelta(4, 'days'),
+            coh_wide.columns.max() + pd.to_timedelta(4, 'days')
+            ]
         fig.update_yaxes(
             range=baseline_limits,
             dtick=BASELINE_DTICK,
@@ -574,6 +630,24 @@ def _read_coherence(coherence_csv):
     return coh
 
 
+def _read_insar_pair(insar_pair_csv):
+    if insar_pair_csv is None:
+        return None
+    insar = pd.read_csv(
+        insar_pair_csv,
+        parse_dates=['Reference_Date', 'Pair_Date'])
+    insar.columns = ['first_date', 'second_date', 'insar_pair']
+    wrong_order = (
+        (insar.second_date < insar.first_date)
+        & insar.insar_pair.notnull()
+        )
+    if wrong_order.any():
+        raise RuntimeError(
+            'Some intereferogram dates not ordered as expected:\n' +
+            insar[wrong_order].to_string())
+    return insar
+
+
 def _read_baseline(baseline_csv):
     if baseline_csv is None:
         return None
@@ -609,6 +683,13 @@ def _coherence_csv(target_id):
         return None
     site, beam = target_id.rsplit('_', 1)
     return f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
+
+
+def _insar_pair_csv(target_id):
+    if target_id == 'API Response Error':
+        return None
+    site, beam = target_id.rsplit('_', 1)
+    return f'app/Data/{site}/{beam}/InSAR_Pair_All.csv'
 
 
 def _baseline_csv(target_id):
