@@ -34,7 +34,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--port', type=str,
-    help="Port on which to run the server",
+        help="Port on which to run the server",
     # use the env variable as default port (if specified)
     default=int(os.getenv('WORKBENCH_PORT', '8050'))
 )
