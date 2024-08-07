@@ -11,7 +11,6 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
   - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
-import boto3
 import requests
 
 import dash
@@ -56,6 +55,8 @@ dash.register_page(__name__, path='/site')
 
 # VARIABLES
 TILES_BUCKET = config['AWS_TILES_URL']
+HOST = config['WORKBENCH_HOST']
+PORT = config['WORKBENCH_PORT']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
@@ -79,6 +80,12 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
+tiles_url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
+                     f"site={SITE_INI}&",
+                     f"beam={BEAM_INI}&",
+                     "startdate=20220821&",
+                     "enddate=20220914&",
+                     "x={x}&y={y}&z={z}"))
 
 # different components in page layout + styling variables
 selector = html.Div(
@@ -126,21 +133,12 @@ spatial_view = Map(
         ],
         TileLayer(
             id='tiles',
-            # url=(
-            #     f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-            #     '{z}/{x}/{y}.png'
-            # ),
-            # url=(get_signed_url(
-            #         TILES_BUCKET,
-            #         f'Meager/5M3/20220809_20220914/{z}/{x}/{y}.png'
-            #         # 'Meager/5M3/20220809_20220914/6/10/42.png'
-            #     )
-            # ),
-            maxZoom=30,
-            minZoom=1,
-            attribution='&copy; Open Street Map Contributors',
+            url=tiles_url,
+            # maxZoom=30,
+            # minZoom=1,
+            # attribution='&copy; Open Street Map Contributors',
             tms=True,
-            opacity=0.7
+            # opacity=0.7
         ),
         # generate_legend(overview=False),
     ],
@@ -264,45 +262,65 @@ Returns:
     Input('tiles', 'bounds'),
     prevent_initial_call=True
     )
-# def update_interferogram(click_data, target_id):
 def update_interferogram(click_data, target_id, zoom, bounds):
     """Update interferogram display."""
-    # if not target_id:
-    #     raise PreventUpdate
-    # site, beam = target_id.rsplit('_', 1)
-    # if not click_data:
-    #     return (
-    #         f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-    #         '{z}/{x}/{y}.png',
-    #         ""
-    #     )
-    # second = pd.to_datetime(click_data['points'][0]['x'])
-    # delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
-    # first = second - delta
-    # first_str = first.strftime('%Y%m%d')
-    # second_str = second.strftime('%Y%m%d')
-    # layer = (
-    #     f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
-    #     '{z}/{x}/{y}.png'
-    # )
-    # check_url = (layer.replace('{z}', '0')
-    #              .replace('{x}', '0')
-    #              .replace('{y}', '0'))
-    # response = requests.head(check_url, timeout=10)
-    # if response.status_code == 200:
-    #     print(f'Updating interferogram: {layer}')
-    #     info_text = html.P([
-    #         f'{first_str}_HH_{second_str}_HH.adf.unw.geo.tif'
-    #         ], style={
-    #             'margin': 0,
-    #             'color': 'rgba(255, 255, 255, 0.9)'
-    #             }
-    #         )
-    #     return layer, info_text
-    # else
-    # print('Layer does not exist')
-    # raise PreventUpdate
-    return "/getTileUrl?x={x}&y={y}&z={z}", "test info text"
+    if not target_id:
+        raise PreventUpdate
+    site, beam = target_id.rsplit('_', 1)
+    info_text = html.P([
+        '20220821_HH_20220914_HH.adf.wrp.geo.tif'
+        ], style={
+            'margin': 0,
+            'color': 'rgba(255, 255, 255, 0.9)'
+            }
+        )
+    if not click_data:
+        url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
+                       f"site={SITE_INI}&",
+                       f"beam={BEAM_INI}&",
+                       "startdate=20220821&",
+                       "enddate=20220914&",
+                       "x={x}&y={y}&z={z}"))
+        return url, "test info text"
+    second = pd.to_datetime(click_data['points'][0]['x'])
+    delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
+    first = second - delta
+    first_str = first.strftime('%Y%m%d')
+    second_str = second.strftime('%Y%m%d')
+    info_text = html.P([
+        f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif'
+        ], style={
+            'margin': 0,
+            'color': 'rgba(255, 255, 255, 0.9)'
+            }
+        )
+    url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
+                   f"site={site}&",
+                   f"beam={beam}&",
+                   f"startdate={first_str}&",
+                   f"enddate={second_str}&",
+                   "x={x}&y={y}&z={z}"))
+    test_url = "".join((f"http://{HOST}:{PORT}",
+                        f"/getTileUrl?bucket={TILES_BUCKET}&",
+                        f"site={site}&",
+                        f"beam={beam}&",
+                        f"startdate={first_str}&",
+                        f"enddate={second_str}&",
+                        "x=0&y=0&z=0"))
+    response = requests.get(test_url, timeout=10)
+    if response.status_code == 200:
+        print(f'Interferogram: {first_str}_HH_{second_str}_HH.adf.wrp.geo.tif')
+        info_text = html.P([
+            f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif'
+            ], style={
+                'margin': 0,
+                'color': 'rgba(255, 255, 255, 0.9)'
+                }
+            )
+        return url, info_text
+    else:
+        print('Layer does not exist')
+        raise PreventUpdate
 
 
 """
