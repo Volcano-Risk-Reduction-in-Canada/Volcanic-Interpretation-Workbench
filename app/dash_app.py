@@ -14,11 +14,11 @@ import argparse
 import os
 import dash
 
-from dash import html, Dash
 import dash_bootstrap_components as dbc
-# from dash_extensions.enrich import (DashProxy,
-#                                     MultiplexerTransform)
+
+from dash import html, Dash
 from dotenv import load_dotenv
+
 
 # Load environment variables from .env file during development
 load_dotenv()
@@ -43,17 +43,22 @@ args = parser.parse_args()
 app = Dash(__name__,
            prevent_initial_callbacks=True,
            external_stylesheets=[dbc.themes.DARKLY],
-           use_pages=True,)
-# app = DashProxy(prevent_initial_callbacks=True,
-#                 suppress_callback_exceptions=True,
-#                 transforms=[MultiplexerTransform()],
-#                 external_stylesheets=[dbc.themes.DARKLY],
-#                 use_pages=True)
+           use_pages=True,
+           suppress_callback_exceptions=True)
+server = app.server
 
 app.layout = html.Div([
-  dash.page_container
-])
+  dash.page_container])
+
+
+def register_routes(server):
+    """ Registers routes for dynamic signed URLs."""
+    from routes import add_routes
+    add_routes(server)
+
+
+register_routes(server)
 
 if __name__ == '__main__':
     print(f"Running server at {args.host}:{args.port}")
-    app.run(debug=False, host=args.host, port=args.port)
+    app.run(debug=True, host=args.host, port=args.port)
