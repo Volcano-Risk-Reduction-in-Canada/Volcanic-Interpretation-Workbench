@@ -13,6 +13,7 @@ Authors:
 import argparse
 import os
 import dash
+import logging
 
 import dash_bootstrap_components as dbc
 
@@ -41,6 +42,15 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+logging.basicConfig(
+    filename='dash_app.log',  # Log file name
+    level=logging.INFO,  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filemode='a'  # 'w' to overwrite the log file each time, 'a' to append
+)
+
+logger = logging.getLogger(__name__)
+
 app = Dash(__name__,
            prevent_initial_callbacks=True,
            external_stylesheets=[dbc.themes.DARKLY],
@@ -55,5 +65,8 @@ add_routes(server)
 
 
 if __name__ == '__main__':
-    print(f"Running server at {args.host}:{args.port}")
+    logger.info(
+        "Running server at %s:%s",
+        args.host,
+        args.port)
     app.run(debug=True, host=args.host, port=args.port)

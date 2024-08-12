@@ -6,3 +6,4 @@ venv*
 **/CoherenceMatrix.csv
 **/bperp_all
 .env
+*.log

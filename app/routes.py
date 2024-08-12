@@ -12,18 +12,23 @@ Authors:
 from flask import Response, request
 import requests
 import boto3
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def add_routes(server):
     def get_signed_url(bucket, key):
-        print(bucket)
+        logger.info("Bucket: %s",
+                    bucket)
         s3_client = boto3.client('s3')
         url = s3_client.generate_presigned_url(
             'get_object',
             Params={'Bucket': bucket, 'Key': key},
             ExpiresIn=60  # URL expires in 60 seconds
         )
-        print(url)
+        logger.info("URL: %s",
+                    url)
         return url
 
     @server.route('/getTileUrl')

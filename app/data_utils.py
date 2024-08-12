@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import requests
 import dash
+import logging
 from dash import html
 from dash_leaflet import Marker, Tooltip
 from dotenv import load_dotenv
@@ -39,6 +40,7 @@ config = None
 targets_geojson = None
 summary_table_df = None
 
+logger = logging.getLogger(__name__)
 
 def get_config_params():
     """
@@ -220,7 +222,7 @@ def read_targets_geojson():
 
 def get_green_volcanoes():
     """Return a list of green volcano points"""
-    print("GET green volc")
+    logger.info("GET green volc")
     try:
         green_point_features = []
         green_icon = {
@@ -254,7 +256,7 @@ def get_green_volcanoes():
 
 def get_red_volcanoes():
     """Return a list of red volcano points"""
-    print("GET red volc")
+    logger.info("GET red volc")
     try:
         red_point_features = []
         red_icon = {

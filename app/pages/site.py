@@ -15,6 +15,7 @@ import requests
 
 import dash
 import pandas as pd
+import logging
 
 from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
@@ -50,6 +51,8 @@ from data_utils import (
 from global_variables import (
     TEMPORAL_HEIGHT
 )
+
+logger = logging.getLogger(__name__)
 
 dash.register_page(__name__, path='/site')
 
@@ -309,7 +312,9 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                         "x=0&y=0&z=0"))
     response = requests.get(test_url, timeout=10)
     if response.status_code == 200:
-        print(f'Interferogram: {first_str}_HH_{second_str}_HH.adf.wrp.geo.tif')
+        logger.info('Interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
+                    first_str,
+                    second_str)
         info_text = html.P([
             f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif'
             ], style={
@@ -319,7 +324,9 @@ def update_interferogram(click_data, target_id, zoom, bounds):
             )
         return url, info_text
     else:
-        print('Layer does not exist')
+        logger.info('Failed to load interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
+                    first_str,
+                    second_str)
         raise PreventUpdate
 
 
@@ -345,8 +352,10 @@ def update_coherence(target_id):
     """Display new coherence matrix."""
     coherence_csv = _coherence_csv(target_id)
     insar_pair_csv = _insar_pair_csv(target_id)
-    print(f'Loading: {coherence_csv}')
-    print(f'Loading: {insar_pair_csv}')
+    logger.info('Loading: %s',
+                coherence_csv)
+    logger.info('Loading: %s',
+                insar_pair_csv)
     coherence = _read_coherence(coherence_csv)
     insar_pair = _read_insar_pair(insar_pair_csv)
     return plot_coherence(coherence, insar_pair)
@@ -376,13 +385,15 @@ Returns:
 def switch_temporal_view(tab, site):
     """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
-        print(f'coherence for {site}')
+        logger.info('coherence for %s',
+                    site)
         return plot_coherence(
             _read_coherence(_coherence_csv(site)),
             _read_insar_pair(_insar_pair_csv(site))
             )
     if tab == 'tab-2-baseline-graph':
-        print(f'Baseline for {site}')
+        logger.info('Baseline for %s',
+                    site)
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
@@ -411,7 +422,8 @@ Returns:
 def recenter_map(target_id):
     """Center map on new site."""
     coords = TARGET_CENTRES[target_id]
-    print(f'Recentering: {coords}')
+    logger.info('Recentering: %s',
+                coords)
     info_text = html.P([''], style={
         'margin': 0,
         'color': 'rgba(255, 255, 255, 0.9)'
@@ -473,7 +485,8 @@ def update_earthquake_markers(target_id):
         ]
     else:
         new_markers = []
-        print("Note: No earthquakes found.")
+        logger.info('Note: No earthquakes found')
+
     base_layers = [
         TileLayer(),
         generate_controls(overview=False),
