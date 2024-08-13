@@ -324,7 +324,7 @@ def update_interferogram(click_data, target_id, zoom, bounds):
             )
         return url, info_text
     else:
-        logger.info('Failed to load interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
+        logger.info('Failed to load: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,
                     second_str)
         raise PreventUpdate

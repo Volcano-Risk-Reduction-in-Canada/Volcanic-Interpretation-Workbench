@@ -42,6 +42,7 @@ summary_table_df = None
 
 logger = logging.getLogger(__name__)
 
+
 def get_config_params():
     """
     Retrieve configuration parameters from environment variables.
