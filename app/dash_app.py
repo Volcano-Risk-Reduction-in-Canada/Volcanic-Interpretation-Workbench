@@ -40,11 +40,19 @@ parser.add_argument(
     # use the env variable as default port (if specified)
     default=int(os.getenv('WORKBENCH_PORT', '8050'))
 )
+parser.add_argument(
+    '--logging-level', type=str,
+    help="Level of detail output to logs: \
+         DEBUG, INFO, WARNING, ERROR, CRITICAL",
+    # use the env variable as default log level (if specified)
+    default=str(os.getenv('LOG_LEVEL', 'INFO'))
+)
 args = parser.parse_args()
 
+logging_level = getattr(logging, args.logging_level.upper(), logging.INFO)
+
 logging.basicConfig(
-    filename='dash_app.log',  # Log file name
-    level=logging.INFO,  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    level=logging_level,  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     filemode='a'  # 'w' to overwrite the log file each time, 'a' to append
 )
