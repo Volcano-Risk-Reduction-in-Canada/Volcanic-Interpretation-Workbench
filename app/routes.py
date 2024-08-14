@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def add_routes(server):
     def get_signed_url(bucket, key):
         logger.debug("Bucket: %s",
-                    bucket)
+                     bucket)
         s3_client = boto3.client('s3')
         url = s3_client.generate_presigned_url(
             'get_object',
@@ -28,7 +28,7 @@ def add_routes(server):
             ExpiresIn=60  # URL expires in 60 seconds
         )
         logger.debug("URL: %s",
-                    url)
+                     url)
         return url
 
     @server.route('/getTileUrl')
