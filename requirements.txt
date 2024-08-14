@@ -24,7 +24,7 @@ MarkupSafe==2.1.2
 more-itertools==9.1.0
 numpy==1.24.2
 packaging==23.1
-pandas==2.0.0
+pandas==2.2.2
 plotly==5.14.1
 protobuf==4.22.3
 python-dateutil==2.8.2
