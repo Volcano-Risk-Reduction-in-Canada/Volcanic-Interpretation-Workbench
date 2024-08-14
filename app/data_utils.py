@@ -407,8 +407,8 @@ def pivot_and_clean_dates(coh_long, coh_wide):
         columns='second_date',
         values='first_date')
     date_wide = date_wide.map(lambda x: pd.to_datetime(x)
-                                   .strftime('%b %d, %Y') if x is not pd.NaT
-                                   else x)
+                              .strftime('%b %d, %Y') if x is not pd.NaT
+                              else x)
     # remove some columns so that date_wide has
     # the same columns as coh_wide
     common_cols = list(set(date_wide.columns).intersection(coh_wide.columns))
