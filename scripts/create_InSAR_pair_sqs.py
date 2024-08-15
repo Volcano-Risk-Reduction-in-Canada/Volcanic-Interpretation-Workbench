@@ -22,7 +22,7 @@ def main():
     config = get_config_params()
 
     # Create SQS client
-    sqs = boto3.client('sqs', region_name='ca-central-1')
+    sqs = boto3.client('sqs', region_name='ca-central-1', verify=False)
 
     queue_url = config['AWS_INSAR_PROCESS_QUEUE']
     message_attributes = {

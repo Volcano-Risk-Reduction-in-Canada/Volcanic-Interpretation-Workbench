@@ -11,6 +11,7 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
 import dash
+import logging
 from dash import html, dash_table, dcc, callback
 from dash_leaflet import (
     Map,
@@ -27,6 +28,8 @@ from data_utils import (
     get_red_volcanoes,
     summary_table_df
 )
+
+logger = logging.getLogger(__name__)
 
 dash.register_page(__name__, path='/')
 
@@ -187,5 +190,7 @@ def navigate_to_site_page(*args):
         anytime a red or green marker is clicked
     """
     ctx = dash.callback_context
-    print(type(ctx), args)
+    logger.info("CTX: %s, %s",
+                type(ctx),
+                args)
     return '/site'

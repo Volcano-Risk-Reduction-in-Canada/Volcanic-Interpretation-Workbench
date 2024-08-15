@@ -15,6 +15,7 @@ import requests
 
 import dash
 import pandas as pd
+import logging
 
 from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
@@ -51,10 +52,14 @@ from global_variables import (
     TEMPORAL_HEIGHT
 )
 
+logger = logging.getLogger(__name__)
+
 dash.register_page(__name__, path='/site')
 
 # VARIABLES
 TILES_BUCKET = config['AWS_TILES_URL']
+HOST = config['WORKBENCH_HOST']
+PORT = config['WORKBENCH_PORT']
 TARGET_CENTRES_INI = populate_beam_selector(config['API_VRRC_IP'])
 TARGET_CENTRES = {i: TARGET_CENTRES_INI[i] for i in sorted(TARGET_CENTRES_INI)}
 INITIAL_TARGET = 'Meager_5M3'
@@ -77,6 +82,13 @@ load_figure_template('darkly')
 app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
+
+tiles_url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
+                     f"site={SITE_INI}&",
+                     f"beam={BEAM_INI}&",
+                     "startdate=20220821&",
+                     "enddate=20220914&",
+                     "x={x}&y={y}&z={z}"))
 
 # different components in page layout + styling variables
 selector = html.Div(
@@ -124,15 +136,12 @@ spatial_view = Map(
         ],
         TileLayer(
             id='tiles',
-            url=(
-                f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-                '{z}/{x}/{y}.png'
-            ),
-            maxZoom=30,
-            minZoom=1,
-            attribution='&copy; Open Street Map Contributors',
+            url=tiles_url,
+            # maxZoom=30,
+            # minZoom=1,
+            # attribution='&copy; Open Street Map Contributors',
             tms=True,
-            opacity=0.7
+            # opacity=0.7
         ),
         # generate_legend(overview=False),
     ],
@@ -252,45 +261,73 @@ Returns:
     Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
+    Input('tiles', 'zoom'),
+    Input('tiles', 'bounds'),
     prevent_initial_call=True
     )
-def update_interferogram(click_data, target_id):
+def update_interferogram(click_data, target_id, zoom, bounds):
     """Update interferogram display."""
     if not target_id:
         raise PreventUpdate
     site, beam = target_id.rsplit('_', 1)
-    if not click_data:
-        return (
-            f'{TILES_BUCKET}/{SITE_INI}/{BEAM_INI}/20220821_20220914/'
-            '{z}/{x}/{y}.png',
-            ""
+    info_text = html.P([
+        '20220821_HH_20220914_HH.adf.wrp.geo.tif'
+        ], style={
+            'margin': 0,
+            'color': 'rgba(255, 255, 255, 0.9)'
+            }
         )
+    if not click_data:
+        url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
+                       f"site={SITE_INI}&",
+                       f"beam={BEAM_INI}&",
+                       "startdate=20220821&",
+                       "enddate=20220914&",
+                       "x={x}&y={y}&z={z}"))
+        return url, "test info text"
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
-    layer = (
-        f'{TILES_BUCKET}/{site}/{beam}/{first_str}_{second_str}/'
-        '{z}/{x}/{y}.png'
-    )
-    check_url = (layer.replace('{z}', '0')
-                 .replace('{x}', '0')
-                 .replace('{y}', '0'))
-    response = requests.head(check_url, timeout=10)
+    info_text = html.P([
+        f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif'
+        ], style={
+            'margin': 0,
+            'color': 'rgba(255, 255, 255, 0.9)'
+            }
+        )
+    url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
+                   f"site={site}&",
+                   f"beam={beam}&",
+                   f"startdate={first_str}&",
+                   f"enddate={second_str}&",
+                   "x={x}&y={y}&z={z}"))
+    test_url = "".join((f"http://{HOST}:{PORT}",
+                        f"/getTileUrl?bucket={TILES_BUCKET}&",
+                        f"site={site}&",
+                        f"beam={beam}&",
+                        f"startdate={first_str}&",
+                        f"enddate={second_str}&",
+                        "x=0&y=0&z=0"))
+    response = requests.get(test_url, timeout=10)
     if response.status_code == 200:
-        print(f'Updating interferogram: {layer}')
+        logger.info('Interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
+                    first_str,
+                    second_str)
         info_text = html.P([
-            f'{first_str}_HH_{second_str}_HH.adf.unw.geo.tif'
+            f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif'
             ], style={
                 'margin': 0,
                 'color': 'rgba(255, 255, 255, 0.9)'
                 }
             )
-        return layer, info_text
-    # else
-    print('Layer does not exist')
-    raise PreventUpdate
+        return url, info_text
+    else:
+        logger.info('Failed to load: %s_HH_%s_HH.adf.wrp.geo.tif',
+                    first_str,
+                    second_str)
+        raise PreventUpdate
 
 
 """
@@ -315,8 +352,10 @@ def update_coherence(target_id):
     """Display new coherence matrix."""
     coherence_csv = _coherence_csv(target_id)
     insar_pair_csv = _insar_pair_csv(target_id)
-    print(f'Loading: {coherence_csv}')
-    print(f'Loading: {insar_pair_csv}')
+    logger.info('Loading: %s',
+                coherence_csv)
+    logger.info('Loading: %s',
+                insar_pair_csv)
     coherence = _read_coherence(coherence_csv)
     insar_pair = _read_insar_pair(insar_pair_csv)
     return plot_coherence(coherence, insar_pair)
@@ -346,13 +385,15 @@ Returns:
 def switch_temporal_view(tab, site):
     """Switch between temporal and spatial baseline plots"""
     if tab == 'tab-1-coherence-graph':
-        print(f'coherence for {site}')
+        logger.info('coherence for %s',
+                    site)
         return plot_coherence(
             _read_coherence(_coherence_csv(site)),
             _read_insar_pair(_insar_pair_csv(site))
             )
     if tab == 'tab-2-baseline-graph':
-        print(f'Baseline for {site}')
+        logger.info('Baseline for %s',
+                    site)
         return plot_baseline(_read_baseline(_baseline_csv(site)),
                              _read_coherence(_coherence_csv(site)))
     return None
@@ -381,7 +422,8 @@ Returns:
 def recenter_map(target_id):
     """Center map on new site."""
     coords = TARGET_CENTRES[target_id]
-    print(f'Recentering: {coords}')
+    logger.info('Recentering: %s',
+                coords)
     info_text = html.P([''], style={
         'margin': 0,
         'color': 'rgba(255, 255, 255, 0.9)'
@@ -443,7 +485,8 @@ def update_earthquake_markers(target_id):
         ]
     else:
         new_markers = []
-        print("Note: No earthquakes found.")
+        logger.info('Note: No earthquakes found')
+
     base_layers = [
         TileLayer(),
         generate_controls(overview=False),
