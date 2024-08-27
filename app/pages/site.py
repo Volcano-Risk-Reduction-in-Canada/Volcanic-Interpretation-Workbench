@@ -261,11 +261,11 @@ layout = html.Div(
             ],
             fluid=True,
             style={
-            'height': '100vh',
-            'display': 'flex',
-            'flexDirection': 'column',
-            'topMargin': 5,
-            'bottomMargin': 5,
+                'height': '100vh',
+                'display': 'flex',
+                'flexDirection': 'column',
+                'topMargin': 5,
+                'bottomMargin': 5,
             },
         )
     ]
