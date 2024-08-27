@@ -45,74 +45,108 @@ on_each_feature = assign("""function(feature, layer, context){
 }""")
 
 # LAYOUT
-layout = html.Div([
-    dcc.Location(id='url', refresh=True),
-    # Hidden div for triggering callback (for page reload)
-    html.Div(id='trigger-reload', style={'display': 'none'}),
-    dcc.Store(id='selected_feature'),
-    # VISIBLE elements on the 'overview' page
-    # TITLE
-    html.H3(
-        id='Title',
-        children='VRRC InSAR - National Overview',
-        style={'text-align': 'center'}
-    ),
-    # MAP
-    html.Div(
-        id='overview_map',
-        style={'width': '100%', 'height': '100vh', 'position': 'relative'},
-        children=[
-            Map(
-                id='map',
-                style={'width': '100%', 'height': '95vh'},
-                center=[54.64, -123.60],
-                zoom=6,
-                children=[
-                    # base layer of map + additional controls
-                    generate_controls(),
-                    # red and green volcano markers
-                    *markers_green,
-                    *markers_red,
-                    # circle markers (earthquakes) populated in callback
-                    html.Div(id='circle-marker'),
-                ]
-            ),
-        ]
-    ),
-    # TABLE (on top right corner)
-    html.Div(
+layout = html.Div(
+    style={  # Move style into html.Div constructor
+        'height': '100vh',
+        'display': 'flex',
+        'flexDirection': 'column',
+        'topMargin': 5,
+        'bottomMargin': 5,
+    },
+    children=[  # All children should be in this list
+        dcc.Location(id='url', refresh=True),
+        # Hidden div for triggering callback (for page reload)
+        html.Div(id='trigger-reload', style={'display': 'none'}),
+        dcc.Store(id='selected_feature'),
+        # VISIBLE elements on the 'overview' page
+        # TITLE
         html.Div(
-            id='table-container',
             style={
-                'position': 'absolute',
-                'top': '125px',
-                'right': '170px',
-                'width': '200px',
-                'zIndex': 1000
+                'backgroundColor': 'white',
+                'height': '50px',
+                'width': '100%',
+                'position': 'relative'
             },
             children=[
-                dash_table.DataTable(
-                    columns=[
-                        {"name": i, "id": i} for i in summary_table_df.columns
-                    ],
-                    data=summary_table_df.to_dict('records'),
-                    style_table={'color': 'black'},
-                    style_data_conditional=[
-                        {
-                            'if': {'column_id': 'Unrest', 'row_index': i},
-                            'color': 'red' if unrest else 'green',
-                        }
-                        for i, unrest in enumerate(summary_table_df['Unrest'])
-                        # Add beam mode to latest slc date
-                    ],
+                html.Img(
+                    src='assets/GOVCan_FIP_En.png',
+                    style={
+                        'height': '65%',
+                        'position': 'relative',
+                        'left': '10px',
+                        'top': '10px'
+                    }
                 )
             ]
         ),
-        id="data-table-container",
-        # initially not visible, visibility changes with button control
-        style={"display": "block"}
-    )
-])
+        html.H3(
+            id='Title',
+            children='VRRC InSAR - National Overview',
+            style={
+                'text-align': 'center',
+                'height': '30px'
+            }
+        ),
+        # MAP
+        html.Div(
+            id='overview_map',
+            style={'width': '100%', 'height': '100vh', 'position': 'relative'},
+            children=[
+                Map(
+                    id='map',
+                    style={'width': '100%', 'height': '92vh'},
+                    center=[54.64, -123.60],
+                    zoom=6,
+                    children=[
+                        # base layer of map + additional controls
+                        generate_controls(),
+                        # red and green volcano markers
+                        *markers_green,
+                        *markers_red,
+                        # circle markers (earthquakes) populated in callback
+                        html.Div(id='circle-marker'),
+                    ]
+                ),
+            ]
+        ),
+        # TABLE (on top right corner)
+        html.Div(
+            html.Div(
+                id='table-container',
+                style={
+                    'position': 'absolute',
+                    'top': '165px',
+                    'right': '170px',
+                    'width': '200px',
+                    'zIndex': 1000
+                },
+                children=[
+                    dash_table.DataTable(
+                        columns=[
+                            {
+                                "name": i, "id": i
+                            } for i in summary_table_df.columns
+                        ],
+                        data=summary_table_df.to_dict('records'),
+                        style_table={'color': 'black'},
+                        style_data_conditional=[
+                            {
+                                'if': {'column_id': 'Unrest', 'row_index': i},
+                                'color': 'red' if unrest else 'green',
+                            }
+                            for i, unrest in enumerate(
+                                summary_table_df['Unrest']
+                                )
+                            # Add beam mode to latest slc date
+                        ],
+                    )
+                ]
+            ),
+            id="data-table-container",
+            style={"display": "block"}
+        )
+    ]
+)
 
 
 """
