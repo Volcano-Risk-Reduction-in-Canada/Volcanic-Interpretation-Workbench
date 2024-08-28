@@ -205,7 +205,7 @@ ifg_info = html.Div(
     id='ifg-info',
     style={
         'position': 'absolute',
-        'top': '1.5px',
+        'top': '51.5px',
         'right': '11px',
         'width': '340px',
         'height': '35px',
@@ -220,22 +220,55 @@ ifg_info = html.Div(
 )
 
 # LAYOUT
-layout = dbc.Container(
-    [
-        dbc.Row(dbc.Col(selector, width='auto')),
-        dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
-        dbc.Row(dbc.Col(baseline_tab)),  # add into row below
-        dbc.Row(dbc.Col(temporal_view)),
-        dbc.Row(dbc.Col(ifg_info)),
-    ],
-    fluid=True,
+layout = html.Div(
     style={
         'height': '100vh',
         'display': 'flex',
         'flexDirection': 'column',
         'topMargin': 5,
         'bottomMargin': 5,
-    }
+    },
+    children=[
+        # Move the logo outside of dbc.Container
+        html.Div(
+            style={
+                'backgroundColor': 'white',
+                'height': '50px',
+                'width': '100%',
+                'position': 'relative'
+            },
+            children=[
+                html.Img(
+                    src='assets/GOVCan_FIP_En.png',
+                    style={
+                        'height': '65%',
+                        'position': 'relative',
+                        'left': '10px',
+                        'top': '10px'
+                    }
+                )
+            ]
+        ),
+        # Main layout container
+        dbc.Container(
+            [
+                # Existing layout elements
+                dbc.Row(dbc.Col(selector, width='auto')),
+                dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
+                dbc.Row(dbc.Col(baseline_tab)),
+                dbc.Row(dbc.Col(temporal_view)),
+                dbc.Row(dbc.Col(ifg_info)),
+            ],
+            fluid=True,
+            style={
+                'height': '100vh',
+                'display': 'flex',
+                'flexDirection': 'column',
+                'topMargin': 5,
+                'bottomMargin': 5,
+            },
+        )
+    ]
 )
 
 
