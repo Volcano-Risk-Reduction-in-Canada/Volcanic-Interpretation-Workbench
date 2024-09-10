@@ -42,6 +42,7 @@ from data_utils import (
     _read_baseline,
     _read_coherence,
     _read_insar_pair,
+    plot_annotation_tab,
     plot_baseline,
     plot_coherence,
     populate_beam_selector,
@@ -151,13 +152,18 @@ spatial_view = Map(
     style={'height': '100%'}
 )
 
-temporal_view = Graph(
-    id='coherence-matrix',
-    figure=plot_coherence(
-        _read_coherence(_coherence_csv(INITIAL_TARGET)),
-        _read_insar_pair(_insar_pair_csv(INITIAL_TARGET))
-        ),
-    style={'height': TEMPORAL_HEIGHT},
+temporal_view = html.Div(
+    id='temporal_view',
+    children=[
+        Graph(
+            id='coherence-matrix',
+            figure=plot_coherence(
+                _read_coherence(_coherence_csv(INITIAL_TARGET)),
+                _read_insar_pair(_insar_pair_csv(INITIAL_TARGET))
+                ),
+            style={'height': TEMPORAL_HEIGHT},
+        )
+    ]
 )
 
 tab_style = {
@@ -188,8 +194,12 @@ baseline_tab = Tabs(id="tabs-example-graph",
                                   value='tab-2-baseline-graph',
                                   style=tab_style,
                                   selected_style=tab_selected_style),
+                              Tab(label='Annotations',
+                                  value='tab-3-annotations',
+                                  style=tab_style,
+                                  selected_style=tab_selected_style)
                               ],
-                    style={'width': '10%',
+                    style={'width': '15%',
                            'height': '25px'},
                     vertical=False)
 
@@ -408,8 +418,9 @@ Returns:
 
 
 @callback(
-    Output(component_id='coherence-matrix',
-           component_property='figure',
+    Output(component_id='temporal_view', component_property='children',
+        # component_id='coherence-matrix',
+        #    component_property='figure',
            allow_duplicate=True),
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
@@ -420,15 +431,28 @@ def switch_temporal_view(tab, site):
     if tab == 'tab-1-coherence-graph':
         logger.info('coherence for %s',
                     site)
-        return plot_coherence(
-            _read_coherence(_coherence_csv(site)),
-            _read_insar_pair(_insar_pair_csv(site))
-            )
+        return Graph(
+            id='coherence-matrix',
+            figure=plot_coherence(
+                _read_coherence(_coherence_csv(site)),
+                _read_insar_pair(_insar_pair_csv(site))
+            ),
+            style={'height': TEMPORAL_HEIGHT},
+        )
     if tab == 'tab-2-baseline-graph':
         logger.info('Baseline for %s',
                     site)
-        return plot_baseline(_read_baseline(_baseline_csv(site)),
-                             _read_coherence(_coherence_csv(site)))
+        return Graph(
+            id='coherence-matrix',
+            figure=plot_baseline(
+                _read_baseline(_baseline_csv(site)),
+                _read_coherence(_coherence_csv(site))
+            ),
+            style={'height': TEMPORAL_HEIGHT},
+        )
+    if tab == 'tab-3-annotations':
+        logger.info('annotations for %s', site)
+        return plot_annotation_tab(site, HOST)
     return None
 
 
