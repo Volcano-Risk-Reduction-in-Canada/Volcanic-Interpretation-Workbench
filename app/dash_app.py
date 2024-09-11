@@ -77,4 +77,5 @@ if __name__ == '__main__':
         "Running server at %s:%s",
         args.host,
         args.port)
-    app.run(debug=True, host=args.host, port=args.port)
+    # app.run(debug=True, host=args.host, port=args.port)
+    app.run(debug=False, host=args.host, port=args.port)
