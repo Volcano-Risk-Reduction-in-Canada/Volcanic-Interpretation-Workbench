@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from pages.components.observation_log_components import observation_log_ui
+from pages.components.observation_log_components import logs_list_ui, observation_log_ui
 from global_variables import (
     BASELINE_DTICK,
     BASELINE_MAX,
@@ -78,7 +78,6 @@ def get_config_params():
         config_params[var_name] = os.getenv(var_name)
     # Return the dictionary of configuration parameters
     return config_params
-
 
 def get_latest_quakes_chis_fsdn():
     """Query the CHIS fsdn for latest earthquakes"""
@@ -581,7 +580,126 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 def plot_annotation_tab():
-    return observation_log_ui()
+    # example data
+    user1 = {
+        'name' : 'User 1',
+        'email': 'user1@gmail.com'
+    }
+
+    user2 = {
+        'name' : 'User 2',
+        'email': 'user2@gmail.com'
+    }
+
+    user3 = {
+        'name' : 'User 3',
+        'email': 'user3@gmail.com'
+    }
+
+    log1 = {
+        'id':0,
+        'user': user1,
+        'dateAddedModified': '',#todo
+        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
+        # 'dateAddedModified': '2024-09-10',
+        # 'endDateObserved' : '2024-09-10',# enter a date in yyyy/mm/dd
+        'dateRange': 48, #days
+        'coherencePresent': 'Yes',
+        'confidence': 80,
+        'furtherGeoscienceInterpretationNeeded': True,
+        'interpretationLatitude' : 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Glacial Movement'
+        ],
+        # 'insarPhaseAnomaliesOther': '',
+        'additionalComments':'hhhhhiii'
+    },
+
+    log2 = {
+        'id':1,
+        'user': user2,
+        'dateAddedModified': '',#todo
+        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
+        'dateRange': 48, #days
+        'coherencePresent': 'Yes',
+        'confidence': 80,
+        'furtherGeoscienceInterpretationNeeded': True,
+        'interpretationLatitude' : 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Glacial Movement'
+        ],
+        'additionalComments':'hhhhhiii'
+    }
+
+    log3 = {
+        'id':2,
+        'user': user3,
+        'dateAddedModified': '',#todo
+        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
+        'dateRange': 48, #days
+        'coherencePresent': 'Yes',
+        'confidence': 80,
+        'furtherGeoscienceInterpretationNeeded': True,
+        'interpretationLatitude' : 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Glacial Movement'
+        ],
+        'additionalComments':'hhhhhiii'
+    }
+
+    log4 = {
+        'id':3,
+        'user': user3,
+        'dateAddedModified': '',#todo
+        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
+        'dateRange': 48, #days
+        'coherencePresent': 'Yes',
+        'confidence': 80,
+        'furtherGeoscienceInterpretationNeeded': True,
+        'interpretationLatitude' : 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Glacial Movement'
+        ],
+        'additionalComments':'hhhhhiii'
+    }
+
+    users = [user1, user2, user3]
+    logs = [
+        log1, 
+        log2, 
+        log3, 
+        log4
+    ]
+    observation_log_ui_width = 70
+    return html.Div(
+        style={
+            'display': 'flex',
+            'flexDirection': 'row',
+            'alignItems': 'stretch',
+           'backgroundColor': 'white',
+           'margin': '20px 10px',
+           'height': '35vh'
+        },
+        children=[
+            html.Div(
+                id='observation_log_container',
+                children=observation_log_ui(users, log=None, observation_log_ui_width=observation_log_ui_width)
+            ),
+            logs_list_ui(logs)
+        ],
+    )
 
 
 def build_summary_table(targs_geojson):

@@ -20,3 +20,25 @@ button_style = {
     'cursor': 'pointer',      # Pointer cursor on hover
     'fontSize': '16px',       # Font size of the button text
 }
+
+# Container style
+annotation_card_style = {
+    'background-color': 'yellow',
+    'border': '2px solid black',
+    'padding': '10px',
+    'margin': '10px',
+    'position': 'relative',  # Ensure container is positioned relatively
+    'padding-left': '20px'  # Make space for the triangle
+}
+
+triangle_style = {
+    'position': 'absolute',
+    'width': '0',
+    'height': '0',
+    'border-top': '10px solid transparent',
+    'border-bottom': '10px solid transparent',
+    'border-right': '10px solid black',  # Color of the triangle
+    'left': '-10px',  # Position the triangle to the left
+    'top': '50%',  # Center vertically
+    'transform': 'translateY(-50%)'  # Adjust vertical alignment
+}
