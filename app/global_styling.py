@@ -23,12 +23,13 @@ button_style = {
 
 # Container style
 annotation_card_style = {
-    'background-color': 'yellow',
+    'background-color': 'white',
     'border': '2px solid black',
     'padding': '10px',
     'margin': '10px',
     'position': 'relative',  # Ensure container is positioned relatively
-    'padding-left': '20px'  # Make space for the triangle
+    'padding-left': '20px',  # Make space for the triangle
+    'width': '90%'
 }
 
 triangle_style = {
@@ -40,5 +41,6 @@ triangle_style = {
     'border-right': '10px solid black',  # Color of the triangle
     'left': '-10px',  # Position the triangle to the left
     'top': '50%',  # Center vertically
-    'transform': 'translateY(-50%)'  # Adjust vertical alignment
+    'transform': 'translateY(-50%)',  # Adjust vertical alignment
+    'display': 'none'
 }

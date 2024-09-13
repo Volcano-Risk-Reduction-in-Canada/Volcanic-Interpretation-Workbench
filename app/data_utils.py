@@ -695,9 +695,10 @@ def plot_annotation_tab():
         children=[
             html.Div(
                 id='observation_log_container',
-                children=observation_log_ui(users, log=None, observation_log_ui_width=observation_log_ui_width)
+                children=observation_log_ui(users, log=None),
+                style={'width': f'{observation_log_ui_width}%'}
             ),
-            logs_list_ui(logs)
+            logs_list_ui(logs, 100 - observation_log_ui_width),
         ],
     )
 

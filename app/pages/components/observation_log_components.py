@@ -31,9 +31,12 @@ insar_phase_anomalies = [
     'Baseline Phase Error',
 ]
 
+selected_annotation_colour = 'red'
+
 # ######################################################
 #  HELPER Components
-def dict_key_error_check(dict, key, none_value):
+
+def _dict_key_error_check(dict, key, none_value):
     return dict[key] if dict and key in dict else none_value
 
 def _textWithElementInRow(text, component):
@@ -73,12 +76,13 @@ def _annotationsCard(log):
 # ####################################################
 #  MAIN List of Logs UI
 
-def logs_list_ui(logs, observation_log_ui_width=70):
+def logs_list_ui(logs, width):
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
+    print(cleaned_logs)
     return html.Div(
         style={
-            'width': f'{100 - observation_log_ui_width}%',
             'borderLeft': '5px solid black',  # Black border on the left side,
+            'width': f'{width}%'
         },
         children=[
             Store(id='logs-store', data=cleaned_logs),
@@ -89,32 +93,35 @@ def logs_list_ui(logs, observation_log_ui_width=70):
                         log
                     ) for log in cleaned_logs
                 ],
-                style={'height': '70%', 'overflowY': 'auto', 'width': '100%'}
+                style={
+                    'height': '70%', 
+                    'overflowY': 'auto', 
+                }
             ),
             html.Div(
                 [
                     html.Button(
                         'Create New Annotation',
-                        id='new-annotation-button',
+                        id='create-new-annotation-button',
                         style={
                             **button_style,
                             'margin': '5px 15px', # top and bottom, left and right
                         }
                     ),
-                ], 
+                ],
+                n_clicks=0, 
                 style={ 'display': 'flex', 'justify-content': 'flex-end' }
             ),
         ]
     )
 #  MAIN Observation Log UI Screen
 
-def observation_log_ui(users, log=None, observation_log_ui_width=70):
+def observation_log_ui(users, log=None):
     coherencePresentOptions = ['Yes', 'No','Unsure, need a second opinion']
     logUserIndex = None if not log else [i for i in range(len(users)) if users[i] == log['user']][0]
     print(logUserIndex, users)
     return html.Div(
         style={
-            'width': f'{observation_log_ui_width}%',
             'margin': '10px 5px 5px', # top, left and right, bottom
         },
         children=[
@@ -147,7 +154,7 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                         'End Date Observed',
                         DatePickerSingle(
                             id='date-picker-single',
-                            date=dict_key_error_check(log, 'endDateObserved', ''),
+                            date=_dict_key_error_check(log, 'endDateObserved', ''),
                             display_format='YYYY-MM-DD',  # Format to display
                             clearable=True,
                             reopen_calendar_on_clear=True,
@@ -160,7 +167,7 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                             # id='date-range',
                             type='number',
                             placeholder='Enter date range',
-                            value=dict_key_error_check(log, 'dateRange', 0),
+                            value=_dict_key_error_check(log, 'dateRange', 0),
                         )
                     )
                 ],
@@ -178,7 +185,7 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                                         {'label': option, 'value': option} for option in coherencePresentOptions
                                     ],
                                     inline=True,
-                                    value=dict_key_error_check(log, 'coherencePresent', ''),
+                                    value=_dict_key_error_check(log, 'coherencePresent', ''),
                                     labelStyle=text_styling
                                 )
                             ),
@@ -192,7 +199,7 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                                             max=100,          # Maximum value of the slider
                                             step=1,           # Step size
                                             marks={i: str(i) for i in range(0, 101, 10)},  # Marks on the slider
-                                            value=dict_key_error_check(log, 'confidence', 0),
+                                            value=_dict_key_error_check(log, 'confidence', 0),
                                         )
                                     ],
                                     style={"width": '400px'}
@@ -208,7 +215,7 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                                     ],
                                     inline=True,
                                     labelStyle=text_styling,
-                                    value=dict_key_error_check(log, 'furtherGeoscienceInterpretationNeeded', None),
+                                    value=_dict_key_error_check(log, 'furtherGeoscienceInterpretationNeeded', None),
                                 )
                             ),
                             html.Div(
@@ -217,13 +224,13 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                                         id='latitude',
                                         type='text',
                                         placeholder='Latitude',
-                                        value=dict_key_error_check(log, 'interpretationLatitude', None),
+                                        value=_dict_key_error_check(log, 'interpretationLatitude', None),
                                     ),
                                     Input(
                                         id='longitude',
                                         type='text',
                                         placeholder='Longitude',
-                                        value=dict_key_error_check(log, 'interpretationLongitude', None),
+                                        value=_dict_key_error_check(log, 'interpretationLongitude', None),
                                     ),
                                 ],
                                 style={'margin-left': '10px'}
@@ -236,7 +243,7 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                             'row-gap': '10px'
                         }
                     ),
-                    html.Div(style={'width': '30vw'}),
+                    html.Div(style={'width': '20vw', 'height': '100%', 'background-color': 'purple'}),
                     html.Div(
                         children=[
                             html.P('InSAR Phase Anomalies', style=title_text_styling),
@@ -271,11 +278,13 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
                             )
                         ],
                         style={
-                            # 'margin-right': '10vw'
+                            'width': '30vw',
+                            'margin-right': '12vw',
+                            'justify-content': 'flex-end'
                         }
                     )
                 ],
-                style={**row_element, 'justify-content': 'space-between'}
+                style={**row_element, 'justify-content': 'flex-start'}
             ),
             html.Div(
                 children=[
@@ -302,48 +311,68 @@ def observation_log_ui(users, log=None, observation_log_ui_width=70):
 
 # Callback to update the selected log
 @callback(
-    # Output({"type": "annotation-card", "index": ALL}, 'style'),
     [
         Output({"type": "annotation-triangle", "index": ALL}, 'style'),
         Output({"type": "annotation-card", "index": ALL}, 'style'),
     ],
-    DashInput({"type": "annotation-card", "index": ALL}, "n_clicks"),
+    [
+        DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'), 
+        DashInput('create-new-annotation-button', 'n_clicks')
+    ],
     [DashInput('logs-store', 'data')],
     prevent_initial_call=True
 )
-def update_card_styles(n_clicks, logs):
+def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
     # Find which button was clicked
     triggered = ctx.triggered_id if ctx.triggered_id else None
-    index = triggered.get('index') if triggered else None
 
-    # Update styles based on selection
-    return (
-        [
-            {**triangle_style, 'display': 'block' if log['id'] == index else 'none'}
-            for log in logs
-        ],
-        [
-            {**annotation_card_style, 'background-color': 'red' if log['id'] == index else 'white'}
-            for log in logs
-        ] 
-    )
+    if 'create-new-annotation-button' in triggered:
+        return (
+            [
+                {**triangle_style} for _ in logs
+            ],
+            [
+                {**annotation_card_style} for _ in logs
+            ] 
+        )
+    elif 'annotation-card' in triggered['type']:
+        index = triggered.get('index') if triggered else None
+
+        # Update styles based on selection
+        return (
+            [
+                {**triangle_style, 'display': 'block' if log['id'] == index else 'none'}
+                for log in logs
+            ],
+            [
+                {**annotation_card_style, 'background-color': selected_annotation_colour if log['id'] == index else 'white'}
+                for log in logs
+            ] 
+        )
+    return None  # Default return if no valid trigger
 
 
 @callback(
     Output('observation_log_container', 'children'),
-    DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'),
+    [
+        DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'), 
+        DashInput('create-new-annotation-button', 'n_clicks')
+    ],
    [DashInput('logs-store', 'data')],
     DashInput('all-users', 'data'),
     prevent_initial_call=True
 )
-def update_observation_log_ui(n_clicks, logs, users):
-    triggered = ctx.triggered_id if ctx.triggered_id else None
-    if not triggered:
-        return None
+def update_observation_log_ui(annotation_clicks, new_annotation_clicks, logs, users):
+    triggered = ctx.triggered_id
+    if triggered:
+        if 'create-new-annotation-button' in triggered:
+            return observation_log_ui(users, None)
+        elif 'annotation-card' in triggered['type']:
+            selected_id = triggered['index']
+            selected_log = next((log for log in logs if log['id'] == selected_id), None)
+            return observation_log_ui(users, selected_log)
+    
+    return None  # Default return if no valid trigger
 
-    selected_id = triggered.get('index')
-    
-    # Find the log that matches the clicked ID
-    selected_log = next((log for log in logs if log['id'] == selected_id), None)
-    
-    return observation_log_ui(users, selected_log, observation_log_ui_width=70)
+
+# TODO: create a callback that will create a new log or update the current log
