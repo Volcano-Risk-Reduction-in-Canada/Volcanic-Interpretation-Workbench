@@ -21,6 +21,7 @@ from dash_leaflet import (
 from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
+from pages.components.gc_header import gc_header
 from global_components import generate_controls
 from data_utils import (
     get_green_volcanoes,
@@ -46,55 +47,38 @@ on_each_feature = assign("""function(feature, layer, context){
 
 # LAYOUT
 layout = html.Div(
-    style={  # Move style into html.Div constructor
-        'height': '100vh',
+    style={
+        # 'height': '100vh',
         'display': 'flex',
         'flexDirection': 'column',
         'topMargin': 5,
         'bottomMargin': 5,
+        'justifyContent': 'center',
+        'alignItems': 'flex-start',
+        'background-color': 'white'
     },
     children=[  # All children should be in this list
         dcc.Location(id='url', refresh=True),
         # Hidden div for triggering callback (for page reload)
         html.Div(id='trigger-reload', style={'display': 'none'}),
         dcc.Store(id='selected_feature'),
-        # VISIBLE elements on the 'overview' page
-        # TITLE
-        html.Div(
-            style={
-                'backgroundColor': 'white',
-                'height': '50px',
-                'width': '100%',
-                'position': 'relative'
-            },
-            children=[
-                html.Img(
-                    src='assets/GOVCan_FIP_En.png',
-                    style={
-                        'height': '65%',
-                        'position': 'relative',
-                        'left': '10px',
-                        'top': '10px'
-                    }
-                )
-            ]
-        ),
-        html.H3(
-            id='Title',
-            children='VRRC InSAR - National Overview',
-            style={
-                'text-align': 'center',
-                'height': '30px'
-            }
-        ),
+        # HEADER
+        gc_header('VRRC InSAR National Overview'),
         # MAP
         html.Div(
             id='overview_map',
-            style={'width': '100%', 'height': '100vh', 'position': 'relative'},
+            # style={'width': '100%', 'height': '100vh', 'position': 'relative'},
+            style={
+                'width': '98%',
+                'height': '90vh',
+                'position': 'relative',
+                'margin': '0 auto',
+            },
             children=[
                 Map(
                     id='map',
-                    style={'width': '100%', 'height': '92vh'},
+                    style={'width': '100%', 'height': '88vh'},
+
                     center=[54.64, -123.60],
                     zoom=6,
                     children=[
@@ -116,7 +100,7 @@ layout = html.Div(
                 style={
                     'position': 'absolute',
                     'top': '165px',
-                    'right': '170px',
+                    'right': '190px',
                     'width': '200px',
                     'zIndex': 1000
                 },

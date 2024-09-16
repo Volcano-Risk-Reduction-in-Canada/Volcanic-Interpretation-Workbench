@@ -34,6 +34,7 @@ from dash_extensions.enrich import (
     Input,
     MultiplexerTransform
 )
+from pages.components.gc_header import gc_header, gc_line
 from global_components import generate_controls
 from data_utils import (
     _baseline_csv,
@@ -42,6 +43,7 @@ from data_utils import (
     _read_baseline,
     _read_coherence,
     _read_insar_pair,
+    parse_dates,
     plot_annotation_tab,
     plot_baseline,
     plot_coherence,
@@ -70,6 +72,8 @@ epicenters_df = get_latest_quakes_chis_fsdn_site(
     INITIAL_TARGET, TARGET_CENTRES
 )
 
+initial_info_text = '20220821_HH_20220914_HH.adf.unw.geo.tif'
+
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
@@ -96,13 +100,22 @@ selector = html.Div(
     title=TITLE,
     children=dbc.InputGroup(
         [
-            dbc.InputGroupText('Target_Beam'),
+            dbc.InputGroupText(
+                'Target Beam',
+                style={'height': '30px'}
+            ),
             dbc.Select(
                 id='site-dropdown',
                 options=list(TARGET_CENTRES.keys()),
                 value=INITIAL_TARGET,
+                size='sm',
+                style={'height': '30px'}
             ),
-        ]
+        ],
+        style={
+            'height': '30px',
+            'bottom': '10px'
+        }
     ),
 )
 
@@ -149,6 +162,7 @@ spatial_view = Map(
     id='interferogram-bg',
     center=TARGET_CENTRES[INITIAL_TARGET],
     zoom=11,
+    # style={'height': '98%', 'width': '98%', 'margin': '0 auto'}
     style={'height': '100%'}
 )
 
@@ -184,7 +198,45 @@ tab_selected_style = {
     'padding': '6px'
 }
 
-baseline_tab = Tabs(id="tabs-example-graph",
+baseline_tab = html.Div(
+    children=[
+        Tabs(
+            id="tabs-example-graph",
+            value='tab-1-coherence-graph',
+            children=[
+                Tab(
+                    label='Coherence',
+                    value='tab-1-coherence-graph',
+                    style=tab_style,
+                    selected_style=tab_selected_style
+                ),
+                Tab(
+                    label='B-Perp',
+                    value='tab-2-baseline-graph',
+                    style=tab_style,
+                    selected_style=tab_selected_style
+                ),
+                Tab(
+                    label='Annotations',
+                    value='tab-3-annotations',
+                    style=tab_style,
+                    selected_style=tab_selected_style
+                )
+                ],
+            style={
+                'width': '15%',
+                'height': '25px',
+                'background-color': 'black'
+            },
+            vertical=False
+        )
+    ],
+    style={
+        'width': '100%',
+        'background-color': 'black'
+    }
+)
+Tabs(id="tabs-example-graph",
                     value='tab-1-coherence-graph',
                     children=[Tab(label='Coherence',
                                   value='tab-1-coherence-graph',
@@ -200,34 +252,10 @@ baseline_tab = Tabs(id="tabs-example-graph",
                                   selected_style=tab_selected_style)
                               ],
                     style={'width': '15%',
-                           'height': '25px'},
+                           'height': '25px',
+                           'background-color': 'black'
+                        },
                     vertical=False)
-
-ini_info_text = html.P([
-    '20220821_HH_20220914_HH.adf.unw.geo.tif'
-], style={
-    'margin': 0,
-    'color': 'rgba(255, 255, 255, 0.9)',
-})
-
-ifg_info = html.Div(
-    ini_info_text,
-    id='ifg-info',
-    style={
-        'position': 'absolute',
-        'top': '51.5px',
-        'right': '11px',
-        'width': '340px',
-        'height': '35px',
-        'backgroundColor': 'rgba(255, 255, 255, 0.1)',
-        'padding': '10px',
-        'borderRadius': '5px',
-        'boxShadow': '0px 0px 10px rgba(0, 0, 0, 0.1)',
-        'zIndex': '1000',
-        'display': 'flex',
-        'alignItems': 'center',
-    }
-)
 
 # LAYOUT
 layout = html.Div(
@@ -237,41 +265,48 @@ layout = html.Div(
         'flexDirection': 'column',
         'topMargin': 5,
         'bottomMargin': 5,
+        # 'background-color': 'white'
     },
     children=[
-        # Move the logo outside of dbc.Container
+        # HEADER
+        gc_header('VRRC InSAR Site Meager 5M3'),
         html.Div(
+            children=gc_line(borderWidth=3, lineWidth=5, color='red', margin='0 0 10px 20px'),
             style={
-                'backgroundColor': 'white',
-                'height': '50px',
-                'width': '100%',
-                'position': 'relative'
-            },
+                'background-color': 'white',
+                'justify-content': 'flex-start'
+            }
+        ),
+        html.Div(
             children=[
-                html.Img(
-                    src='assets/GOVCan_FIP_En.png',
-                    style={
-                        'height': '65%',
-                        'position': 'relative',
-                        'left': '10px',
-                        'top': '10px'
-                    }
-                )
-            ]
+                html.H6(
+                    children=parse_dates(initial_info_text),
+                    style={ 'color': 'black'}
+                ),
+                # selector
+                dbc.Row(dbc.Col(selector, width='auto', style={'height': '20px'}))
+            ],
+            style={
+                'display': 'flex',
+                'flex-direction': 'row',
+                'justify-content': 'space-between',
+                'background-color': 'white',
+                'padding': '0 20px 10px'
+            }
         ),
         # Main layout container
         dbc.Container(
             [
                 # Existing layout elements
-                dbc.Row(dbc.Col(selector, width='auto')),
-                dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1'}),
-                dbc.Row(dbc.Col(baseline_tab)),
-                dbc.Row(dbc.Col(temporal_view)),
-                dbc.Row(dbc.Col(ifg_info)),
+                # dbc.Row(dbc.Col(selector, width='auto')),
+                dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1', "background-color": 'white'}),
+                dbc.Row(dbc.Col(baseline_tab), style={"background-color": 'white'}),
+                dbc.Row(dbc.Col(temporal_view), style={"background-color": 'white'}),
+                # dbc.Row(dbc.Col(ifg_info)),
             ],
             fluid=True,
             style={
-                'height': '100vh',
+                'height': '98vh',
                 'display': 'flex',
                 'flexDirection': 'column',
                 'topMargin': 5,
@@ -558,3 +593,15 @@ def update_earthquake_markers(target_id):
     ]
     all_layers = base_layers + new_markers
     return all_layers
+
+
+
+
+# @callback(
+#     Output('interferogram-bg', 'children'),
+#     Input('site-dropdown', 'value'),
+#     prevent_initial_call=True
+# )
+# def update_gc_header_title(target_id):
+#     """Update earthquake markers on map."""
+#     pass

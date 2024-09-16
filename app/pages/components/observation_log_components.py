@@ -78,7 +78,6 @@ def _annotationsCard(log):
 
 def logs_list_ui(logs, width):
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
-    print(cleaned_logs)
     return html.Div(
         style={
             'borderLeft': '5px solid black',  # Black border on the left side,
@@ -105,7 +104,7 @@ def logs_list_ui(logs, width):
                         id='create-new-annotation-button',
                         style={
                             **button_style,
-                            'margin': '5px 15px', # top and bottom, left and right
+                            'margin': '1px 10px', # top and bottom, left and right
                         }
                     ),
                 ],
@@ -119,7 +118,6 @@ def logs_list_ui(logs, width):
 def observation_log_ui(users, log=None):
     coherencePresentOptions = ['Yes', 'No','Unsure, need a second opinion']
     logUserIndex = None if not log else [i for i in range(len(users)) if users[i] == log['user']][0]
-    print(logUserIndex, users)
     return html.Div(
         style={
             'margin': '10px 5px 5px', # top, left and right, bottom
@@ -261,7 +259,8 @@ def observation_log_ui(users, log=None):
                                         id='other-checkbox',
                                         options=[{'label': 'Other', 'value': 'Other'}],
                                         value=log['insarPhaseAnomalies'] if log != None else [],
-                                        labelStyle=text_styling
+                                        labelStyle=text_styling,
+                                        inline=True
                                     ),
                                     Input(
                                         id='other-anomaly',

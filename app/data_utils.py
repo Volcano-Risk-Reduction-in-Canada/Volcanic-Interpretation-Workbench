@@ -79,6 +79,45 @@ def get_config_params():
     # Return the dictionary of configuration parameters
     return config_params
 
+def parse_dates(input_string):
+    """
+    Parses a string containing two dates in the format 'yyyymmdd_HH_yyyymmdd' and returns them formatted as 'yyyy/mm/dd - yyyy/mm/dd'.
+
+    Args:
+        input_string (str): A string containing two dates in 'yyyymmdd' format, separated by some characters, e.g., '20220821_HH_20220914'.
+
+    Returns:
+        str: A formatted string representing the two dates in the format 'yyyy/mm/dd - yyyy/mm/dd'.
+
+    Raises:
+        ValueError: If the input string does not contain valid date segments or is in an unexpected format.
+    """
+    try:
+        # Check that the input has at least 19 characters to accommodate two date parts
+        if len(input_string) < 19:
+            raise ValueError("Input string is too short to contain two valid dates.")
+        
+        # Extract the start and end dates
+        start_date = input_string[0:8]  # The first 8 characters are the start date
+        end_date = input_string[12:20]  # Characters from index 12 to 18 are the end date
+        
+        # Check that the extracted dates are digits and have the expected length
+        if not (start_date.isdigit() and len(start_date) == 8):
+            raise ValueError(f"Invalid start date format: {start_date}")
+        if not (end_date.isdigit() and len(end_date) == 8):
+            raise ValueError(f"Invalid end date format: {end_date}")
+        
+        # Format the dates into yyyy/mm/dd
+        formatted_start_date = f"{start_date[:4]}/{start_date[4:6]}/{start_date[6:]}"
+        formatted_end_date = f"{end_date[:4]}/{end_date[4:6]}/{end_date[6:]}"
+        
+        # Return the final formatted string
+        return f"{formatted_start_date} - {formatted_end_date}"
+
+    except Exception as e:
+        raise ValueError(f"Error parsing input string: {e}")
+
+
 def get_latest_quakes_chis_fsdn():
     """Query the CHIS fsdn for latest earthquakes"""
     url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'
@@ -689,8 +728,9 @@ def plot_annotation_tab():
             'flexDirection': 'row',
             'alignItems': 'stretch',
            'backgroundColor': 'white',
-           'margin': '20px 10px',
-           'height': '35vh'
+           'margin': '0 1px 5px',
+           'height': '33vh',
+           'border': '1px solid black'
         },
         children=[
             html.Div(
