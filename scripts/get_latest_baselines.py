@@ -11,17 +11,16 @@ Authors:
 """
 import os
 import botocore.exceptions
-import boto3
 import yaml
 
 from data_utils import get_config_params
+from global_variables import s3
 
 
 def main():
     '''Main function, get latest perpendicular
     baseline files for all site/beam combos'''
     config = get_config_params()
-    s_3 = boto3.client('s3')
 
     with open('app/Data/beamList.yml', encoding="utf-8") as beam_list_yml:
         beam_list = yaml.safe_load(beam_list_yml)
@@ -32,7 +31,7 @@ def main():
             if not os.path.exists(f'app/Data/{site}/{beam}'):
                 os.makedirs(f'app/Data/{site}/{beam}')
             try:
-                s_3.download_file(Bucket=config['AWS_BUCKET_NAME'],
+                s3.download_file(Bucket=config['AWS_BUCKET_NAME'],
                                   Key=f'{site}/{beam}/bperp_all',
                                   Filename=f'app/Data/{site}/{beam}/bperp_all')
             except botocore.exceptions.ClientError:

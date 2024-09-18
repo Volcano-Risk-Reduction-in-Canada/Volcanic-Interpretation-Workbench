@@ -231,7 +231,8 @@ def observation_log_ui(users, log=None):
                                         value=_dict_key_error_check(log, 'interpretationLongitude', None),
                                     ),
                                 ],
-                                style={'margin-left': '10px'}
+                                style={'margin-left': '10px'},
+                                id='lat-long-interpretation'
                             )
                         ],
                         style={

@@ -38,16 +38,12 @@ def gc_header(title):
                 children=title,
                 style={
                     'color': 'black',
-                    # 'background-color': 'white',
-                    # 'text-align': 'center',
                     'height': '30px',
                     'marginLeft': '20px',
                 }
             ),
         ],
         style={
-            # 'display': 'flex',
-            # 'flex-direction': 'column',
             'background-color': 'white',
             'height': '100px',
             'width': '100%',

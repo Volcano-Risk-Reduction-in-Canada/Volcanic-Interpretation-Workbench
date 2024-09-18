@@ -134,7 +134,7 @@ def get_latest_quakes_chis_fsdn():
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10)
+                                timeout=10, verify=False)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -194,7 +194,7 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10)
+                                timeout=10, verify=False)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -234,7 +234,7 @@ def read_targets_geojson():
     try:
         vrrc_api_ip = config['API_VRRC_IP']
         response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
-                                timeout=10)
+                                timeout=10, verify=False)
         response_geojson = json.loads(response.content)
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         calculate_and_append_centroids(response_geojson)
@@ -332,7 +332,7 @@ def get_api_response(vrrc_api_ip, route):
     """Get a response from the vrrc API given an ip and a route"""
     try:
         response = requests.get(f'http://{vrrc_api_ip}/{route}/',
-                                timeout=10)
+                                timeout=10, verify=False)
         response.raise_for_status()
         response_dict = json.loads(response.text)
         return response_dict
@@ -763,7 +763,7 @@ def build_summary_table(targs_geojson):
                 url = config['API_VRRC_IP']
                 response = requests.get(
                     f"http://{url}/targets/{site}",
-                    timeout=10)
+                    timeout=10, verify=False)
                 response_geojson = json.loads(response.content)
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]

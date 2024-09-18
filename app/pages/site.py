@@ -72,13 +72,12 @@ epicenters_df = get_latest_quakes_chis_fsdn_site(
     INITIAL_TARGET, TARGET_CENTRES
 )
 
-initial_info_text = '20220821_HH_20220914_HH.adf.unw.geo.tif'
+curr_info_text = '20220821_HH_20220914_HH.adf.unw.geo.tif'
+curr_gc_header_title = 'VRRC InSAR Site Meager 5M3'
 
 # dashboard configuration
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
-
-initial_show_glacier_information = False
 
 initial_show_glacier_information = False
 
@@ -236,26 +235,26 @@ baseline_tab = html.Div(
         'background-color': 'black'
     }
 )
-Tabs(id="tabs-example-graph",
-                    value='tab-1-coherence-graph',
-                    children=[Tab(label='Coherence',
-                                  value='tab-1-coherence-graph',
-                                  style=tab_style,
-                                  selected_style=tab_selected_style),
-                              Tab(label='B-Perp',
-                                  value='tab-2-baseline-graph',
-                                  style=tab_style,
-                                  selected_style=tab_selected_style),
-                              Tab(label='Annotations',
-                                  value='tab-3-annotations',
-                                  style=tab_style,
-                                  selected_style=tab_selected_style)
-                              ],
-                    style={'width': '15%',
-                           'height': '25px',
-                           'background-color': 'black'
-                        },
-                    vertical=False)
+# Tabs(id="tabs-example-graph",
+#                     value='tab-1-coherence-graph',
+#                     children=[Tab(label='Coherence',
+#                                   value='tab-1-coherence-graph',
+#                                   style=tab_style,
+#                                   selected_style=tab_selected_style),
+#                               Tab(label='B-Perp',
+#                                   value='tab-2-baseline-graph',
+#                                   style=tab_style,
+#                                   selected_style=tab_selected_style),
+#                               Tab(label='Annotations',
+#                                   value='tab-3-annotations',
+#                                   style=tab_style,
+#                                   selected_style=tab_selected_style)
+#                               ],
+#                     style={'width': '15%',
+#                            'height': '25px',
+#                            'background-color': 'black'
+#                         },
+#                     vertical=False)
 
 # LAYOUT
 layout = html.Div(
@@ -269,7 +268,7 @@ layout = html.Div(
     },
     children=[
         # HEADER
-        gc_header('VRRC InSAR Site Meager 5M3'),
+        html.Div(id='gc-header-container'),
         html.Div(
             children=gc_line(borderWidth=3, lineWidth=5, color='red', margin='0 0 10px 20px'),
             style={
@@ -280,7 +279,8 @@ layout = html.Div(
         html.Div(
             children=[
                 html.H6(
-                    children=parse_dates(initial_info_text),
+                    id="curr-info-text",
+                    children=parse_dates(curr_info_text),
                     style={ 'color': 'black'}
                 ),
                 # selector
@@ -297,12 +297,16 @@ layout = html.Div(
         # Main layout container
         dbc.Container(
             [
-                # Existing layout elements
-                # dbc.Row(dbc.Col(selector, width='auto')),
+                # MAP
                 dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1', "background-color": 'white'}),
+                # TABS Selector
                 dbc.Row(dbc.Col(baseline_tab), style={"background-color": 'white'}),
-                dbc.Row(dbc.Col(temporal_view), style={"background-color": 'white'}),
-                # dbc.Row(dbc.Col(ifg_info)),
+                # TABS Information
+                html.Div(
+                    children=dbc.Row(dbc.Col(temporal_view), style={"background-color": 'white'}),
+                    id='temporal_view'
+                )
+                # dbc.Row(dbc.Col(temporal_view), style={"background-color": 'white'}),
             ],
             fluid=True,
             style={
@@ -336,7 +340,7 @@ Returns:
     Output(component_id='tiles',
            component_property='url',
            allow_duplicate=True),
-    Output('ifg-info', 'children', allow_duplicate=True),
+    Output('curr-info-text', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
     Input('tiles', 'zoom'),
@@ -348,13 +352,6 @@ def update_interferogram(click_data, target_id, zoom, bounds):
     if not target_id:
         raise PreventUpdate
     site, beam = target_id.rsplit('_', 1)
-    info_text = html.P([
-        '20220821_HH_20220914_HH.adf.wrp.geo.tif'
-        ], style={
-            'margin': 0,
-            'color': 'rgba(255, 255, 255, 0.9)'
-            }
-        )
     if not click_data:
         url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
                        f"site={SITE_INI}&",
@@ -362,19 +359,13 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                        "startdate=20220821&",
                        "enddate=20220914&",
                        "x={x}&y={y}&z={z}"))
-        return url, "test info text"
+        return url, ""
+    
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
-    info_text = html.P([
-        f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif'
-        ], style={
-            'margin': 0,
-            'color': 'rgba(255, 255, 255, 0.9)'
-            }
-        )
     url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
                    f"site={site}&",
                    f"beam={beam}&",
@@ -388,19 +379,13 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                         f"startdate={first_str}&",
                         f"enddate={second_str}&",
                         "x=0&y=0&z=0"))
-    response = requests.get(test_url, timeout=10)
+    response = requests.get(test_url, timeout=10, verify=False)
     if response.status_code == 200:
         logger.info('Interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,
                     second_str)
-        info_text = html.P([
-            f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif'
-            ], style={
-                'margin': 0,
-                'color': 'rgba(255, 255, 255, 0.9)'
-                }
-            )
-        return url, info_text
+        print(first, second, first_str, second_str)
+        return url, parse_dates(f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif')
     else:
         logger.info('Failed to load: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,
@@ -595,13 +580,15 @@ def update_earthquake_markers(target_id):
     return all_layers
 
 
+@callback(
+    Output(component_id='gc-header-container', component_property='children'),
+    Input(component_id='site-dropdown', component_property='value'),
+    # prevent_initial_call=True
+    )
+def update_gc_header_title(target_id):
+    """Display new gc header title"""
+    
 
+    site, beam = target_id.rsplit('_', 1)
 
-# @callback(
-#     Output('interferogram-bg', 'children'),
-#     Input('site-dropdown', 'value'),
-#     prevent_initial_call=True
-# )
-# def update_gc_header_title(target_id):
-#     """Update earthquake markers on map."""
-#     pass
+    return gc_header(f'VRRC InSAR Site {site} {beam}')

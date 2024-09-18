@@ -66,8 +66,7 @@ app = Dash(__name__,
            suppress_callback_exceptions=True)
 server = app.server
 
-app.layout = html.Div([
-  dash.page_container])
+app.layout = html.Div([dash.page_container])
 
 add_routes(server)
 
