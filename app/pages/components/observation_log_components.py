@@ -77,20 +77,19 @@ def _annotationsCard(log):
 #  MAIN List of Logs UI
 
 def logs_list_ui(logs, width):
-    cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
     return html.Div(
         style={
             'borderLeft': '5px solid black',  # Black border on the left side,
             'width': f'{width}%'
         },
         children=[
-            Store(id='logs-store', data=cleaned_logs),
+            Store(id='logs-store', data=logs),
             html.H5('Previous Annotations (End Date: )', style={**title_text_styling, 'margin': '10px 5px'}),
             html.Div(
                 [
                     _annotationsCard(
                         log
-                    ) for log in cleaned_logs
+                    ) for log in logs
                 ],
                 style={
                     'height': '70%', 
@@ -328,12 +327,8 @@ def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
 
     if 'create-new-annotation-button' in triggered:
         return (
-            [
-                {**triangle_style} for _ in logs
-            ],
-            [
-                {**annotation_card_style} for _ in logs
-            ] 
+            [{**triangle_style} for _ in logs],
+            [{**annotation_card_style} for _ in logs] 
         )
     elif 'annotation-card' in triggered['type']:
         index = triggered.get('index') if triggered else None
@@ -374,5 +369,16 @@ def update_observation_log_ui(annotation_clicks, new_annotation_clicks, logs, us
     
     return None  # Default return if no valid trigger
 
+@callback(
+    Output('lat-long-interpretation', 'style'),  # Output to control the visibility of the lat-long div
+    DashInput('geoscience-interpretation-needed', 'value')  # Input to track changes in geoscience interpretation RadioItems
+)
+def toggle_lat_long_visibility(geoscience_interpretation_needed):
+    # Check if the value is 'Yes', and return a visible style, else hide it
+    if geoscience_interpretation_needed:
+        return {'margin-left': '10px', 'display': 'block'}  # Show the lat-long section
+    else:
+        return {'display': 'none'}  # Hide the lat-long section
 
+# TODO: create a callback that clears lat/long fields when no is selected
 # TODO: create a callback that will create a new log or update the current log

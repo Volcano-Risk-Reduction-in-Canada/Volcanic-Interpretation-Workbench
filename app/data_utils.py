@@ -10,6 +10,7 @@ Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
 import datetime
+from datetime import datetime as dt
 import json
 import os
 from io import StringIO
@@ -619,6 +620,8 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 def plot_annotation_tab():
+    def get_end_date(log):
+        return dt.strptime(log['endDateObserved'], '%Y-%m-%d')
     # example data
     user1 = {
         'name' : 'User 1',
@@ -638,10 +641,8 @@ def plot_annotation_tab():
     log1 = {
         'id':0,
         'user': user1,
-        'dateAddedModified': '',#todo
-        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
-        # 'dateAddedModified': '2024-09-10',
-        # 'endDateObserved' : '2024-09-10',# enter a date in yyyy/mm/dd
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved' : '2024-09-10',# enter a date in yyyy/mm/dd
         'dateRange': 48, #days
         'coherencePresent': 'Yes',
         'confidence': 80,
@@ -653,34 +654,36 @@ def plot_annotation_tab():
             'Slope Movement',
             'Glacial Movement'
         ],
-        # 'insarPhaseAnomaliesOther': '',
+        'insarPhaseAnomaliesOther': '',
         'additionalComments':'hhhhhiii'
     },
 
     log2 = {
         'id':1,
         'user': user2,
-        'dateAddedModified': '',#todo
-        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
-        'dateRange': 48, #days
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved' : '2024-09-12',# enter a date in yyyy/mm/dd
+        'dateRange': 28, #days
         'coherencePresent': 'Yes',
-        'confidence': 80,
+        'confidence': 20,
         'furtherGeoscienceInterpretationNeeded': True,
         'interpretationLatitude' : 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
             'Magmatic Deformation',
             'Slope Movement',
-            'Glacial Movement'
+            'Other',
+            'Atmospheric Phase Error'
         ],
-        'additionalComments':'hhhhhiii'
+        'insarPhaseAnomaliesOther': 'other reasoning',
+        'additionalComments':'this is greatttt'
     }
 
     log3 = {
         'id':2,
         'user': user3,
-        'dateAddedModified': '',#todo
-        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved' : '2024-09-07',# enter a date in yyyy/mm/dd
         'dateRange': 48, #days
         'coherencePresent': 'Yes',
         'confidence': 80,
@@ -692,17 +695,18 @@ def plot_annotation_tab():
             'Slope Movement',
             'Glacial Movement'
         ],
+        'insarPhaseAnomaliesOther': '',
         'additionalComments':'hhhhhiii'
     }
 
     log4 = {
         'id':3,
         'user': user3,
-        'dateAddedModified': '',#todo
-        'endDateObserved' : '',#todo enter a date in yyyy/mm/dd
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved' : '2024-09-18',# enter a date in yyyy/mm/dd
         'dateRange': 48, #days
         'coherencePresent': 'Yes',
-        'confidence': 80,
+        'confidence': 90,
         'furtherGeoscienceInterpretationNeeded': True,
         'interpretationLatitude' : 111.11,
         'interpretationLongitude': 123.00,
@@ -711,6 +715,7 @@ def plot_annotation_tab():
             'Slope Movement',
             'Glacial Movement'
         ],
+        'insarPhaseAnomaliesOther': '',
         'additionalComments':'hhhhhiii'
     }
 
@@ -721,6 +726,9 @@ def plot_annotation_tab():
         log3, 
         log4
     ]
+    cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
+    # most recent log first
+    sorted_logs = sorted(cleaned_logs, key=get_end_date, reverse=True)
     observation_log_ui_width = 70
     return html.Div(
         style={
@@ -738,7 +746,7 @@ def plot_annotation_tab():
                 children=observation_log_ui(users, log=None),
                 style={'width': f'{observation_log_ui_width}%'}
             ),
-            logs_list_ui(logs, 100 - observation_log_ui_width),
+            logs_list_ui(sorted_logs, 100 - observation_log_ui_width),
         ],
     )
 
