@@ -121,7 +121,7 @@ def parse_dates(input_string):
 
         # Format the dates into yyyy/mm/dd
         formatted_start_date = (
-            start_date[:4] + '/'+
+            start_date[:4] + '/' +
             start_date[4:6] + '/' +
             start_date[6:]
         )

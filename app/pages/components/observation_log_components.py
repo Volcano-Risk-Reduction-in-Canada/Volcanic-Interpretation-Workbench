@@ -113,7 +113,8 @@ def logs_list_ui(logs, width):
         A list of dictionaries where each dictionary represents a log
         or annotation with relevant details (e.g., 'id', 'endDateObserved').
     width : int or float
-        The percentage width (relative to its container) that this UI component should occupy.
+        The percentage width (relative to its container)
+        that this UI component should occupy.
 
     Returns:
     --------
@@ -186,7 +187,7 @@ def observation_log_ui(users, log=None):
     Returns:
     --------
     html.Div
-        A Dash HTML Div containing the entire UI layout for observation logs, 
+        A Dash HTML Div containing the entire UI layout for observation logs,
         including user selection, date input, anomaly selection,
         and submission buttons.
     """
