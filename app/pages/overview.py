@@ -21,13 +21,15 @@ from dash_leaflet import (
 from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
+from pages.components.summary_table import summary_table_ui
 from pages.components.gc_header import gc_header
 from global_components import generate_controls
 from data_utils import (
+    build_summary_table,
     get_green_volcanoes,
     get_latest_quakes_chis_fsdn,
     get_red_volcanoes,
-    summary_table_df
+    read_targets_geojson,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,8 @@ initial_show_glacier_information = False
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
+
+summary_table_df = build_summary_table(read_targets_geojson())
 
 # LAYOUT
 layout = html.Div(
@@ -100,31 +104,11 @@ layout = html.Div(
                 style={
                     'position': 'absolute',
                     'top': '165px',
-                    'right': '190px',
-                    'width': '200px',
+                    'right': '25px',
+                    'width': '480px',
                     'zIndex': 1000
                 },
-                children=[
-                    dash_table.DataTable(
-                        columns=[
-                            {
-                                "name": i, "id": i
-                            } for i in summary_table_df.columns
-                        ],
-                        data=summary_table_df.to_dict('records'),
-                        style_table={'color': 'black'},
-                        style_data_conditional=[
-                            {
-                                'if': {'column_id': 'Unrest', 'row_index': i},
-                                'color': 'red' if unrest else 'green',
-                            }
-                            for i, unrest in enumerate(
-                                summary_table_df['Unrest']
-                                )
-                            # Add beam mode to latest slc date
-                        ],
-                    )
-                ]
+                children=summary_table_ui(summary_table_df)
             ),
             id="data-table-container",
             style={"display": "block"}
@@ -212,3 +196,15 @@ def navigate_to_site_page(*args):
                 type(ctx),
                 args)
     return '/site'
+
+@callback(
+    Output('table-container', 'children'),
+    Input('url', 'href')  # This triggers the callback when the page reloads
+)
+def update_summary_table(_):
+    # Dynamically build the summary table each time the page is loaded
+    summary_table_df = build_summary_table(read_targets_geojson())
+    
+    # Return the updated table
+    return summary_table_ui(summary_table_df)
+      

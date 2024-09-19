@@ -753,6 +753,11 @@ def plot_annotation_tab():
 
 def build_summary_table(targs_geojson):
     """Build a summary table with volcanoes and info on their unrest"""
+    def date_difference(date_string):
+        date = dt.strptime(date_string, "%Y-%m-%d").date()
+        return (dt.today().date() - date).days
+    
+    print('BUILD summary table')
     try:
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
@@ -773,20 +778,23 @@ def build_summary_table(targs_geojson):
                     f"http://{url}/targets/{site}",
                     timeout=10, verify=False)
                 response_geojson = json.loads(response.content)
+                print(response_geojson)
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
+                    last_slc_beam_mode = response_geojson['last_slc_beam_mode']
                     targets_df.loc[site_index,
-                                   'latest SAR Image Date'
-                                   ] = last_slc_date
+                                   'Latest SAR Image'
+                                   ] = f'{last_slc_beam_mode} - {last_slc_date} ({date_difference(last_slc_date)} days ago)'
             except requests.exceptions.ConnectionError:
-                targets_df.loc[site_index, 'latest SAR Image Date'] = None
+                targets_df.loc[site_index, 'Latest SAR Image'] = None
+
         targets_df = targets_df.sort_values('id')
     except NotImplementedError:
         targets_df = pd.DataFrame(columns=['Site',
-                                           'latest SAR Image Date',
+                                           'Latest SAR Image',
                                            'Unrest'])
         targets_df.loc[0] = ["API Connection Error"] * 3
-    return targets_df[['Site', 'latest SAR Image Date', 'Unrest']]
+    return targets_df[['Site', 'Latest SAR Image', 'Unrest']]
 
 
 def _read_coherence(coherence_csv):
@@ -874,5 +882,3 @@ def _baseline_csv(target_id):
 
 
 config = get_config_params()
-targets_geojson = read_targets_geojson()
-summary_table_df = build_summary_table(targets_geojson)
