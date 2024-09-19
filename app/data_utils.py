@@ -121,14 +121,14 @@ def parse_dates(input_string):
 
         # Format the dates into yyyy/mm/dd
         formatted_start_date = (
-            f"{start_date[:4]}/",
-            f"{start_date[4:6]}/",
-            f"{start_date[6:]}"
+            start_date[:4] + '/'+
+            start_date[4:6] + '/' +
+            start_date[6:]
         )
         formatted_end_date = (
-            f"{end_date[:4]}/",
-            f"{end_date[4:6]}/",
-            f"{end_date[6:]}"
+            end_date[:4] + '/' +
+            end_date[4:6] + '/' +
+            end_date[6:]
         )
 
         # Return the final formatted string
@@ -802,14 +802,14 @@ def build_summary_table(targs_geojson):
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
                     last_slc_beam_mode = response_geojson['last_slc_beam_mode']
+                    format_output = (
+                        f'{last_slc_beam_mode} - '
+                        f'{last_slc_date} ('
+                        f'{date_difference(last_slc_date)} days ago)'
+                    )
                     targets_df.loc[site_index,
                                    'Latest SAR Image'
-                                   ] = (
-                                        f'{last_slc_beam_mode} - ',
-                                        f'{last_slc_date} (',
-                                        date_difference(last_slc_date),
-                                        ' days ago)'
-                                       )
+                                   ] = format_output
             except requests.exceptions.ConnectionError:
                 targets_df.loc[site_index, 'Latest SAR Image'] = None
 

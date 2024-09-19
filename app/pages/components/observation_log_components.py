@@ -241,24 +241,33 @@ def observation_log_ui(users, log=None):
                             'row-gap': '10px'
                         }
                     ),
-                    html.Div(style={'width': '20vw', 'height': '100%', 'background-color': 'purple'}),
                     html.Div(
                         children=[
                             html.P('InSAR Phase Anomalies', style=title_text_styling),
                             Checklist(
                                 id='insar-phase-anomalies',
                                 options=[
-                                    {'label': anomaly, 'value': anomaly} for anomaly in insar_phase_anomalies
+                                    {
+                                        'label': anomaly,
+                                        'value': anomaly
+                                    } for anomaly in insar_phase_anomalies
                                 ],
-                                value=log['insarPhaseAnomalies'] if log != None else [],
+                                value=_dict_key_error_check(
+                                    log,
+                                    'insarPhaseAnomalies',
+                                    []
+                                ),
                                 labelStyle=text_styling
                             ),
                             html.Div(
                                 children=[
                                     Checklist(
                                         id='other-checkbox',
-                                        options=[{'label': 'Other', 'value': 'Other'}],
-                                        value=log['insarPhaseAnomalies'] if log != None else [],
+                                        options=[{
+                                            'label': 'Other',
+                                            'value': 'Other'
+                                        }],
+                                        value=_dict_key_error_check(log, 'insarPhaseAnomalies', []),
                                         labelStyle=text_styling,
                                         inline=True
                                     ),
@@ -267,10 +276,14 @@ def observation_log_ui(users, log=None):
                                         type='text',
                                         placeholder='Enter Anomaly',
                                         style={
-                                            'marginLeft': '10px', 
-                                            'width': '200px', 
+                                            'marginLeft': '10px',
+                                            'width': '200px',
                                         },
-                                        value=log['insarPhaseAnomaliesOther'] if log != None and 'insarPhaseAnomaliesOther' in log else ''
+                                        value=_dict_key_error_check(
+                                            log,
+                                            'insarPhaseAnomaliesOther',
+                                            ''
+                                        )
                                     )
                                 ],
                                 style=row_element
@@ -293,7 +306,11 @@ def observation_log_ui(users, log=None):
                             id='my-input',
                             type='text',
                             placeholder='under 100/200 characters',
-                            value=log['additionalComments'] if log != None else ''
+                            value=_dict_key_error_check(
+                                log,
+                                'additionalComments',
+                                ''
+                            )
                         )
                     ),
                     html.Button(
@@ -302,7 +319,11 @@ def observation_log_ui(users, log=None):
                         style=button_style
                     ),
                 ],
-                style={**row_element, 'justify-content': 'space-between', 'align-items': 'flex-end'}
+                style={
+                    **row_element,
+                    'justify-content': 'space-between',
+                    'align-items': 'flex-end'
+                }
             )
         ]
     )
@@ -315,7 +336,7 @@ def observation_log_ui(users, log=None):
         Output({"type": "annotation-card", "index": ALL}, 'style'),
     ],
     [
-        DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'), 
+        DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'),
         DashInput('create-new-annotation-button', 'n_clicks')
     ],
     [DashInput('logs-store', 'data')],
@@ -328,7 +349,7 @@ def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
     if 'create-new-annotation-button' in triggered:
         return (
             [{**triangle_style} for _ in logs],
-            [{**annotation_card_style} for _ in logs] 
+            [{**annotation_card_style} for _ in logs]
         )
     elif 'annotation-card' in triggered['type']:
         index = triggered.get('index') if triggered else None
@@ -336,13 +357,23 @@ def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
         # Update styles based on selection
         return (
             [
-                {**triangle_style, 'display': 'block' if log['id'] == index else 'none'}
+                {
+                    **triangle_style,
+                    'display': 'block' if log['id'] == index else 'none'
+                }
                 for log in logs
             ],
             [
-                {**annotation_card_style, 'background-color': selected_annotation_colour if log['id'] == index else 'white'}
+                {
+                    **annotation_card_style,
+                    'background-color': (
+                        selected_annotation_colour
+                        if log['id'] == index
+                        else 'white'
+                    )
+                }
                 for log in logs
-            ] 
+            ]
         )
     return None  # Default return if no valid trigger
 
@@ -350,33 +381,38 @@ def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
 @callback(
     Output('observation_log_container', 'children'),
     [
-        DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'), 
+        DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'),
         DashInput('create-new-annotation-button', 'n_clicks')
     ],
-   [DashInput('logs-store', 'data')],
+    [DashInput('logs-store', 'data')],
     DashInput('all-users', 'data'),
     prevent_initial_call=True
 )
-def update_observation_log_ui(annotation_clicks, new_annotation_clicks, logs, users):
+def update_observation_log_ui(clicks, new_clicks, logs, users):
     triggered = ctx.triggered_id
     if triggered:
         if 'create-new-annotation-button' in triggered:
             return observation_log_ui(users, None)
         elif 'annotation-card' in triggered['type']:
             selected_id = triggered['index']
-            selected_log = next((log for log in logs if log['id'] == selected_id), None)
+            selected_log = next(
+                (log for log in logs if log['id'] == selected_id),
+                None
+            )
             return observation_log_ui(users, selected_log)
-    
+
     return None  # Default return if no valid trigger
 
+
 @callback(
-    Output('lat-long-interpretation', 'style'),  # Output to control the visibility of the lat-long div
-    DashInput('geoscience-interpretation-needed', 'value')  # Input to track changes in geoscience interpretation RadioItems
+    Output('lat-long-interpretation', 'style'),
+    DashInput('geoscience-interpretation-needed', 'value')
 )
 def toggle_lat_long_visibility(geoscience_interpretation_needed):
     # Check if the value is 'Yes', and return a visible style, else hide it
     if geoscience_interpretation_needed:
-        return {'margin-left': '10px', 'display': 'block'}  # Show the lat-long section
+        # Show the lat-long section
+        return {'margin-left': '10px', 'display': 'block'}
     else:
         return {'display': 'none'}  # Hide the lat-long section
 
