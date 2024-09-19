@@ -1,5 +1,6 @@
 from dash import dash_table
 
+
 def summary_table_ui(summary_table_df):
     return dash_table.DataTable(
         columns=[{"name": i, "id": i} for i in summary_table_df.columns],

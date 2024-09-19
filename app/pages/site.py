@@ -270,7 +270,12 @@ layout = html.Div(
         # HEADER
         html.Div(id='gc-header-container'),
         html.Div(
-            children=gc_line(borderWidth=3, lineWidth=5, color='red', margin='0 0 10px 20px'),
+            children=gc_line(
+                borderWidth=3,
+                lineWidth=5,
+                color='red',
+                margin='0 0 10px 20px'
+            ),
             style={
                 'background-color': 'white',
                 'justify-content': 'flex-start'
@@ -284,7 +289,11 @@ layout = html.Div(
                     style={ 'color': 'black'}
                 ),
                 # selector
-                dbc.Row(dbc.Col(selector, width='auto', style={'height': '20px'}))
+                dbc.Row(dbc.Col(
+                    selector,
+                    width='auto',
+                    style={'height': '20px'}
+                ))
             ],
             style={
                 'display': 'flex',
@@ -298,15 +307,23 @@ layout = html.Div(
         dbc.Container(
             [
                 # MAP
-                dbc.Row(dbc.Col(spatial_view), style={'flexGrow': '1', "background-color": 'white'}),
+                dbc.Row(
+                    dbc.Col(spatial_view),
+                    style={'flexGrow': '1', "background-color": 'white'}
+                ),
                 # TABS Selector
-                dbc.Row(dbc.Col(baseline_tab), style={"background-color": 'white'}),
+                dbc.Row(
+                    dbc.Col(baseline_tab),
+                    style={"background-color": 'white'}
+                ),
                 # TABS Information
                 html.Div(
-                    children=dbc.Row(dbc.Col(temporal_view), style={"background-color": 'white'}),
+                    children=dbc.Row(
+                        dbc.Col(temporal_view),
+                        style={"background-color": 'white'}
+                    ),
                     id='temporal_view'
                 )
-                # dbc.Row(dbc.Col(temporal_view), style={"background-color": 'white'}),
             ],
             fluid=True,
             style={
@@ -360,7 +377,7 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                        "enddate=20220914&",
                        "x={x}&y={y}&z={z}"))
         return url, ""
-    
+
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
@@ -385,7 +402,10 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                     first_str,
                     second_str)
         print(first, second, first_str, second_str)
-        return url, parse_dates(f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif')
+        return (
+            url,
+            parse_dates(f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif')
+        )
     else:
         logger.info('Failed to load: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,
@@ -438,10 +458,11 @@ Returns:
 
 
 @callback(
-    Output(component_id='temporal_view', component_property='children',
-        # component_id='coherence-matrix',
-        #    component_property='figure',
-           allow_duplicate=True),
+    Output(
+        component_id='temporal_view',
+        component_property='children',
+        allow_duplicate=True
+    ),
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True
@@ -587,7 +608,6 @@ def update_earthquake_markers(target_id):
     )
 def update_gc_header_title(target_id):
     """Display new gc header title"""
-    
 
     site, beam = target_id.rsplit('_', 1)
 

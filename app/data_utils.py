@@ -26,7 +26,10 @@ from dotenv import load_dotenv
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from pages.components.observation_log_components import logs_list_ui, observation_log_ui
+from pages.components.observation_log_components import (
+    logs_list_ui, 
+    observation_log_ui
+)
 from global_variables import (
     BASELINE_DTICK,
     BASELINE_MAX,
@@ -80,38 +83,53 @@ def get_config_params():
     # Return the dictionary of configuration parameters
     return config_params
 
+
 def parse_dates(input_string):
     """
-    Parses a string containing two dates in the format 'yyyymmdd_HH_yyyymmdd' and returns them formatted as 'yyyy/mm/dd - yyyy/mm/dd'.
+    Parses a string containing two dates in the format 'yyyymmdd_HH_yyyymmdd' and
+    returns them formatted as 'yyyy/mm/dd - yyyy/mm/dd'.
 
     Args:
-        input_string (str): A string containing two dates in 'yyyymmdd' format, separated by some characters, e.g., '20220821_HH_20220914'.
+        input_string (str): A string containing two dates in 'yyyymmdd' format,
+        separated by some characters, e.g., '20220821_HH_20220914'.
 
     Returns:
-        str: A formatted string representing the two dates in the format 'yyyy/mm/dd - yyyy/mm/dd'.
+        str: A formatted string representing the two dates in the format
+        'yyyy/mm/dd - yyyy/mm/dd'.
 
     Raises:
-        ValueError: If the input string does not contain valid date segments or is in an unexpected format.
+        ValueError: If the input string does not contain valid date
+        segments or is in an unexpected format.
     """
     try:
-        # Check that the input has at least 19 characters to accommodate two date parts
+        # Check input has at least 19 characters
         if len(input_string) < 19:
-            raise ValueError("Input string is too short to contain two valid dates.")
-        
+            raise ValueError(
+                "Input string is too short to contain two valid dates."
+            )
+
         # Extract the start and end dates
-        start_date = input_string[0:8]  # The first 8 characters are the start date
-        end_date = input_string[12:20]  # Characters from index 12 to 18 are the end date
-        
-        # Check that the extracted dates are digits and have the expected length
+        start_date = input_string[0:8]
+        end_date = input_string[12:20]
+
+        # Check the extracted dates are digits and have the expected length
         if not (start_date.isdigit() and len(start_date) == 8):
             raise ValueError(f"Invalid start date format: {start_date}")
         if not (end_date.isdigit() and len(end_date) == 8):
             raise ValueError(f"Invalid end date format: {end_date}")
-        
+ 
         # Format the dates into yyyy/mm/dd
-        formatted_start_date = f"{start_date[:4]}/{start_date[4:6]}/{start_date[6:]}"
-        formatted_end_date = f"{end_date[:4]}/{end_date[4:6]}/{end_date[6:]}"
-        
+        formatted_start_date = (
+            f"{start_date[:4]}/",
+            f"{start_date[4:6]}/",
+            f"{start_date[6:]}"
+        )
+        formatted_end_date = (
+            f"{end_date[:4]}/",
+            f"{end_date[4:6]}/",
+            f"{end_date[6:]}"
+        )
+
         # Return the final formatted string
         return f"{formatted_start_date} - {formatted_end_date}"
 
@@ -619,31 +637,32 @@ def plot_baseline(df_baseline, df_cohfull):
 
     return bperp_combined_fig
 
+
 def plot_annotation_tab():
     def get_end_date(log):
         return dt.strptime(log['endDateObserved'], '%Y-%m-%d')
     # example data
     user1 = {
-        'name' : 'User 1',
+        'name': 'User 1',
         'email': 'user1@gmail.com'
     }
 
     user2 = {
-        'name' : 'User 2',
+        'name': 'User 2',
         'email': 'user2@gmail.com'
     }
 
     user3 = {
-        'name' : 'User 3',
+        'name': 'User 3',
         'email': 'user3@gmail.com'
     }
 
     log1 = {
-        'id':0,
+        'id': 0,
         'user': user1,
         'dateAddedModified': '2024-09-10',
-        'endDateObserved' : '2024-09-10',# enter a date in yyyy/mm/dd
-        'dateRange': 48, #days
+        'endDateObserved' : '2024-09-10',
+        'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 80,
         'furtherGeoscienceInterpretationNeeded': True,
@@ -659,15 +678,15 @@ def plot_annotation_tab():
     },
 
     log2 = {
-        'id':1,
+        'id': 1,
         'user': user2,
         'dateAddedModified': '2024-09-10',
-        'endDateObserved' : '2024-09-12',# enter a date in yyyy/mm/dd
-        'dateRange': 28, #days
+        'endDateObserved' : '2024-09-12',
+        'dateRange': 28,
         'coherencePresent': 'Yes',
         'confidence': 20,
         'furtherGeoscienceInterpretationNeeded': True,
-        'interpretationLatitude' : 111.11,
+        'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
             'Magmatic Deformation',
@@ -680,15 +699,15 @@ def plot_annotation_tab():
     }
 
     log3 = {
-        'id':2,
+        'id': 2,
         'user': user3,
         'dateAddedModified': '2024-09-10',
-        'endDateObserved' : '2024-09-07',# enter a date in yyyy/mm/dd
-        'dateRange': 48, #days
+        'endDateObserved' : '2024-09-07',
+        'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 80,
         'furtherGeoscienceInterpretationNeeded': True,
-        'interpretationLatitude' : 111.11,
+        'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
             'Magmatic Deformation',
@@ -703,12 +722,12 @@ def plot_annotation_tab():
         'id':3,
         'user': user3,
         'dateAddedModified': '2024-09-10',
-        'endDateObserved' : '2024-09-18',# enter a date in yyyy/mm/dd
-        'dateRange': 48, #days
+        'endDateObserved': '2024-09-18',
+        'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 90,
         'furtherGeoscienceInterpretationNeeded': True,
-        'interpretationLatitude' : 111.11,
+        'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
             'Magmatic Deformation',
@@ -716,14 +735,14 @@ def plot_annotation_tab():
             'Glacial Movement'
         ],
         'insarPhaseAnomaliesOther': '',
-        'additionalComments':'hhhhhiii'
+        'additionalComments': 'hhhhhiii'
     }
 
     users = [user1, user2, user3]
     logs = [
-        log1, 
-        log2, 
-        log3, 
+        log1,
+        log2,
+        log3,
         log4
     ]
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
@@ -735,10 +754,10 @@ def plot_annotation_tab():
             'display': 'flex',
             'flexDirection': 'row',
             'alignItems': 'stretch',
-           'backgroundColor': 'white',
-           'margin': '0 1px 5px',
-           'height': '33vh',
-           'border': '1px solid black'
+            'backgroundColor': 'white',
+            'margin': '0 1px 5px',
+            'height': '33vh',
+            'border': '1px solid black'
         },
         children=[
             html.Div(
@@ -756,7 +775,7 @@ def build_summary_table(targs_geojson):
     def date_difference(date_string):
         date = dt.strptime(date_string, "%Y-%m-%d").date()
         return (dt.today().date() - date).days
-    
+
     print('BUILD summary table')
     try:
         targets_df = pd.json_normalize(targs_geojson,
@@ -784,7 +803,11 @@ def build_summary_table(targs_geojson):
                     last_slc_beam_mode = response_geojson['last_slc_beam_mode']
                     targets_df.loc[site_index,
                                    'Latest SAR Image'
-                                   ] = f'{last_slc_beam_mode} - {last_slc_date} ({date_difference(last_slc_date)} days ago)'
+                                   ] = (
+                                        f'{last_slc_beam_mode} - ',
+                                        f'{last_slc_date} ',
+                                        f'({date_difference(last_slc_date)} days ago)'
+                                       )
             except requests.exceptions.ConnectionError:
                 targets_df.loc[site_index, 'Latest SAR Image'] = None
 

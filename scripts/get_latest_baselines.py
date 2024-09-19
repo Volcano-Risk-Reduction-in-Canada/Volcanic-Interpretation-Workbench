@@ -31,9 +31,11 @@ def main():
             if not os.path.exists(f'app/Data/{site}/{beam}'):
                 os.makedirs(f'app/Data/{site}/{beam}')
             try:
-                s3.download_file(Bucket=config['AWS_BUCKET_NAME'],
-                                  Key=f'{site}/{beam}/bperp_all',
-                                  Filename=f'app/Data/{site}/{beam}/bperp_all')
+                s3.download_file(
+                    Bucket=config['AWS_BUCKET_NAME'],
+                    Key=f'{site}/{beam}/bperp_all',
+                    Filename=f'app/Data/{site}/{beam}/bperp_all'
+                )
             except botocore.exceptions.ClientError:
                 print('Perpendicular Baseline File not found')
 

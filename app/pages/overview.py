@@ -12,7 +12,7 @@ Authors:
 """
 import dash
 import logging
-from dash import html, dash_table, dcc, callback
+from dash import html, dcc, callback
 from dash_leaflet import (
     Map,
     CircleMarker,
@@ -71,7 +71,6 @@ layout = html.Div(
         # MAP
         html.Div(
             id='overview_map',
-            # style={'width': '100%', 'height': '100vh', 'position': 'relative'},
             style={
                 'width': '98%',
                 'height': '90vh',
@@ -197,6 +196,7 @@ def navigate_to_site_page(*args):
                 args)
     return '/site'
 
+
 @callback(
     Output('table-container', 'children'),
     Input('url', 'href')  # This triggers the callback when the page reloads
@@ -204,7 +204,5 @@ def navigate_to_site_page(*args):
 def update_summary_table(_):
     # Dynamically build the summary table each time the page is loaded
     summary_table_df = build_summary_table(read_targets_geojson())
-    
     # Return the updated table
     return summary_table_ui(summary_table_df)
-      

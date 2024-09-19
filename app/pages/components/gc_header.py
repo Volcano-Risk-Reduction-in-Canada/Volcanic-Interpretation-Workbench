@@ -3,7 +3,12 @@ from dash import html, callback, dcc
 from dash_extensions.enrich import (Output, Input)
 
 # helper components
-def gc_line(borderWidth=2, lineWidth=98, color='black', margin='20px auto 10px'):
+def gc_line(
+        borderWidth=2,
+        lineWidth=98,
+        color='black',
+        margin='20px auto 10px'
+    ):
     # horizontal line
     return html.Hr(
         style={
@@ -20,7 +25,7 @@ def gc_line(borderWidth=2, lineWidth=98, color='black', margin='20px auto 10px')
 def gc_header(title):
     return html.Div(
         children=[
-             # This component will track the current page's URL
+            # This component will track the current page's URL
             dcc.Location(id='url', refresh=True),
             html.Img(
                 src='assets/GOVCan_FIP_En.png',
@@ -41,7 +46,7 @@ def gc_header(title):
                     'height': '30px',
                     'marginLeft': '20px',
                 }
-            ),
+            )
         ],
         style={
             'background-color': 'white',
@@ -49,6 +54,7 @@ def gc_header(title):
             'width': '100%',
         }
     )
+
 
 # Callback to handle page routing
 @callback(

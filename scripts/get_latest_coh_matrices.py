@@ -32,9 +32,11 @@ def main():
             if not os.path.exists(f'{site}/{beam}'):
                 os.makedirs(f'{site}/{beam}')
 
-            s3.download_file(Bucket=config['AWS_BUCKET_NAME'],
-                              Key=f'{site}/{beam}/CoherenceMatrix.csv',
-                              Filename=f'{site}/{beam}/CoherenceMatrix.csv')
+            s3.download_file(
+                Bucket=config['AWS_BUCKET_NAME'],
+                Key=f'{site}/{beam}/CoherenceMatrix.csv',
+                Filename=f'{site}/{beam}/CoherenceMatrix.csv'
+            )
 
 
 if __name__ == '__main__':

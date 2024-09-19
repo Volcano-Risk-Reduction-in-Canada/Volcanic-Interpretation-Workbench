@@ -1,7 +1,7 @@
 
 text_styling = {
-    'color' : 'black',
-    'margin' : '0px 5px'
+    'color': 'black',
+    'margin': '0px 5px'
 }
 title_text_styling = {**text_styling, 'font-weight': 'bold'}
 
