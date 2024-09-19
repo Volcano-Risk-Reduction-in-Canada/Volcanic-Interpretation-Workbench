@@ -58,8 +58,8 @@ def gc_line(
     # horizontal line
     return html.Hr(
         style={
-            'border_width': f'{border_width}px',
-            'width': f'{line_width}%',
+            'borderWidth': f"{border_width}px",
+            'width': f"{line_width}%",
             'borderColor': color,
             'opacity': 1,
             'borderStyle': 'solid',

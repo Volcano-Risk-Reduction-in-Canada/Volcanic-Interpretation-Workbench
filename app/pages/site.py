@@ -262,7 +262,7 @@ layout = html.Div(
             children=[
                 html.H6(
                     id="curr-info-text",
-                    children=parse_dates(''),
+                    children='',
                     style={'color': 'black'}
                 ),
                 # selector
