@@ -529,7 +529,7 @@ def recenter_map(target_id):
     return {
         "center": coords,
         "zoom": 10,
-        "transition":'flyTo'
+        "transition": 'flyTo'
     }, info_text
 
 

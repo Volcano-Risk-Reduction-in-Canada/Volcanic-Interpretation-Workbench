@@ -30,7 +30,7 @@ def gc_line(
     horizontal line (`<hr>`) element,
     allowing customization of its width,
     color, and margins. It is typically
-    used to visually separate sections 
+    used to visually separate sections
     of a layout.
 
     Parameters:
@@ -147,7 +147,8 @@ def navigate_to_home(n_clicks):
     --------
     str or dash.no_update
         Returns the pathname '/' to redirect to the home page if clicked,
-        or `dash.no_update` if no click has occurred, leaving the page unchanged.
+        or `dash.no_update` if no click has occurred,
+        leaving the page unchanged.
     """
     if n_clicks:
         # Redirect to home page ("/") when the image is clicked

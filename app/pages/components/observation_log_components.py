@@ -103,24 +103,24 @@ def logs_list_ui(logs, width):
     """
     Creates the UI layout for displaying a list of observation logs.
 
-    This function generates a vertical list of previously created observation logs, 
-    each displayed as a card with relevant information. It also provides a button 
-    to create a new annotation.
+    This function generates a vertical list of previously created observation
+    logs, each displayed as a card with relevant information.
+    It also provides a button to create a new annotation.
 
     Parameters:
     ----------
     logs : list
-        A list of dictionaries where each dictionary represents a log or annotation
-        with relevant details (e.g., 'id', 'endDateObserved').
+        A list of dictionaries where each dictionary represents a log
+        or annotation with relevant details (e.g., 'id', 'endDateObserved').
     width : int or float
         The percentage width (relative to its container) that this UI component should occupy.
 
     Returns:
     --------
     html.Div
-        A Dash HTML Div containing the UI layout, including a list of previous logs,
-        a button to create a new annotation, and a scrollable container to handle
-        larger lists of logs.
+        A Dash HTML Div containing the UI layout, including a list of
+        previous logs, a button to create a new annotation,
+        and a scrollable container to handle larger lists of logs.
     """
     return html.Div(
         style={
@@ -167,26 +167,28 @@ def observation_log_ui(users, log=None):
     """
     Creates the main observation log UI layout.
 
-    This function builds the observation log interface based on the provided users
-    and an optional log data. If a log is provided, the fields will be pre-populated
-    with the log's data; otherwise, the fields are set to default values. It includes
-    components for user selection, date entry, coherence, confidence, geoscience interpretation,
-    and InSAR phase anomalies.
+    This function builds the observation log interface based on the
+    provided users and an optional log data. If a log is provided,
+    the fields will be pre-populated with the log's data; otherwise,
+    the fields are set to default values. It includes components
+    for user selection, date entry, coherence, confidence,
+    geoscience interpretation, and InSAR phase anomalies.
 
     Parameters:
     ----------
     users : list
-        A list of user dictionaries where each dictionary contains user details 
+        A list of user dictionaries where each dictionary contains user details
         (e.g., 'name', 'id').
     log : dict, optional
-        The observation log data used to populate the form fields. If `None`, 
-        the form will be empty (default is `None`).
+        The observation log data used to populate the form fields.
+        If `None`, the form will be empty (default is `None`).
 
     Returns:
     --------
     html.Div
         A Dash HTML Div containing the entire UI layout for observation logs, 
-        including user selection, date input, anomaly selection, and submission buttons.
+        including user selection, date input, anomaly selection,
+        and submission buttons.
     """
     coherence_present_options = ['Yes', 'No', 'Unsure, need a second opinion']
     log_user_index = (
@@ -269,7 +271,8 @@ def observation_log_ui(users, log=None):
                                         {
                                             'label': option,
                                             'value': option
-                                        } for option in coherence_present_options
+                                        }
+                                        for option in coherence_present_options
                                     ],
                                     inline=True,
                                     value=_dict_key_error_check(
@@ -464,8 +467,8 @@ def observation_log_ui(users, log=None):
 )
 def update_card_styles(clicks, new_clicks, logs):
     """
-    Callback function to update the styles of annotation cards and triangles 
-    based on user interactions. It updates the background color of the selected 
+    Callback function to update the styles of annotation cards and triangles
+    based on user interactions. It updates the background color of the selected
     annotation card and displays the associated triangle indicator.
 
     Parameters:
@@ -474,8 +477,8 @@ def update_card_styles(clicks, new_clicks, logs):
     logs (list): The current list of observation logs stored in 'logs-store'.
 
     Returns:
-    tuple: A list of style dictionaries for the annotation triangles and a 
-    list of style dictionaries for the annotation cards, reflecting the 
+    tuple: A list of style dictionaries for the annotation triangles and a
+    list of style dictionaries for the annotation cards, reflecting the
     selected log or a new log creation.
     """
     # Find which button was clicked
@@ -574,8 +577,10 @@ def toggle_lat_long_visibility(geoscience_interpretation_needed):
         If False, they are hidden.
 
     Returns:
-    dict: CSS styles to control the visibility of the latitude and longitude fields.
-        {'display': 'block'} to show the fields, {'display': 'none'} to hide them.
+    dict: CSS styles to control the visibility of the latitude
+    and longitude fields.
+        {'display': 'block'} to show the fields,
+        {'display': 'none'} to hide them.
     """
     # Check if the value is 'Yes', and return a visible style, else hide it
     if geoscience_interpretation_needed:
