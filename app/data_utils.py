@@ -666,7 +666,7 @@ def plot_annotation_tab():
         'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 80,
-        'furtherGeoscienceInterpretationNeeded': True,
+        'furtherInterpretationNeeded': True,
         'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
@@ -686,7 +686,7 @@ def plot_annotation_tab():
         'dateRange': 28,
         'coherencePresent': 'Yes',
         'confidence': 20,
-        'furtherGeoscienceInterpretationNeeded': True,
+        'furtherInterpretationNeeded': True,
         'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
@@ -707,7 +707,7 @@ def plot_annotation_tab():
         'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 80,
-        'furtherGeoscienceInterpretationNeeded': True,
+        'furtherInterpretationNeeded': True,
         'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
@@ -727,7 +727,7 @@ def plot_annotation_tab():
         'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 90,
-        'furtherGeoscienceInterpretationNeeded': True,
+        'furtherInterpretationNeeded': True,
         'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [

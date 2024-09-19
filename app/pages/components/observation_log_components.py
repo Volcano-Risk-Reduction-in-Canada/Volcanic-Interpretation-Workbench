@@ -118,7 +118,7 @@ def logs_list_ui(logs, width):
                         id='create-new-annotation-button',
                         style={
                             **button_style,
-                            'margin': '1px 10px',  # top and bottom, left and right
+                            'margin': '1px 10px',
                         }
                     ),
                 ],
@@ -232,7 +232,10 @@ def observation_log_ui(users, log=None):
                                             min=0,
                                             max=100,
                                             step=1,
-                                            marks={i: str(i) for i in range(0, 101, 10)},
+                                            marks={
+                                                i: str(i)
+                                                for i in range(0, 101, 10)
+                                            },
                                             value=_dict_key_error_check(
                                                 log,
                                                 'confidence',
@@ -255,7 +258,7 @@ def observation_log_ui(users, log=None):
                                     labelStyle=text_styling,
                                     value=_dict_key_error_check(
                                         log,
-                                        'furtherGeoscienceInterpretationNeeded',
+                                        'furtherInterpretationNeeded',
                                         None
                                     ),
                                 )
