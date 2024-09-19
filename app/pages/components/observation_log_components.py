@@ -1,21 +1,21 @@
 from dash import html, Input as DashInput, Output, ALL, callback, ctx
 
 from dash.dcc import (
-    Dropdown, 
-    Input, 
-    RadioItems, 
-    Slider, 
-    Checklist, 
-    DatePickerSingle, 
+    Dropdown,
+    Input,
+    RadioItems,
+    Slider,
+    Checklist,
+    DatePickerSingle,
     Store
 )
 
 from global_styling import (
-    title_text_styling, 
-    text_styling, 
-    row_element, 
-    button_style, 
-    annotation_card_style, 
+    title_text_styling,
+    text_styling,
+    row_element,
+    button_style,
+    annotation_card_style,
     triangle_style
 )
 
@@ -36,8 +36,10 @@ selected_annotation_colour = 'red'
 # ######################################################
 #  HELPER Components
 
+
 def _dict_key_error_check(dict, key, none_value):
     return dict[key] if dict and key in dict else none_value
+
 
 def _textWithElementInRow(text, component):
     return html.Div(
@@ -48,15 +50,25 @@ def _textWithElementInRow(text, component):
         style=row_element
     )
 
+
 def _annotationsCard(log):
     return html.Button(
         id={'type': 'annotation-card', 'index': log['id']},
         children=[
-            html.Div(id={'type': "annotation-triangle", 'index': log['id']}, style={**triangle_style, 'display': 'none'}), 
+            html.Div(
+                id={'type': "annotation-triangle", 'index': log['id']},
+                style={**triangle_style, 'display': 'none'}
+            ),
             html.Div(
                 [
-                    html.P(f"Date Range: {log['dateRange']}", style=text_styling),
-                    html.P(f"Date Added/Modified: {log['dateAddedModified']}", style=text_styling)
+                    html.P(
+                        f"Date Range: {log['dateRange']}",
+                        style=text_styling
+                    ),
+                    html.P(
+                        f"Date Added/Modified: {log['dateAddedModified']}",
+                        style=text_styling
+                    )
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
@@ -73,9 +85,9 @@ def _annotationsCard(log):
         n_clicks=0
     )
 
+
 # ####################################################
 #  MAIN List of Logs UI
-
 def logs_list_ui(logs, width):
     return html.Div(
         style={
@@ -84,7 +96,10 @@ def logs_list_ui(logs, width):
         },
         children=[
             Store(id='logs-store', data=logs),
-            html.H5('Previous Annotations (End Date: )', style={**title_text_styling, 'margin': '10px 5px'}),
+            html.H5(
+                'Previous Annotations (End Date: )',
+                style={**title_text_styling, 'margin': '10px 5px'}
+            ),
             html.Div(
                 [
                     _annotationsCard(
@@ -92,8 +107,8 @@ def logs_list_ui(logs, width):
                     ) for log in logs
                 ],
                 style={
-                    'height': '70%', 
-                    'overflowY': 'auto', 
+                    'height': '70%',
+                    'overflowY': 'auto',
                 }
             ),
             html.Div(
@@ -103,23 +118,28 @@ def logs_list_ui(logs, width):
                         id='create-new-annotation-button',
                         style={
                             **button_style,
-                            'margin': '1px 10px', # top and bottom, left and right
+                            'margin': '1px 10px',  # top and bottom, left and right
                         }
                     ),
                 ],
-                n_clicks=0, 
-                style={ 'display': 'flex', 'justify-content': 'flex-end' }
+                n_clicks=0,
+                style={'display': 'flex', 'justify-content': 'flex-end'}
             ),
         ]
     )
-#  MAIN Observation Log UI Screen
 
+
+#  MAIN Observation Log UI Screen
 def observation_log_ui(users, log=None):
-    coherencePresentOptions = ['Yes', 'No','Unsure, need a second opinion']
-    logUserIndex = None if not log else [i for i in range(len(users)) if users[i] == log['user']][0]
+    coherencePresentOptions = ['Yes', 'No', 'Unsure, need a second opinion']
+    logUserIndex = (
+        None
+        if not log
+        else [i for i in range(len(users)) if users[i] == log['user']][0]
+    )
     return html.Div(
         style={
-            'margin': '10px 5px 5px', # top, left and right, bottom
+            'margin': '10px 5px 5px',  # top, left and right, bottom
         },
         children=[
             Store(id='all-users', data=users),
@@ -131,33 +151,43 @@ def observation_log_ui(users, log=None):
                             id='user-name',
                             placeholder='Select a User',
                             style={
-                                'width' : '180px'
+                                'width': '180px'
                             },
                             options=[
                                 {
                                     'label': html.Span(
-                                        [user['name']], 
-                                        style={'color': 'black', 'font-size': 15}
+                                        [user['name']],
+                                        style={
+                                            'color': 'black',
+                                            'font-size': 15
+                                        }
                                     ),
                                     'value': user['name']
                                 } for user in users
                             ],
-                            value=users[logUserIndex]['name'] if logUserIndex else ''
-                            # value=users[logUserIndex] if logUserIndex else ''
+                            value=(
+                                users[logUserIndex]['name']
+                                if logUserIndex
+                                else ''
+                            )
                         )
                     ),
-                    html.Div(style={'width':'20px'}),
+                    html.Div(style={'width': '20px'}),
                     _textWithElementInRow(
                         'End Date Observed',
                         DatePickerSingle(
                             id='date-picker-single',
-                            date=_dict_key_error_check(log, 'endDateObserved', ''),
+                            date=_dict_key_error_check(
+                                log,
+                                'endDateObserved',
+                                ''
+                            ),
                             display_format='YYYY-MM-DD',  # Format to display
                             clearable=True,
                             reopen_calendar_on_clear=True,
                         )
                     ),
-                    html.Div(style={'width':'20px'}),
+                    html.Div(style={'width': '20px'}),
                     _textWithElementInRow(
                         'Date Range',
                         Input(
@@ -179,10 +209,17 @@ def observation_log_ui(users, log=None):
                                 RadioItems(
                                     id='coherence-present',
                                     options=[
-                                        {'label': option, 'value': option} for option in coherencePresentOptions
+                                        {
+                                            'label': option,
+                                            'value': option
+                                        } for option in coherencePresentOptions
                                     ],
                                     inline=True,
-                                    value=_dict_key_error_check(log, 'coherencePresent', ''),
+                                    value=_dict_key_error_check(
+                                        log,
+                                        'coherencePresent',
+                                        ''
+                                    ),
                                     labelStyle=text_styling
                                 )
                             ),
@@ -192,11 +229,15 @@ def observation_log_ui(users, log=None):
                                     [
                                         Slider(
                                             id='confidence',
-                                            min=0,            # Minimum value of the slider
-                                            max=100,          # Maximum value of the slider
-                                            step=1,           # Step size
-                                            marks={i: str(i) for i in range(0, 101, 10)},  # Marks on the slider
-                                            value=_dict_key_error_check(log, 'confidence', 0),
+                                            min=0,
+                                            max=100,
+                                            step=1,
+                                            marks={i: str(i) for i in range(0, 101, 10)},
+                                            value=_dict_key_error_check(
+                                                log,
+                                                'confidence',
+                                                0
+                                            ),
                                         )
                                     ],
                                     style={"width": '400px'}
@@ -212,7 +253,11 @@ def observation_log_ui(users, log=None):
                                     ],
                                     inline=True,
                                     labelStyle=text_styling,
-                                    value=_dict_key_error_check(log, 'furtherGeoscienceInterpretationNeeded', None),
+                                    value=_dict_key_error_check(
+                                        log,
+                                        'furtherGeoscienceInterpretationNeeded',
+                                        None
+                                    ),
                                 )
                             ),
                             html.Div(
@@ -221,13 +266,21 @@ def observation_log_ui(users, log=None):
                                         id='latitude',
                                         type='text',
                                         placeholder='Latitude',
-                                        value=_dict_key_error_check(log, 'interpretationLatitude', None),
+                                        value=_dict_key_error_check(
+                                            log,
+                                            'interpretationLatitude',
+                                            None
+                                        ),
                                     ),
                                     Input(
                                         id='longitude',
                                         type='text',
                                         placeholder='Longitude',
-                                        value=_dict_key_error_check(log, 'interpretationLongitude', None),
+                                        value=_dict_key_error_check(
+                                            log,
+                                            'interpretationLongitude',
+                                            None
+                                        ),
                                     ),
                                 ],
                                 style={'margin-left': '10px'},
@@ -243,7 +296,10 @@ def observation_log_ui(users, log=None):
                     ),
                     html.Div(
                         children=[
-                            html.P('InSAR Phase Anomalies', style=title_text_styling),
+                            html.P(
+                                'InSAR Phase Anomalies',
+                                style=title_text_styling
+                            ),
                             Checklist(
                                 id='insar-phase-anomalies',
                                 options=[
@@ -267,7 +323,11 @@ def observation_log_ui(users, log=None):
                                             'label': 'Other',
                                             'value': 'Other'
                                         }],
-                                        value=_dict_key_error_check(log, 'insarPhaseAnomalies', []),
+                                        value=_dict_key_error_check(
+                                            log,
+                                            'insarPhaseAnomalies',
+                                            []
+                                        ),
                                         labelStyle=text_styling,
                                         inline=True
                                     ),
