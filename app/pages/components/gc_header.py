@@ -5,22 +5,22 @@ from dash_extensions.enrich import (Output, Input)
 
 # helper components
 def gc_line(
-        borderWidth=2,
-        lineWidth=98,
-        color='black',
-        margin='20px auto 10px'
-    ):
-        # horizontal line
-        return html.Hr(
-            style={
-                'borderWidth': f'{borderWidth}px',
-                'width': f'{lineWidth}%',
-                'borderColor': color,
-                'opacity': 1,
-                'borderStyle': 'solid',
-                'margin': margin
-            }
-        )
+    borderWidth=2,
+    lineWidth=98,
+    color='black',
+    margin='20px auto 10px'
+):
+    # horizontal line
+    return html.Hr(
+        style={
+            'borderWidth': f'{borderWidth}px',
+            'width': f'{lineWidth}%',
+            'borderColor': color,
+            'opacity': 1,
+            'borderStyle': 'solid',
+            'margin': margin
+        }
+    )
 
 
 def gc_header(title):

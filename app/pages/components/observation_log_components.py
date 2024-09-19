@@ -297,7 +297,7 @@ def observation_log_ui(users, log=None):
                         )
                     ),
                     html.Button(
-                        f'{'Update' if log else 'Submit'} Annotation',
+                        f"{'Update' if log else 'Submit'} Annotation",
                         id='submit-update-annotation',
                         style=button_style
                     ),

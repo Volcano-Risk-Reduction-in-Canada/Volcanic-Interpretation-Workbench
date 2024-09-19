@@ -27,7 +27,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 from pages.components.observation_log_components import (
-    logs_list_ui, 
+    logs_list_ui,
     observation_log_ui
 )
 from global_variables import (
