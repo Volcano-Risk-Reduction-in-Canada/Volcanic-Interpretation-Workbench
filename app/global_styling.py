@@ -1,3 +1,14 @@
+#!/usr/bin/python3
+"""
+Volcano InSAR Interpretation Workbench
+
+SPDX-License-Identifier: MIT
+
+Copyright (C) 2021-2023 Government of Canada
+
+Authors:
+  - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
+"""
 
 text_styling = {
     'color': 'black',

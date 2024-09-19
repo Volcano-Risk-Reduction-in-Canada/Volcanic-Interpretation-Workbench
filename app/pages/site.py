@@ -271,7 +271,7 @@ layout = html.Div(
         html.Div(id='gc-header-container'),
         html.Div(
             children=gc_line(
-                borderWidth=3,
+                border_width=3,
                 lineWidth=5,
                 color='red',
                 margin='0 0 10px 20px'
@@ -406,11 +406,11 @@ def update_interferogram(click_data, target_id, zoom, bounds):
             url,
             parse_dates(f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif')
         )
-    else:
-        logger.info('Failed to load: %s_HH_%s_HH.adf.wrp.geo.tif',
-                    first_str,
-                    second_str)
-        raise PreventUpdate
+    # else:
+    logger.info('Failed to load: %s_HH_%s_HH.adf.wrp.geo.tif',
+                first_str,
+                second_str)
+    raise PreventUpdate
 
 
 """
@@ -526,9 +526,11 @@ def recenter_map(target_id):
         'margin': 0,
         'color': 'rgba(255, 255, 255, 0.9)'
         })
-    return dict(center=coords,
-                zoom=10,
-                transition="flyTo"), info_text
+    return {
+        "center": coords,
+        "zoom": 10,
+        "transition":'flyTo'
+    }, info_text
 
 
 """

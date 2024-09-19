@@ -1,3 +1,14 @@
+#!/usr/bin/python3
+"""
+Volcano InSAR Interpretation Workbench
+
+SPDX-License-Identifier: MIT
+
+Copyright (C) 2021-2024 Government of Canada
+
+Authors:
+  - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
+"""
 from dash import html, Input as DashInput, Output, ALL, callback, ctx
 
 from dash.dcc import (
@@ -31,7 +42,7 @@ insar_phase_anomalies = [
     'Baseline Phase Error',
 ]
 
-selected_annotation_colour = 'red'
+SELECTED_ANNOTATION_COLOUR = 'red'
 
 # ######################################################
 #  HELPER Components
@@ -51,7 +62,7 @@ def _textWithElementInRow(text, component):
     )
 
 
-def _annotationsCard(log):
+def _annotations_card(log):
     return html.Button(
         id={'type': 'annotation-card', 'index': log['id']},
         children=[
@@ -89,6 +100,28 @@ def _annotationsCard(log):
 # ####################################################
 #  MAIN List of Logs UI
 def logs_list_ui(logs, width):
+    """
+    Creates the UI layout for displaying a list of observation logs.
+
+    This function generates a vertical list of previously created observation logs, 
+    each displayed as a card with relevant information. It also provides a button 
+    to create a new annotation.
+
+    Parameters:
+    ----------
+    logs : list
+        A list of dictionaries where each dictionary represents a log or annotation
+        with relevant details (e.g., 'id', 'endDateObserved').
+    width : int or float
+        The percentage width (relative to its container) that this UI component should occupy.
+
+    Returns:
+    --------
+    html.Div
+        A Dash HTML Div containing the UI layout, including a list of previous logs,
+        a button to create a new annotation, and a scrollable container to handle
+        larger lists of logs.
+    """
     return html.Div(
         style={
             'borderLeft': '5px solid black',  # Black border on the left side,
@@ -102,7 +135,7 @@ def logs_list_ui(logs, width):
             ),
             html.Div(
                 [
-                    _annotationsCard(
+                    _annotations_card(
                         log
                     ) for log in logs
                 ],
@@ -131,8 +164,32 @@ def logs_list_ui(logs, width):
 
 #  MAIN Observation Log UI Screen
 def observation_log_ui(users, log=None):
-    coherencePresentOptions = ['Yes', 'No', 'Unsure, need a second opinion']
-    logUserIndex = (
+    """
+    Creates the main observation log UI layout.
+
+    This function builds the observation log interface based on the provided users
+    and an optional log data. If a log is provided, the fields will be pre-populated
+    with the log's data; otherwise, the fields are set to default values. It includes
+    components for user selection, date entry, coherence, confidence, geoscience interpretation,
+    and InSAR phase anomalies.
+
+    Parameters:
+    ----------
+    users : list
+        A list of user dictionaries where each dictionary contains user details 
+        (e.g., 'name', 'id').
+    log : dict, optional
+        The observation log data used to populate the form fields. If `None`, 
+        the form will be empty (default is `None`).
+
+    Returns:
+    --------
+    html.Div
+        A Dash HTML Div containing the entire UI layout for observation logs, 
+        including user selection, date input, anomaly selection, and submission buttons.
+    """
+    coherence_present_options = ['Yes', 'No', 'Unsure, need a second opinion']
+    log_user_index = (
         None
         if not log
         else [i for i in range(len(users)) if users[i] == log['user']][0]
@@ -166,8 +223,8 @@ def observation_log_ui(users, log=None):
                                 } for user in users
                             ],
                             value=(
-                                users[logUserIndex]['name']
-                                if logUserIndex
+                                users[log_user_index]['name']
+                                if log_user_index
                                 else ''
                             )
                         )
@@ -212,7 +269,7 @@ def observation_log_ui(users, log=None):
                                         {
                                             'label': option,
                                             'value': option
-                                        } for option in coherencePresentOptions
+                                        } for option in coherence_present_options
                                     ],
                                     inline=True,
                                     value=_dict_key_error_check(
@@ -405,7 +462,22 @@ def observation_log_ui(users, log=None):
     [DashInput('logs-store', 'data')],
     prevent_initial_call=True
 )
-def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
+def update_card_styles(clicks, new_clicks, logs):
+    """
+    Callback function to update the styles of annotation cards and triangles 
+    based on user interactions. It updates the background color of the selected 
+    annotation card and displays the associated triangle indicator.
+
+    Parameters:
+    clicks (list): List of click events from annotation cards.
+    new_clicks (int): Click event from the "create new annotation" button.
+    logs (list): The current list of observation logs stored in 'logs-store'.
+
+    Returns:
+    tuple: A list of style dictionaries for the annotation triangles and a 
+    list of style dictionaries for the annotation cards, reflecting the 
+    selected log or a new log creation.
+    """
     # Find which button was clicked
     triggered = ctx.triggered_id if ctx.triggered_id else None
 
@@ -414,7 +486,7 @@ def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
             [{**triangle_style} for _ in logs],
             [{**annotation_card_style} for _ in logs]
         )
-    elif 'annotation-card' in triggered['type']:
+    if 'annotation-card' in triggered['type']:
         index = triggered.get('index') if triggered else None
 
         # Update styles based on selection
@@ -430,7 +502,7 @@ def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
                 {
                     **annotation_card_style,
                     'background-color': (
-                        selected_annotation_colour
+                        SELECTED_ANNOTATION_COLOUR
                         if log['id'] == index
                         else 'white'
                     )
@@ -452,11 +524,29 @@ def update_card_styles(annotation_clicks, new_annotation_clicks, logs):
     prevent_initial_call=True
 )
 def update_observation_log_ui(clicks, new_clicks, logs, users):
+    """
+    Callback function to update the observation log UI.
+    It listens to click events on annotation cards or
+    the "create new annotation" button.
+    When triggered, it either creates a new observation log UI
+    or loads an existing observation log based on the
+    selected annotation.
+
+    Parameters:
+    clicks (list): List of click events from annotation cards.
+    new_clicks (int): Click event from the "create new annotation" button.
+    logs (list): The current list of observation logs stored in 'logs-store'.
+    users (list): List of all users for user selection in the UI.
+
+    Returns:
+    Component or None: The updated observation log UI based on
+    the interaction, or None if no valid trigger occurs.
+    """
     triggered = ctx.triggered_id
     if triggered:
         if 'create-new-annotation-button' in triggered:
             return observation_log_ui(users, None)
-        elif 'annotation-card' in triggered['type']:
+        if 'annotation-card' in triggered['type']:
             selected_id = triggered['index']
             selected_log = next(
                 (log for log in logs if log['id'] == selected_id),
@@ -472,12 +562,26 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
     DashInput('geoscience-interpretation-needed', 'value')
 )
 def toggle_lat_long_visibility(geoscience_interpretation_needed):
+    """
+    Toggle the visibility of the latitude and longitude input fields
+    based on the value of the 'further geoscience interpretation
+    needed' radio button.
+
+    Parameters:
+    geoscience_interpretation_needed: bool
+        The value selected for 'further geoscience interpretation needed'.
+        If True, the latitude and longitude fields are shown.
+        If False, they are hidden.
+
+    Returns:
+    dict: CSS styles to control the visibility of the latitude and longitude fields.
+        {'display': 'block'} to show the fields, {'display': 'none'} to hide them.
+    """
     # Check if the value is 'Yes', and return a visible style, else hide it
     if geoscience_interpretation_needed:
         # Show the lat-long section
         return {'margin-left': '10px', 'display': 'block'}
-    else:
-        return {'display': 'none'}  # Hide the lat-long section
+    return {'display': 'none'}  # Hide the lat-long section
 
 # TODO: create a callback that clears lat/long fields when no is selected
 # TODO: create a callback that will create a new log or update the current log
