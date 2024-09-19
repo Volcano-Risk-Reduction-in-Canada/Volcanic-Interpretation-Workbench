@@ -12,8 +12,8 @@ Authors:
 """
 import argparse
 import os
-import dash
 import logging
+import dash
 
 import dash_bootstrap_components as dbc
 

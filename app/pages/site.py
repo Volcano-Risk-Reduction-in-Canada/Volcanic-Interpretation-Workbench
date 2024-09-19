@@ -11,11 +11,10 @@ Authors:
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
   - Mandip Singh Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
+import logging
 import requests
-
 import dash
 import pandas as pd
-import logging
 
 from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
@@ -72,8 +71,7 @@ epicenters_df = get_latest_quakes_chis_fsdn_site(
     INITIAL_TARGET, TARGET_CENTRES
 )
 
-curr_info_text = '20220821_HH_20220914_HH.adf.unw.geo.tif'
-curr_gc_header_title = 'VRRC InSAR Site Meager 5M3'
+# init_info_text = '20220821_HH_20220914_HH.adf.unw.geo.tif'
 
 # dashboard configuration
 TEMPLATE = 'darkly'
@@ -235,26 +233,6 @@ baseline_tab = html.Div(
         'background-color': 'black'
     }
 )
-# Tabs(id="tabs-example-graph",
-#                     value='tab-1-coherence-graph',
-#                     children=[Tab(label='Coherence',
-#                                   value='tab-1-coherence-graph',
-#                                   style=tab_style,
-#                                   selected_style=tab_selected_style),
-#                               Tab(label='B-Perp',
-#                                   value='tab-2-baseline-graph',
-#                                   style=tab_style,
-#                                   selected_style=tab_selected_style),
-#                               Tab(label='Annotations',
-#                                   value='tab-3-annotations',
-#                                   style=tab_style,
-#                                   selected_style=tab_selected_style)
-#                               ],
-#                     style={'width': '15%',
-#                            'height': '25px',
-#                            'background-color': 'black'
-#                         },
-#                     vertical=False)
 
 # LAYOUT
 layout = html.Div(
@@ -264,7 +242,6 @@ layout = html.Div(
         'flexDirection': 'column',
         'topMargin': 5,
         'bottomMargin': 5,
-        # 'background-color': 'white'
     },
     children=[
         # HEADER
@@ -285,7 +262,7 @@ layout = html.Div(
             children=[
                 html.H6(
                     id="curr-info-text",
-                    children=parse_dates(curr_info_text),
+                    children=parse_dates(''),
                     style={'color': 'black'}
                 ),
                 # selector
@@ -338,21 +315,6 @@ layout = html.Div(
 )
 
 
-"""
-Update interferogram display and information text
-based on click data and site selection.
-
-Parameters:
-- click_data (dict or None): Click data from the 'coherence-matrix' component.
-- target_id (str or None): Selected site and beam ID from 'site-dropdown'.
-
-Returns:
-- tuple: A tuple containing:
-    - str: Updated URL for the 'tiles' component to display the interferogram.
-    - dash.html.P: HTML paragraph with information about the interferogram.
-"""
-
-
 @callback(
     Output(component_id='tiles',
            component_property='url',
@@ -365,7 +327,19 @@ Returns:
     prevent_initial_call=True
     )
 def update_interferogram(click_data, target_id, zoom, bounds):
-    """Update interferogram display."""
+    """
+    Update interferogram display and information text
+    based on click data and site selection.
+
+    Parameters:
+    - click_data (dict or None): Click data from the 'coherence-matrix' component.
+    - target_id (str or None): Selected site and beam ID from 'site-dropdown'.
+
+    Returns:
+    - tuple: A tuple containing:
+        - str: Updated URL for the 'tiles' component to display the interferogram.
+        - dash.html.P: HTML paragraph with information about the interferogram.
+    """
     if not target_id:
         raise PreventUpdate
     site, beam = target_id.rsplit('_', 1)
@@ -497,18 +471,6 @@ def switch_temporal_view(tab, site):
     return None
 
 
-"""
-Recenter the map on a new site and update information text.
-
-Parameters:
-- target_id (str or None): Selected site ID from 'site-dropdown'.
-
-Returns:
-- dict: Updated viewport parameters for the 'interferogram-bg' component.
-- dash.html.P: HTML paragraph with information about the new site.
-"""
-
-
 @callback(
     Output(component_id='interferogram-bg',
            component_property='viewport',
@@ -518,7 +480,16 @@ Returns:
     prevent_initial_call=True
     )
 def recenter_map(target_id):
-    """Center map on new site."""
+    """
+    Recenter the map on a new site and update information text.
+
+    Parameters:
+    - target_id (str or None): Selected site ID from 'site-dropdown'.
+
+    Returns:
+    - dict: Updated viewport parameters for the 'interferogram-bg' component.
+    - dash.html.P: HTML paragraph with information about the new site.
+    """
     coords = TARGET_CENTRES[target_id]
     logger.info('Recentering: %s',
                 coords)
@@ -533,25 +504,22 @@ def recenter_map(target_id):
     }, info_text
 
 
-"""
-Update earthquake markers on the map based on the selected site.
-
-Parameters:
-- target_id (str or None): Selected site ID from 'site-dropdown'.
-
-Returns:
-- list: Updated layers including earthquake markers for
-    the 'interferogram-bg' component.
-"""
-
-
 @callback(
     Output('interferogram-bg', 'children'),
     Input('site-dropdown', 'value'),
     prevent_initial_call=True
 )
 def update_earthquake_markers(target_id):
-    """Update earthquake markers on map."""
+    """
+    Update earthquake markers on the map based on the selected site.
+
+    Parameters:
+    - target_id (str or None): Selected site ID from 'site-dropdown'.
+
+    Returns:
+    - list: Updated layers including earthquake markers for
+        the 'interferogram-bg' component.
+    """
     if not target_id:
         raise PreventUpdate
     new_epicenters_df = get_latest_quakes_chis_fsdn_site(

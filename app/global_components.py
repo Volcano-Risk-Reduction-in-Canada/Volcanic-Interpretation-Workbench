@@ -506,7 +506,16 @@ def get_InSAR_phase_change():
     return inSAR_phase_change
 
 
-"""
+@callback(
+    [
+        Output('legend-container', 'style', allow_duplicate=True),
+        Output('show-legend-button-overview', 'children')
+    ],
+    [Input('show-legend-button-overview', 'n_clicks')],
+    prevent_initial_call=True
+)
+def toggle_legend_visibility_overview(n_clicks):
+    """
     Callback to toggle the visibility of the legend
     for OVERVIEW and update the button text.
 
@@ -520,17 +529,6 @@ def get_InSAR_phase_change():
       the legend container ('legend-container').
       - str: Updated text for the 'show-legend-button-overview' button.
     """
-
-
-@callback(
-    [
-        Output('legend-container', 'style', allow_duplicate=True),
-        Output('show-legend-button-overview', 'children')
-    ],
-    [Input('show-legend-button-overview', 'n_clicks')],
-    prevent_initial_call=True
-)
-def toggle_legend_visibility_overview(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
     # Toggle visibility based on odd/even clicks
@@ -543,7 +541,16 @@ def toggle_legend_visibility_overview(n_clicks):
     }, button_text
 
 
-"""
+@callback(
+    [
+        Output('legend-container', 'style', allow_duplicate=True),
+        Output('show-legend-button-site', 'children')
+    ],
+    [Input('show-legend-button-site', 'n_clicks')],
+    prevent_initial_call=True
+)
+def toggle_legend_visibility_site(n_clicks):
+    """
     Callback to toggle the visibility of the legend for
     SITE and update the button text.
 
@@ -557,17 +564,6 @@ def toggle_legend_visibility_overview(n_clicks):
         legend container ('legend-container').
       - str: Updated text for the 'show-legend-button-site' button.
     """
-
-
-@callback(
-    [
-        Output('legend-container', 'style', allow_duplicate=True),
-        Output('show-legend-button-site', 'children')
-    ],
-    [Input('show-legend-button-site', 'n_clicks')],
-    prevent_initial_call=True
-)
-def toggle_legend_visibility_site(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
     # Toggle visibility based on odd/even clicks
@@ -580,7 +576,15 @@ def toggle_legend_visibility_site(n_clicks):
     }, button_text
 
 
-"""
+@callback(
+    [
+        Output('data-table-container', 'style'),
+        Output('show-data-table-overview', 'children')
+    ],
+    [Input('show-data-table-overview', 'n_clicks')],
+)
+def toggle_data_table_visibility(n_clicks):
+    """
     Callback to toggle the visibility of the data table for
     overview and update the button text.
 
@@ -594,16 +598,6 @@ def toggle_legend_visibility_site(n_clicks):
         'data-table-container' display property.
       - str: Updated text for the 'show-data-table-overview' button.
     """
-
-
-@callback(
-    [
-        Output('data-table-container', 'style'),
-        Output('show-data-table-overview', 'children')
-    ],
-    [Input('show-data-table-overview', 'n_clicks')],
-)
-def toggle_data_table_visibility(n_clicks):
     if n_clicks is None:
         return dash.no_update, dash.no_update
     # Toggle visibility based on odd/even clicks
