@@ -55,8 +55,8 @@ def _annotationsCard(log):
             html.Div(id={'type': "annotation-triangle", 'index': log['id']}, style={**triangle_style, 'display': 'none'}), 
             html.Div(
                 [
-                    html.P(f'Date Range: {log['dateRange']}', style=text_styling),
-                    html.P(f'Date Added/Modified: {log['dateAddedModified']}', style=text_styling)
+                    html.P(f"Date Range: {log['dateRange']}", style=text_styling),
+                    html.P(f"Date Added/Modified: {log['dateAddedModified']}", style=text_styling)
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),

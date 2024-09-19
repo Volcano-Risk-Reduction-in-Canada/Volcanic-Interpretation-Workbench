@@ -86,8 +86,9 @@ def get_config_params():
 
 def parse_dates(input_string):
     """
-    Parses a string containing two dates in the format 'yyyymmdd_HH_yyyymmdd' and
-    returns them formatted as 'yyyy/mm/dd - yyyy/mm/dd'.
+    Parses a string containing two dates in the format
+    'yyyymmdd_HH_yyyymmdd' and returns them formatted
+    as 'yyyy/mm/dd - yyyy/mm/dd'.
 
     Args:
         input_string (str): A string containing two dates in 'yyyymmdd' format,
@@ -117,7 +118,7 @@ def parse_dates(input_string):
             raise ValueError(f"Invalid start date format: {start_date}")
         if not (end_date.isdigit() and len(end_date) == 8):
             raise ValueError(f"Invalid end date format: {end_date}")
- 
+
         # Format the dates into yyyy/mm/dd
         formatted_start_date = (
             f"{start_date[:4]}/",
@@ -661,12 +662,12 @@ def plot_annotation_tab():
         'id': 0,
         'user': user1,
         'dateAddedModified': '2024-09-10',
-        'endDateObserved' : '2024-09-10',
+        'endDateObserved': '2024-09-10',
         'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 80,
         'furtherGeoscienceInterpretationNeeded': True,
-        'interpretationLatitude' : 111.11,
+        'interpretationLatitude': 111.11,
         'interpretationLongitude': 123.00,
         'insarPhaseAnomalies': [
             'Magmatic Deformation',
@@ -674,14 +675,14 @@ def plot_annotation_tab():
             'Glacial Movement'
         ],
         'insarPhaseAnomaliesOther': '',
-        'additionalComments':'hhhhhiii'
+        'additionalComments': 'hhhhhiii'
     },
 
     log2 = {
         'id': 1,
         'user': user2,
         'dateAddedModified': '2024-09-10',
-        'endDateObserved' : '2024-09-12',
+        'endDateObserved': '2024-09-12',
         'dateRange': 28,
         'coherencePresent': 'Yes',
         'confidence': 20,
@@ -695,14 +696,14 @@ def plot_annotation_tab():
             'Atmospheric Phase Error'
         ],
         'insarPhaseAnomaliesOther': 'other reasoning',
-        'additionalComments':'this is greatttt'
+        'additionalComments': 'this is greatttt'
     }
 
     log3 = {
         'id': 2,
         'user': user3,
         'dateAddedModified': '2024-09-10',
-        'endDateObserved' : '2024-09-07',
+        'endDateObserved': '2024-09-07',
         'dateRange': 48,
         'coherencePresent': 'Yes',
         'confidence': 80,
@@ -715,11 +716,11 @@ def plot_annotation_tab():
             'Glacial Movement'
         ],
         'insarPhaseAnomaliesOther': '',
-        'additionalComments':'hhhhhiii'
+        'additionalComments': 'hhhhhiii'
     }
 
     log4 = {
-        'id':3,
+        'id': 3,
         'user': user3,
         'dateAddedModified': '2024-09-10',
         'endDateObserved': '2024-09-18',
@@ -805,8 +806,9 @@ def build_summary_table(targs_geojson):
                                    'Latest SAR Image'
                                    ] = (
                                         f'{last_slc_beam_mode} - ',
-                                        f'{last_slc_date} ',
-                                        f'({date_difference(last_slc_date)} days ago)'
+                                        f'{last_slc_date} (',
+                                        date_difference(last_slc_date),
+                                        ' days ago)'
                                        )
             except requests.exceptions.ConnectionError:
                 targets_df.loc[site_index, 'Latest SAR Image'] = None

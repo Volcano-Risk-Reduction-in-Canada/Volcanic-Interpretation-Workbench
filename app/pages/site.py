@@ -286,7 +286,7 @@ layout = html.Div(
                 html.H6(
                     id="curr-info-text",
                     children=parse_dates(curr_info_text),
-                    style={ 'color': 'black'}
+                    style={'color': 'black'}
                 ),
                 # selector
                 dbc.Row(dbc.Col(
