@@ -249,7 +249,7 @@ layout = html.Div(
         html.Div(
             children=gc_line(
                 border_width=3,
-                lineWidth=5,
+                line_width=5,
                 color='red',
                 margin='0 0 10px 20px'
             ),
@@ -332,12 +332,14 @@ def update_interferogram(click_data, target_id, zoom, bounds):
     based on click data and site selection.
 
     Parameters:
-    - click_data (dict or None): Click data from the 'coherence-matrix' component.
+    - click_data (dict or None): Click data from the
+        'coherence-matrix' component.
     - target_id (str or None): Selected site and beam ID from 'site-dropdown'.
 
     Returns:
     - tuple: A tuple containing:
-        - str: Updated URL for the 'tiles' component to display the interferogram.
+        - str: Updated URL for the 'tiles' component to
+            display the interferogram.
         - dash.html.P: HTML paragraph with information about the interferogram.
     """
     if not target_id:
@@ -387,17 +389,6 @@ def update_interferogram(click_data, target_id, zoom, bounds):
     raise PreventUpdate
 
 
-"""
-Display a new coherence matrix based on the selected site.
-
-Parameters:
-- target_id (str or None): Selected site ID from 'site-dropdown'.
-
-Returns:
-- plotly.graph_objs.Figure: Updated coherence matrix plot.
-"""
-
-
 @callback(
     Output(component_id='coherence-matrix',
            component_property='figure',
@@ -406,7 +397,15 @@ Returns:
     prevent_initial_call=True
     )
 def update_coherence(target_id):
-    """Display new coherence matrix."""
+    """
+    Display a new coherence matrix based on the selected site.
+
+    Parameters:
+    - target_id (str or None): Selected site ID from 'site-dropdown'.
+
+    Returns:
+    - plotly.graph_objs.Figure: Updated coherence matrix plot.
+    """
     coherence_csv = _coherence_csv(target_id)
     insar_pair_csv = _insar_pair_csv(target_id)
     logger.info('Loading: %s',
@@ -416,19 +415,6 @@ def update_coherence(target_id):
     coherence = _read_coherence(coherence_csv)
     insar_pair = _read_insar_pair(insar_pair_csv)
     return plot_coherence(coherence, insar_pair)
-
-
-"""
-Switch between temporal and spatial baseline plots
-based on tab selection and site.
-
-Parameters:
-- tab (str): Selected tab ID from 'tabs-example-graph'.
-- site (str): Selected site ID from 'site-dropdown'.
-
-Returns:
-- plotly.graph_objs.Figure: Updated coherence matrix or baseline plot.
-"""
 
 
 @callback(
@@ -442,7 +428,17 @@ Returns:
     prevent_initial_call=True
     )
 def switch_temporal_view(tab, site):
-    """Switch between temporal and spatial baseline plots"""
+    """
+    Switch between temporal and spatial baseline plots
+    based on tab selection and site.
+
+    Parameters:
+    - tab (str): Selected tab ID from 'tabs-example-graph'.
+    - site (str): Selected site ID from 'site-dropdown'.
+
+    Returns:
+    - plotly.graph_objs.Figure: Updated coherence matrix or baseline plot.
+    """
     if tab == 'tab-1-coherence-graph':
         logger.info('coherence for %s',
                     site)
