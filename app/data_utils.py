@@ -40,11 +40,6 @@ from global_variables import (
     YEAR_AXES_COUNT
 )
 
-# Global variables used in data_utils file, will initialize at the end
-config = None
-targets_geojson = None
-summary_table_df = None
-
 logger = logging.getLogger(__name__)
 
 
@@ -282,6 +277,8 @@ def read_targets_geojson():
 def get_green_volcanoes():
     """Return a list of green volcano points"""
     print("GET green volc")
+    targets_geojson = read_targets_geojson()
+    summary_table_df = build_summary_table(targets_geojson)
     try:
         green_point_features = []
         green_icon = {
@@ -318,6 +315,8 @@ def get_green_volcanoes():
 def get_red_volcanoes():
     """Return a list of red volcano points"""
     print("GET red volc")
+    targets_geojson = read_targets_geojson()
+    summary_table_df = build_summary_table(targets_geojson)
     try:
         red_point_features = []
         red_icon = {
