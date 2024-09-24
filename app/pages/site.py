@@ -377,7 +377,7 @@ def update_interferogram(click_data, target_id, zoom, bounds):
         logger.info('Interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,
                     second_str)
-        print(first, second, first_str, second_str)
+        print('SUCCESS UPDATE INTERFEROGRAM')
         return (
             url,
             parse_dates(f'{first_str}_HH_{second_str}_HH.adf.wrp.geo.tif')
@@ -468,12 +468,29 @@ def switch_temporal_view(tab, site):
 
 
 @callback(
-    Output(component_id='interferogram-bg',
-           component_property='viewport',
-           allow_duplicate=True),
-    Output('ifg-info', 'children', allow_duplicate=True),
+    # Output(component_id='interferogram-bg',
+    #        component_property='viewport',
+    #        allow_duplicate=True),
+    [
+        Output(
+            component_id='interferogram-bg',
+            component_property='center',
+            # allow_duplicate=True
+        ),
+        Output(
+            component_id='interferogram-bg',
+            component_property='zoom',
+            # allow_duplicate=True
+        ),
+        Output(
+            component_id='interferogram-bg',
+            component_property='viewport',
+            # allow_duplicate=True
+        )
+    ],
+    # Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
-    prevent_initial_call=True
+    # prevent_initial_call=True
     )
 def recenter_map(target_id):
     """
@@ -486,18 +503,15 @@ def recenter_map(target_id):
     - dict: Updated viewport parameters for the 'interferogram-bg' component.
     - dash.html.P: HTML paragraph with information about the new site.
     """
+    print('RECENTER MAP')
     coords = TARGET_CENTRES[target_id]
     logger.info('Recentering: %s',
                 coords)
-    info_text = html.P([''], style={
-        'margin': 0,
-        'color': 'rgba(255, 255, 255, 0.9)'
-        })
-    return {
-        "center": coords,
-        "zoom": 10,
-        "transition": 'flyTo'
-    }, info_text
+    # info_text = html.P([''], style={
+    #     'margin': 0,
+    #     'color': 'rgba(255, 255, 255, 0.9)'
+    #     })
+    return coords, 10, {'transition':'flyTo'}
 
 
 @callback(

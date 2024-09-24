@@ -37,16 +37,15 @@ logger = logging.getLogger(__name__)
 dash.register_page(__name__, path='/')
 
 # VARIABLES
-markers_red = get_red_volcanoes()
-markers_green = get_green_volcanoes()
-epicenters_df = get_latest_quakes_chis_fsdn()
-
 initial_show_glacier_information = False
 
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
+markers_red = get_red_volcanoes()
+markers_green = get_green_volcanoes()
+epicenters_df = get_latest_quakes_chis_fsdn()
 summary_table_df = build_summary_table(read_targets_geojson())
 
 # LAYOUT
@@ -81,7 +80,6 @@ layout = html.Div(
                 Map(
                     id='map',
                     style={'width': '100%', 'height': '88vh'},
-
                     center=[54.64, -123.60],
                     zoom=6,
                     children=[

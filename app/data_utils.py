@@ -281,7 +281,7 @@ def read_targets_geojson():
 
 def get_green_volcanoes():
     """Return a list of green volcano points"""
-    logger.info("GET green volc")
+    print("GET green volc")
     try:
         green_point_features = []
         green_icon = {
@@ -306,16 +306,18 @@ def get_green_volcanoes():
             for point in green_point_features
         ]
     except TypeError:
+        print('GREEN Type error')
         green_markers = [Marker(position=[0., 0.],
                                 icon=green_icon,
                                 children=Tooltip("API Error"),
                                 id="TypeError_green")]
+    print('GREEN!!!', green_markers)
     return green_markers
 
 
 def get_red_volcanoes():
     """Return a list of red volcano points"""
-    logger.info("GET red volc")
+    print("GET red volc")
     try:
         red_point_features = []
         red_icon = {
@@ -340,10 +342,12 @@ def get_red_volcanoes():
             for point in red_point_features
         ]
     except TypeError:
+        print('RED Type error')
         red_markers = [Marker(position=[0., 0.],
                               icon=red_icon,
                               children=Tooltip("API Error"),
                               id="TypeError_red")]
+    print('RED!!!', red_markers)
     return red_markers
 
 
@@ -797,7 +801,6 @@ def build_summary_table(targs_geojson):
                     f"http://{url}/targets/{site}",
                     timeout=10, verify=False)
                 response_geojson = json.loads(response.content)
-                print(response_geojson)
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
                     last_slc_beam_mode = response_geojson['last_slc_beam_mode']
