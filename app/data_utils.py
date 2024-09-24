@@ -68,7 +68,6 @@ def get_config_params():
     env_variables = [
         'AWS_BUCKET_NAME',
         'AWS_RAW_BUCKET',
-        'AWS_INSAR_PROCESS_QUEUE',
         'AWS_TILES_URL',
         'API_VRRC_IP',
         'WORKBENCH_HOST',
