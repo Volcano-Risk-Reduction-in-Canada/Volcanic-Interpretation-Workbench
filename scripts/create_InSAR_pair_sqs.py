@@ -9,7 +9,7 @@ Copyright (C) 2021-2023 Government of Canada
 Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
-# TODO: remove this file when Batch is running 
+# TODO: remove this file when Batch is running
 
 # import argparse
 # import boto3
@@ -63,8 +63,9 @@ Authors:
 #     """
 #     Parse command line arguments
 #     """
-#     parser = argparse.ArgumentParser(description=("Average Coherence across cc"
-#                                                   "image and output to list"))
+#     parser = argparse.ArgumentParser(
+#                 description=("Average Coherence across cc"
+#                              "image and output to list"))
 #     parser.add_argument("--site",
 #                         type=str,
 #                         help='Volcanic Site Name',

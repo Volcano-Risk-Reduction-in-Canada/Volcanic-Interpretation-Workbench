@@ -511,7 +511,7 @@ def recenter_map(target_id):
     #     'margin': 0,
     #     'color': 'rgba(255, 255, 255, 0.9)'
     #     })
-    return coords, 10, {'transition':'flyTo'}
+    return coords, 10, {'transition': 'flyTo'}
 
 
 @callback(
