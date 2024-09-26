@@ -213,12 +213,13 @@ baseline_tab = html.Div(
                     style=tab_style,
                     selected_style=tab_selected_style
                 ),
-                Tab(
-                    label='Annotations',
-                    value='tab-3-annotations',
-                    style=tab_style,
-                    selected_style=tab_selected_style
-                )
+                # HIDE Annotation Tab for now
+                # Tab(
+                #     label='Annotations',
+                #     value='tab-3-annotations',
+                #     style=tab_style,
+                #     selected_style=tab_selected_style
+                # )
                 ],
             style={
                 'width': '15%',
