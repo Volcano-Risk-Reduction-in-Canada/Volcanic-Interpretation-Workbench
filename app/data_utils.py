@@ -482,7 +482,8 @@ def plot_coherence(coh_long, insar_long):
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
         start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
-    if coh_long is None: return fig
+    if coh_long is None:
+        return fig
 
     coh_long['delta_days'] = (
         coh_long.second_date - coh_long.first_date
