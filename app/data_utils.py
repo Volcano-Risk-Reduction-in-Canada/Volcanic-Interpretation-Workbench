@@ -276,7 +276,7 @@ def read_targets_geojson():
 
 def get_green_volcanoes():
     """Return a list of green volcano points"""
-    print("GET green volc")
+    logger.info("GET green volc")
     targets_geojson = read_targets_geojson()
     summary_table_df = build_summary_table(targets_geojson)
     try:
@@ -303,18 +303,16 @@ def get_green_volcanoes():
             for point in green_point_features
         ]
     except TypeError:
-        print('GREEN Type error')
         green_markers = [Marker(position=[0., 0.],
                                 icon=green_icon,
                                 children=Tooltip("API Error"),
                                 id="TypeError_green")]
-    print('GREEN!!!', green_markers)
     return green_markers
 
 
 def get_red_volcanoes():
     """Return a list of red volcano points"""
-    print("GET red volc")
+    logger.info("GET red volc")
     targets_geojson = read_targets_geojson()
     summary_table_df = build_summary_table(targets_geojson)
     try:
@@ -341,12 +339,10 @@ def get_red_volcanoes():
             for point in red_point_features
         ]
     except TypeError:
-        print('RED Type error')
         red_markers = [Marker(position=[0., 0.],
                               icon=red_icon,
                               children=Tooltip("API Error"),
                               id="TypeError_red")]
-    print('RED!!!', red_markers)
     return red_markers
 
 
@@ -779,7 +775,7 @@ def build_summary_table(targs_geojson):
         date = dt.strptime(date_string, "%Y-%m-%d").date()
         return (dt.today().date() - date).days
 
-    print('BUILD summary table')
+    logger.info('BUILD summary table')
     try:
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
