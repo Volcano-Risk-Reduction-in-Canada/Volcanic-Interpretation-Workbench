@@ -477,52 +477,50 @@ def pivot_and_clean_dates(coh_long, coh_wide):
 
 def plot_coherence(coh_long, insar_long):
     """Plot coherence for different baselines as a function of time."""
-    if coh_long is None:
-        fig = make_subplots(
-            rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
-            start_cell='bottom-left', vertical_spacing=0.02,
-            y_title='Temporal baseline [days]')
-        return fig
-    coh_long['delta_days'] = (
-        coh_long.second_date - coh_long.first_date
-        ).dt.days
-    insar_long['delta_days'] = (
-        insar_long.second_date - insar_long.first_date
-        ).dt.days
-    coh_wide = pivot_and_clean(coh_long)
-    insar_wide = pivot_and_clean_insar(insar_long)
-    date_wide = pivot_and_clean_dates(coh_long, coh_wide)
-    insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
-
+    print('PLOT COHERENCE', coh_long, insar_long)
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
         start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
+    if coh_long is None: return fig
 
-    insar_colorscale = [
-        [0, 'rgba(0,0,0,0)'],
-        [1, 'grey']
+    coh_long['delta_days'] = (
+        coh_long.second_date - coh_long.first_date
+        ).dt.days
+    coh_wide = pivot_and_clean(coh_long)
+    date_wide = pivot_and_clean_dates(coh_long, coh_wide)
+
+    if insar_long is not None:
+        insar_long['delta_days'] = (
+            insar_long.second_date - insar_long.first_date
+            ).dt.days
+        insar_wide = pivot_and_clean_insar(insar_long)
+        insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
+        insar_colorscale = [
+            [0, 'rgba(0,0,0,0)'],
+            [1, 'grey']
         ]
 
     for year in range(YEAR_AXES_COUNT):
-        # Grey heatmap for potential insar pair
-        fig.add_trace(
-            go.Heatmap(
-                z=insar_wide.values,
-                x=insar_wide.columns,
-                y=insar_wide.index,
-                xgap=1,
-                ygap=1,
-                customdata=insar_date_wide,
-                hovertemplate=(
-                    'Start Date: %{customdata}<br>'
-                    'End Date: %{x}<br>'
-                    'Temporal Baseline: %{y} days<br>'
-                    'Value: %{z}'),
-                colorscale=insar_colorscale,
-                showscale=False,
-                opacity=0.5),
-            row=year + 1, col=1)
+        if insar_long is not None:
+            # Grey heatmap for potential insar pair
+            fig.add_trace(
+                go.Heatmap(
+                    z=insar_wide.values,
+                    x=insar_wide.columns,
+                    y=insar_wide.index,
+                    xgap=1,
+                    ygap=1,
+                    customdata=insar_date_wide,
+                    hovertemplate=(
+                        'Start Date: %{customdata}<br>'
+                        'End Date: %{x}<br>'
+                        'Temporal Baseline: %{y} days<br>'
+                        'Value: %{z}'),
+                    colorscale=insar_colorscale,
+                    showscale=False,
+                    opacity=0.5),
+                row=year + 1, col=1)
         # Colored heatmap for processed insar pairs
         fig.add_trace(
             go.Heatmap(
@@ -837,6 +835,12 @@ def _read_coherence(coherence_csv):
 def _read_insar_pair(insar_pair_csv):
     if insar_pair_csv is None:
         return None
+    # Check if the file exists
+    if not os.path.exists(insar_pair_csv):
+        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
+        logger.info(f"The file {insar_pair_csv} does not exist.")
+        return None
+
     insar = pd.read_csv(
         insar_pair_csv,
         parse_dates=['Reference_Date', 'Pair_Date'])
@@ -855,6 +859,12 @@ def _read_insar_pair(insar_pair_csv):
 def _read_baseline(baseline_csv):
     if baseline_csv is None:
         return None
+    # Check if the file exists
+    if not os.path.exists(baseline_csv):
+        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
+        logger.info(f"The file {baseline_csv} does not exist.")
+        return None
+
     baseline = pd.read_csv(
         baseline_csv,
         delimiter=' ',

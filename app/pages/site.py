@@ -407,6 +407,7 @@ def update_coherence(target_id):
     Returns:
     - plotly.graph_objs.Figure: Updated coherence matrix plot.
     """
+    print('IM HERE!!!')
     coherence_csv = _coherence_csv(target_id)
     insar_pair_csv = _insar_pair_csv(target_id)
     logger.info('Loading: %s',
@@ -415,6 +416,7 @@ def update_coherence(target_id):
                 insar_pair_csv)
     coherence = _read_coherence(coherence_csv)
     insar_pair = _read_insar_pair(insar_pair_csv)
+    print(coherence, insar_pair)
     return plot_coherence(coherence, insar_pair)
 
 
