@@ -42,6 +42,7 @@ def summary_table_ui(summary_table_df):
         columns=[{"name": i, "id": i} for i in summary_table_df.columns],
         data=summary_table_df.to_dict('records'),
         style_table={'color': 'black'},
+        style_cell={'textAlign': 'left'},
         style_data_conditional=[
             {
                 'if': {'column_id': 'Unrest', 'row_index': i},
