@@ -11,9 +11,9 @@ Authors:
 """
 import argparse
 import os
-import boto3
 
 from data_utils import get_config_params
+from global_variables import s3
 
 
 def main():
@@ -43,7 +43,6 @@ def main():
     )
 
     # Copy file from S3 into filesystem
-    s3 = boto3.client('s3')
     s3.download_file(
         Bucket=config['AWS_BUCKET_NAME'],
         Key=f'{args.site}/{args.beam}/CoherenceMatrix.csv',

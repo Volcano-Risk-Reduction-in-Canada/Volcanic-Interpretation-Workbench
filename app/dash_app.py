@@ -12,8 +12,8 @@ Authors:
 """
 import argparse
 import os
-import dash
 import logging
+import dash
 
 import dash_bootstrap_components as dbc
 
@@ -66,8 +66,7 @@ app = Dash(__name__,
            suppress_callback_exceptions=True)
 server = app.server
 
-app.layout = html.Div([
-  dash.page_container])
+app.layout = html.Div([dash.page_container])
 
 add_routes(server)
 
@@ -77,4 +76,5 @@ if __name__ == '__main__':
         "Running server at %s:%s",
         args.host,
         args.port)
-    app.run(debug=True, host=args.host, port=args.port)
+    # app.run(debug=True, host=args.host, port=args.port)
+    app.run(debug=False, host=args.host, port=args.port)

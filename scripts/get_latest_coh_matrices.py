@@ -12,16 +12,15 @@ Authors:
 
 import os
 import yaml
-import boto3
 
 from data_utils import get_config_params
+from global_variables import s3
 
 
 def main():
     '''Main function, retrieve latest coherence
     matrix files for all site/beam combos'''
     config = get_config_params()
-    s_3 = boto3.client('s3')
 
     os.chdir('app/Data/')
 
@@ -33,9 +32,11 @@ def main():
             if not os.path.exists(f'{site}/{beam}'):
                 os.makedirs(f'{site}/{beam}')
 
-            s_3.download_file(Bucket=config['AWS_BUCKET_NAME'],
-                              Key=f'{site}/{beam}/CoherenceMatrix.csv',
-                              Filename=f'{site}/{beam}/CoherenceMatrix.csv')
+            s3.download_file(
+                Bucket=config['AWS_BUCKET_NAME'],
+                Key=f'{site}/{beam}/CoherenceMatrix.csv',
+                Filename=f'{site}/{beam}/CoherenceMatrix.csv'
+            )
 
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@ Authors:
 """
 import dash
 import logging
-from dash import html, dash_table, dcc, callback
+from dash import html, dcc, callback
 from dash_leaflet import (
     Map,
     CircleMarker,
@@ -21,12 +21,15 @@ from dash_leaflet import (
 from dash_extensions.enrich import (Output, Input)
 from dash_extensions.javascript import (assign)
 
+from pages.components.summary_table import summary_table_ui
+from pages.components.gc_header import gc_header
 from global_components import generate_controls
 from data_utils import (
+    build_summary_table,
     get_green_volcanoes,
     get_latest_quakes_chis_fsdn,
     get_red_volcanoes,
-    summary_table_df
+    read_targets_geojson,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,67 +37,49 @@ logger = logging.getLogger(__name__)
 dash.register_page(__name__, path='/')
 
 # VARIABLES
-markers_red = get_red_volcanoes()
-markers_green = get_green_volcanoes()
-epicenters_df = get_latest_quakes_chis_fsdn()
-
 initial_show_glacier_information = False
 
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
+markers_red = get_red_volcanoes()
+markers_green = get_green_volcanoes()
+epicenters_df = get_latest_quakes_chis_fsdn()
+summary_table_df = build_summary_table(read_targets_geojson())
+
 # LAYOUT
 layout = html.Div(
-    style={  # Move style into html.Div constructor
-        'height': '100vh',
+    style={
+        # 'height': '100vh',
         'display': 'flex',
         'flexDirection': 'column',
         'topMargin': 5,
         'bottomMargin': 5,
+        'justifyContent': 'center',
+        'alignItems': 'flex-start',
+        'background-color': 'white'
     },
     children=[  # All children should be in this list
         dcc.Location(id='url', refresh=True),
         # Hidden div for triggering callback (for page reload)
         html.Div(id='trigger-reload', style={'display': 'none'}),
         dcc.Store(id='selected_feature'),
-        # VISIBLE elements on the 'overview' page
-        # TITLE
-        html.Div(
-            style={
-                'backgroundColor': 'white',
-                'height': '50px',
-                'width': '100%',
-                'position': 'relative'
-            },
-            children=[
-                html.Img(
-                    src='assets/GOVCan_FIP_En.png',
-                    style={
-                        'height': '65%',
-                        'position': 'relative',
-                        'left': '10px',
-                        'top': '10px'
-                    }
-                )
-            ]
-        ),
-        html.H3(
-            id='Title',
-            children='VRRC InSAR - National Overview',
-            style={
-                'text-align': 'center',
-                'height': '30px'
-            }
-        ),
+        # HEADER
+        gc_header('VRRC InSAR National Overview'),
         # MAP
         html.Div(
             id='overview_map',
-            style={'width': '100%', 'height': '100vh', 'position': 'relative'},
+            style={
+                'width': '98%',
+                'height': '90vh',
+                'position': 'relative',
+                'margin': '0 auto',
+            },
             children=[
                 Map(
                     id='map',
-                    style={'width': '100%', 'height': '92vh'},
+                    style={'width': '100%', 'height': '88vh'},
                     center=[54.64, -123.60],
                     zoom=6,
                     children=[
@@ -116,31 +101,11 @@ layout = html.Div(
                 style={
                     'position': 'absolute',
                     'top': '165px',
-                    'right': '170px',
-                    'width': '200px',
+                    'right': '25px',
+                    'width': '480px',
                     'zIndex': 1000
                 },
-                children=[
-                    dash_table.DataTable(
-                        columns=[
-                            {
-                                "name": i, "id": i
-                            } for i in summary_table_df.columns
-                        ],
-                        data=summary_table_df.to_dict('records'),
-                        style_table={'color': 'black'},
-                        style_data_conditional=[
-                            {
-                                'if': {'column_id': 'Unrest', 'row_index': i},
-                                'color': 'red' if unrest else 'green',
-                            }
-                            for i, unrest in enumerate(
-                                summary_table_df['Unrest']
-                                )
-                            # Add beam mode to latest slc date
-                        ],
-                    )
-                ]
+                children=summary_table_ui(summary_table_df)
             ),
             id="data-table-container",
             style={"display": "block"}
@@ -228,3 +193,14 @@ def navigate_to_site_page(*args):
                 type(ctx),
                 args)
     return '/site'
+
+
+@callback(
+    Output('table-container', 'children'),
+    Input('url', 'href')  # This triggers the callback when the page reloads
+)
+def update_summary_table(_):
+    # Dynamically build the summary table each time the page is loaded
+    summary_table_df = build_summary_table(read_targets_geojson())
+    # Return the updated table
+    return summary_table_ui(summary_table_df)

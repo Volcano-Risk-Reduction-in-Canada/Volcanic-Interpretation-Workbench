@@ -10,6 +10,7 @@ Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
 import datetime
+from datetime import datetime as dt
 import json
 import os
 from io import StringIO
@@ -25,6 +26,10 @@ from dotenv import load_dotenv
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
+from pages.components.observation_log_components import (
+    logs_list_ui,
+    observation_log_ui
+)
 from global_variables import (
     BASELINE_DTICK,
     BASELINE_MAX,
@@ -34,11 +39,6 @@ from global_variables import (
     MAX_YEARS,
     YEAR_AXES_COUNT
 )
-
-# Global variables used in data_utils file, will initialize at the end
-config = None
-targets_geojson = None
-summary_table_df = None
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,6 @@ def get_config_params():
     env_variables = [
         'AWS_BUCKET_NAME',
         'AWS_RAW_BUCKET',
-        'AWS_INSAR_PROCESS_QUEUE',
         'AWS_TILES_URL',
         'API_VRRC_IP',
         'WORKBENCH_HOST',
@@ -77,6 +76,60 @@ def get_config_params():
         config_params[var_name] = os.getenv(var_name)
     # Return the dictionary of configuration parameters
     return config_params
+
+
+def parse_dates(input_string):
+    """
+    Parses a string containing two dates in the format
+    'yyyymmdd_HH_yyyymmdd' and returns them formatted
+    as 'yyyy/mm/dd - yyyy/mm/dd'.
+
+    Args:
+        input_string (str): A string containing two dates in 'yyyymmdd' format,
+        separated by some characters, e.g., '20220821_HH_20220914'.
+
+    Returns:
+        str: A formatted string representing the two dates in the format
+        'yyyy/mm/dd - yyyy/mm/dd'.
+
+    Raises:
+        ValueError: If the input string does not contain valid date
+        segments or is in an unexpected format.
+    """
+    try:
+        # Check input has at least 19 characters
+        if len(input_string) < 19:
+            raise ValueError(
+                "Input string is too short to contain two valid dates."
+            )
+
+        # Extract the start and end dates
+        start_date = input_string[0:8]
+        end_date = input_string[12:20]
+
+        # Check the extracted dates are digits and have the expected length
+        if not (start_date.isdigit() and len(start_date) == 8):
+            raise ValueError(f"Invalid start date format: {start_date}")
+        if not (end_date.isdigit() and len(end_date) == 8):
+            raise ValueError(f"Invalid end date format: {end_date}")
+
+        # Format the dates into yyyy/mm/dd
+        formatted_start_date = (
+            start_date[:4] + '/' +
+            start_date[4:6] + '/' +
+            start_date[6:]
+        )
+        formatted_end_date = (
+            end_date[:4] + '/' +
+            end_date[4:6] + '/' +
+            end_date[6:]
+        )
+
+        # Return the final formatted string
+        return f"{formatted_start_date} - {formatted_end_date}"
+
+    except Exception as e:
+        raise ValueError(f"Error parsing input string: {e}")
 
 
 def get_latest_quakes_chis_fsdn():
@@ -95,7 +148,7 @@ def get_latest_quakes_chis_fsdn():
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10)
+                                timeout=10, verify=False)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -155,7 +208,7 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10)
+                                timeout=10, verify=False)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -195,7 +248,7 @@ def read_targets_geojson():
     try:
         vrrc_api_ip = config['API_VRRC_IP']
         response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
-                                timeout=10)
+                                timeout=10, verify=False)
         response_geojson = json.loads(response.content)
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         calculate_and_append_centroids(response_geojson)
@@ -224,6 +277,8 @@ def read_targets_geojson():
 def get_green_volcanoes():
     """Return a list of green volcano points"""
     logger.info("GET green volc")
+    targets_geojson = read_targets_geojson()
+    summary_table_df = build_summary_table(targets_geojson)
     try:
         green_point_features = []
         green_icon = {
@@ -258,6 +313,8 @@ def get_green_volcanoes():
 def get_red_volcanoes():
     """Return a list of red volcano points"""
     logger.info("GET red volc")
+    targets_geojson = read_targets_geojson()
+    summary_table_df = build_summary_table(targets_geojson)
     try:
         red_point_features = []
         red_icon = {
@@ -293,7 +350,7 @@ def get_api_response(vrrc_api_ip, route):
     """Get a response from the vrrc API given an ip and a route"""
     try:
         response = requests.get(f'http://{vrrc_api_ip}/{route}/',
-                                timeout=10)
+                                timeout=10, verify=False)
         response.raise_for_status()
         response_dict = json.loads(response.text)
         return response_dict
@@ -420,52 +477,51 @@ def pivot_and_clean_dates(coh_long, coh_wide):
 
 def plot_coherence(coh_long, insar_long):
     """Plot coherence for different baselines as a function of time."""
-    if coh_long is None:
-        fig = make_subplots(
-            rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
-            start_cell='bottom-left', vertical_spacing=0.02,
-            y_title='Temporal baseline [days]')
-        return fig
-    coh_long['delta_days'] = (
-        coh_long.second_date - coh_long.first_date
-        ).dt.days
-    insar_long['delta_days'] = (
-        insar_long.second_date - insar_long.first_date
-        ).dt.days
-    coh_wide = pivot_and_clean(coh_long)
-    insar_wide = pivot_and_clean_insar(insar_long)
-    date_wide = pivot_and_clean_dates(coh_long, coh_wide)
-    insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
-
+    print('PLOT COHERENCE', coh_long, insar_long)
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
         start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
+    if coh_long is None:
+        return fig
 
-    insar_colorscale = [
-        [0, 'rgba(0,0,0,0)'],
-        [1, 'grey']
+    coh_long['delta_days'] = (
+        coh_long.second_date - coh_long.first_date
+        ).dt.days
+    coh_wide = pivot_and_clean(coh_long)
+    date_wide = pivot_and_clean_dates(coh_long, coh_wide)
+
+    if insar_long is not None:
+        insar_long['delta_days'] = (
+            insar_long.second_date - insar_long.first_date
+            ).dt.days
+        insar_wide = pivot_and_clean_insar(insar_long)
+        insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
+        insar_colorscale = [
+            [0, 'rgba(0,0,0,0)'],
+            [1, 'grey']
         ]
 
     for year in range(YEAR_AXES_COUNT):
-        # Grey heatmap for potential insar pair
-        fig.add_trace(
-            go.Heatmap(
-                z=insar_wide.values,
-                x=insar_wide.columns,
-                y=insar_wide.index,
-                xgap=1,
-                ygap=1,
-                customdata=insar_date_wide,
-                hovertemplate=(
-                    'Start Date: %{customdata}<br>'
-                    'End Date: %{x}<br>'
-                    'Temporal Baseline: %{y} days<br>'
-                    'Value: %{z}'),
-                colorscale=insar_colorscale,
-                showscale=False,
-                opacity=0.5),
-            row=year + 1, col=1)
+        if insar_long is not None:
+            # Grey heatmap for potential insar pair
+            fig.add_trace(
+                go.Heatmap(
+                    z=insar_wide.values,
+                    x=insar_wide.columns,
+                    y=insar_wide.index,
+                    xgap=1,
+                    ygap=1,
+                    customdata=insar_date_wide,
+                    hovertemplate=(
+                        'Start Date: %{customdata}<br>'
+                        'End Date: %{x}<br>'
+                        'Temporal Baseline: %{y} days<br>'
+                        'Value: %{z}'),
+                    colorscale=insar_colorscale,
+                    showscale=False,
+                    opacity=0.5),
+                row=year + 1, col=1)
         # Colored heatmap for processed insar pairs
         fig.add_trace(
             go.Heatmap(
@@ -580,8 +636,145 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 
+def plot_annotation_tab():
+    def get_end_date(log):
+        return dt.strptime(log['endDateObserved'], '%Y-%m-%d')
+    # example data
+    user1 = {
+        'name': 'User 1',
+        'email': 'user1@gmail.com'
+    }
+
+    user2 = {
+        'name': 'User 2',
+        'email': 'user2@gmail.com'
+    }
+
+    user3 = {
+        'name': 'User 3',
+        'email': 'user3@gmail.com'
+    }
+
+    log1 = {
+        'id': 0,
+        'user': user1,
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved': '2024-09-10',
+        'dateRange': 48,
+        'coherencePresent': 'Yes',
+        'confidence': 80,
+        'furtherInterpretationNeeded': True,
+        'interpretationLatitude': 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Glacial Movement'
+        ],
+        'insarPhaseAnomaliesOther': '',
+        'additionalComments': 'hhhhhiii'
+    },
+
+    log2 = {
+        'id': 1,
+        'user': user2,
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved': '2024-09-12',
+        'dateRange': 28,
+        'coherencePresent': 'Yes',
+        'confidence': 20,
+        'furtherInterpretationNeeded': True,
+        'interpretationLatitude': 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Other',
+            'Atmospheric Phase Error'
+        ],
+        'insarPhaseAnomaliesOther': 'other reasoning',
+        'additionalComments': 'this is greatttt'
+    }
+
+    log3 = {
+        'id': 2,
+        'user': user3,
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved': '2024-09-07',
+        'dateRange': 48,
+        'coherencePresent': 'Yes',
+        'confidence': 80,
+        'furtherInterpretationNeeded': True,
+        'interpretationLatitude': 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Glacial Movement'
+        ],
+        'insarPhaseAnomaliesOther': '',
+        'additionalComments': 'hhhhhiii'
+    }
+
+    log4 = {
+        'id': 3,
+        'user': user3,
+        'dateAddedModified': '2024-09-10',
+        'endDateObserved': '2024-09-18',
+        'dateRange': 48,
+        'coherencePresent': 'Yes',
+        'confidence': 90,
+        'furtherInterpretationNeeded': True,
+        'interpretationLatitude': 111.11,
+        'interpretationLongitude': 123.00,
+        'insarPhaseAnomalies': [
+            'Magmatic Deformation',
+            'Slope Movement',
+            'Glacial Movement'
+        ],
+        'insarPhaseAnomaliesOther': '',
+        'additionalComments': 'hhhhhiii'
+    }
+
+    users = [user1, user2, user3]
+    logs = [
+        log1,
+        log2,
+        log3,
+        log4
+    ]
+    cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
+    # most recent log first
+    sorted_logs = sorted(cleaned_logs, key=get_end_date, reverse=True)
+    observation_log_ui_width = 70
+    return html.Div(
+        style={
+            'display': 'flex',
+            'flexDirection': 'row',
+            'alignItems': 'stretch',
+            'backgroundColor': 'white',
+            'margin': '0 1px 5px',
+            'height': '33vh',
+            'border': '1px solid black'
+        },
+        children=[
+            html.Div(
+                id='observation_log_container',
+                children=observation_log_ui(users, log=None),
+                style={'width': f'{observation_log_ui_width}%'}
+            ),
+            logs_list_ui(sorted_logs, 100 - observation_log_ui_width),
+        ],
+    )
+
+
 def build_summary_table(targs_geojson):
     """Build a summary table with volcanoes and info on their unrest"""
+    def date_difference(date_string):
+        date = dt.strptime(date_string, "%Y-%m-%d").date()
+        return (dt.today().date() - date).days
+
+    logger.info('BUILD summary table')
     try:
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
@@ -600,22 +793,29 @@ def build_summary_table(targs_geojson):
                 url = config['API_VRRC_IP']
                 response = requests.get(
                     f"http://{url}/targets/{site}",
-                    timeout=10)
+                    timeout=10, verify=False)
                 response_geojson = json.loads(response.content)
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
+                    last_slc_beam_mode = response_geojson['last_slc_beam_mode']
+                    format_output = (
+                        f'{last_slc_beam_mode} - '
+                        f'{last_slc_date} ('
+                        f'{date_difference(last_slc_date)} days ago)'
+                    )
                     targets_df.loc[site_index,
-                                   'latest SAR Image Date'
-                                   ] = last_slc_date
+                                   'Latest SAR Image'
+                                   ] = format_output
             except requests.exceptions.ConnectionError:
-                targets_df.loc[site_index, 'latest SAR Image Date'] = None
+                targets_df.loc[site_index, 'Latest SAR Image'] = None
+
         targets_df = targets_df.sort_values('id')
     except NotImplementedError:
         targets_df = pd.DataFrame(columns=['Site',
-                                           'latest SAR Image Date',
+                                           'Latest SAR Image',
                                            'Unrest'])
         targets_df.loc[0] = ["API Connection Error"] * 3
-    return targets_df[['Site', 'latest SAR Image Date', 'Unrest']]
+    return targets_df[['Site', 'Latest SAR Image', 'Unrest']]
 
 
 def _read_coherence(coherence_csv):
@@ -636,6 +836,12 @@ def _read_coherence(coherence_csv):
 def _read_insar_pair(insar_pair_csv):
     if insar_pair_csv is None:
         return None
+    # Check if the file exists
+    if not os.path.exists(insar_pair_csv):
+        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
+        logger.info(f"The file {insar_pair_csv} does not exist.")
+        return None
+
     insar = pd.read_csv(
         insar_pair_csv,
         parse_dates=['Reference_Date', 'Pair_Date'])
@@ -654,6 +860,12 @@ def _read_insar_pair(insar_pair_csv):
 def _read_baseline(baseline_csv):
     if baseline_csv is None:
         return None
+    # Check if the file exists
+    if not os.path.exists(baseline_csv):
+        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
+        logger.info(f"The file {baseline_csv} does not exist.")
+        return None
+
     baseline = pd.read_csv(
         baseline_csv,
         delimiter=' ',
@@ -703,5 +915,3 @@ def _baseline_csv(target_id):
 
 
 config = get_config_params()
-targets_geojson = read_targets_geojson()
-summary_table_df = build_summary_table(targets_geojson)

@@ -11,8 +11,9 @@ Authors:
 """
 from flask import Response, request
 import requests
-import boto3
 import logging
+
+from global_variables import s3
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,7 @@ def add_routes(server):
     def get_signed_url(bucket, key):
         logger.debug("Bucket: %s",
                      bucket)
-        s3_client = boto3.client('s3')
-        url = s3_client.generate_presigned_url(
+        url = s3.generate_presigned_url(
             'get_object',
             Params={'Bucket': bucket, 'Key': key},
             ExpiresIn=60  # URL expires in 60 seconds
@@ -43,5 +43,5 @@ def add_routes(server):
         bucket = request.args.get('bucket')
         key = f"{site}/{beam}/{startdate}_{enddate}/{z}/{x}/{y}.png"
         signed_url = get_signed_url(bucket, key)
-        response = requests.get(signed_url, timeout=10)
+        response = requests.get(signed_url, timeout=10, verify=False)
         return Response(response.content, mimetype='image/png')
