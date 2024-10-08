@@ -23,8 +23,6 @@ from dash_extensions.javascript import (assign)
 
 from pages.components.summary_table import summary_table_ui
 from pages.components.gc_header import gc_header
-from pages.components.summary_table import summary_table_ui
-from pages.components.gc_header import gc_header
 from global_components import generate_controls
 from data_utils import (
     build_summary_table,
@@ -32,7 +30,6 @@ from data_utils import (
     get_latest_csv,
     get_latest_quakes_chis_fsdn,
     get_red_volcanoes,
-    read_targets_geojson,
     read_targets_geojson,
 )
 
@@ -113,7 +110,7 @@ layout = html.Div(
                 "background-color": "red",
                 "position": "absolute",
                 "top": "50px",
-                "left" : "450px"
+                "left": "450px"
             }
         ),
         html.Div(id='output-temp-get-latest-csv'),
