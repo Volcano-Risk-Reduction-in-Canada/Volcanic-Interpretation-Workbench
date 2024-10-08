@@ -99,18 +99,24 @@ layout = html.Div(
                         *markers_red,
                         # circle markers (earthquakes) populated in callback
                         html.Div(id='circle-marker'),
-                        html.Button(
-                            children=[
-                                html.P('get latest csv files')
-                            ],
-                            id='temp-get-latest-csv-button',
-                            n_clicks=0
-                        ),
-                        html.Div(id='output-temp-get-latest-csv'),
                     ]
                 ),
             ]
         ),
+        html.Button(
+            children=[
+                html.P('get latest csv files')
+            ],
+            id='temp-get-latest-csv-button',
+            n_clicks=0,
+            style={
+                "background-color": "red",
+                "position": "absolute",
+                "top": "50px",
+                "left" : "450px"
+            }
+        ),
+        html.Div(id='output-temp-get-latest-csv'),
         # TABLE (on top right corner)
         html.Div(
             html.Div(
