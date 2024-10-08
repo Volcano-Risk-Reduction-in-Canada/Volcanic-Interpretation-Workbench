@@ -12,32 +12,40 @@ Authors:
 
 import os
 import yaml
+import logging
+import botocore.exceptions
 
-from data_utils import get_config_params
-from global_variables import s3
+from scripts.data_utils import get_config_params
+from scripts.global_variables import s3
 
 
-def main():
+def get_latest_coh_matrices():
     '''Main function, retrieve latest coherence
     matrix files for all site/beam combos'''
     config = get_config_params()
+    logging.info('RUNNING get_latest_coh_matrices')
+    # os.chdir('app/Data/')
 
-    os.chdir('app/Data/')
+    # Get the absolute path to the project root (assumed one level up from the scripts folder)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-    with open('beamList.yml', encoding="utf-8") as beam_list_yml:
+    # Construct the path to beamList.yml relative to the project root
+    beam_list_path = os.path.join(project_root, 'app', 'Data', 'beamList.yml')
+
+    # with open('beamList.yml', encoding="utf-8") as beam_list_yml:
+    with open(beam_list_path, encoding="utf-8") as beam_list_yml:
         beam_list = yaml.safe_load(beam_list_yml)
     for site in beam_list:
         for beam in beam_list[site]:
             print(f'Site: {site}, Beam: {beam}')
             if not os.path.exists(f'{site}/{beam}'):
                 os.makedirs(f'{site}/{beam}')
-
-            s3.download_file(
-                Bucket=config['AWS_BUCKET_NAME'],
-                Key=f'{site}/{beam}/CoherenceMatrix.csv',
-                Filename=f'{site}/{beam}/CoherenceMatrix.csv'
-            )
-
-
-if __name__ == '__main__':
-    main()
+            try:
+                s3.download_file(
+                    Bucket=config['AWS_BUCKET_NAME'],
+                    Key=f'{site}/{beam}/CoherenceMatrix.csv',
+                    Filename=f'{site}/{beam}/CoherenceMatrix.csv'
+                )
+            except botocore.exceptions.ClientError:
+                print('CoherenceMatrix.csv File not found')
+    logging.info('DONE get_latest_coh_matrices')

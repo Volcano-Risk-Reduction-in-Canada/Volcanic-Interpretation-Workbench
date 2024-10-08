@@ -27,6 +27,7 @@ from global_components import generate_controls
 from data_utils import (
     build_summary_table,
     get_green_volcanoes,
+    get_latest_csv,
     get_latest_quakes_chis_fsdn,
     get_red_volcanoes,
     read_targets_geojson,
@@ -90,6 +91,14 @@ layout = html.Div(
                         *markers_red,
                         # circle markers (earthquakes) populated in callback
                         html.Div(id='circle-marker'),
+                        html.Button(
+                            children=[
+                                html.P('get latest csv files')
+                            ],
+                            id='temp-get-latest-csv-button',
+                            n_clicks=0
+                        ),
+                        html.Div(id='output-temp-get-latest-csv'),
                     ]
                 ),
             ]
@@ -204,3 +213,15 @@ def update_summary_table(_):
     summary_table_df = build_summary_table(read_targets_geojson())
     # Return the updated table
     return summary_table_ui(summary_table_df)
+
+
+@callback(
+    Output('output-temp-get-latest-csv', 'children'),
+    Input('temp-get-latest-csv-button', 'n_clicks')
+)
+def get_latest_csv_files(n_clicks):
+    if n_clicks > 0:
+        # Call the function/script you want to execute
+        get_latest_csv()
+        return 'Fetching latest CSV files!'
+    return "Click the button to fetch CSV files."

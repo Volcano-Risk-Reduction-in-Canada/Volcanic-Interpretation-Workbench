@@ -13,6 +13,7 @@ import datetime
 from datetime import datetime as dt
 import json
 import os
+import sys
 from io import StringIO
 
 import numpy as np
@@ -40,8 +41,18 @@ from global_variables import (
     YEAR_AXES_COUNT
 )
 
+# Add the parent directory to sys.path so Python can find the 'scripts' directory
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from scripts.get_latest_baselines import get_latest_baselines
+from scripts.get_latest_coh_matrices import get_latest_coh_matrices
+from scripts.get_latest_insar_pairs import get_latest_insar_pairs
+
 logger = logging.getLogger(__name__)
 
+def get_latest_csv():
+    get_latest_baselines()
+    get_latest_coh_matrices()
+    get_latest_insar_pairs()
 
 def get_config_params():
     """
