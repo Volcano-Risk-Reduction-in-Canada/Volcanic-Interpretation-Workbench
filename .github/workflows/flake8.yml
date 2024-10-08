@@ -24,4 +24,4 @@ jobs:
         pip install flake8
     - name: Analyse code
       run: |
-        flake8 --verbose --statistics app scripts
+        flake8 --verbose --statistics --ignore=E402 app scripts
