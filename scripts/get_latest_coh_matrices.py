@@ -24,16 +24,8 @@ def get_latest_coh_matrices():
     matrix files for all site/beam combos'''
     config = get_config_params()
     logging.info('RUNNING get_latest_coh_matrices')
-    # os.chdir('app/Data/')
 
-    # Get the absolute path to the project root (assumed one level up from the scripts folder)
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-    # Construct the path to beamList.yml relative to the project root
-    beam_list_path = os.path.join(project_root, 'app', 'Data', 'beamList.yml')
-
-    # with open('beamList.yml', encoding="utf-8") as beam_list_yml:
-    with open(beam_list_path, encoding="utf-8") as beam_list_yml:
+    with open('app/Data/beamList.yml', encoding="utf-8") as beam_list_yml:
         beam_list = yaml.safe_load(beam_list_yml)
     for site in beam_list:
         for beam in beam_list[site]:

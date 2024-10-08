@@ -13,7 +13,6 @@ Authors:
 import dash
 import logging
 from dash import html, dcc, callback
-from dash import html, dcc, callback
 from dash_leaflet import (
     Map,
     CircleMarker,
@@ -69,17 +68,12 @@ layout = html.Div(
         'justifyContent': 'center',
         'alignItems': 'flex-start',
         'background-color': 'white'
-        'justifyContent': 'center',
-        'alignItems': 'flex-start',
-        'background-color': 'white'
     },
     children=[  # All children should be in this list
         dcc.Location(id='url', refresh=True),
         # Hidden div for triggering callback (for page reload)
         html.Div(id='trigger-reload', style={'display': 'none'}),
         dcc.Store(id='selected_feature'),
-        # HEADER
-        gc_header('VRRC InSAR National Overview'),
         # HEADER
         gc_header('VRRC InSAR National Overview'),
         # MAP
@@ -91,16 +85,9 @@ layout = html.Div(
                 'position': 'relative',
                 'margin': '0 auto',
             },
-            style={
-                'width': '98%',
-                'height': '90vh',
-                'position': 'relative',
-                'margin': '0 auto',
-            },
             children=[
                 Map(
                     id='map',
-                    style={'width': '100%', 'height': '88vh'},
                     style={'width': '100%', 'height': '88vh'},
                     center=[54.64, -123.60],
                     zoom=6,
