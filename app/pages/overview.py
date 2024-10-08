@@ -13,6 +13,7 @@ Authors:
 import dash
 import logging
 from dash import html, dcc, callback
+from dash import html, dcc, callback
 from dash_leaflet import (
     Map,
     CircleMarker,
@@ -23,6 +24,8 @@ from dash_extensions.javascript import (assign)
 
 from pages.components.summary_table import summary_table_ui
 from pages.components.gc_header import gc_header
+from pages.components.summary_table import summary_table_ui
+from pages.components.gc_header import gc_header
 from global_components import generate_controls
 from data_utils import (
     build_summary_table,
@@ -30,6 +33,7 @@ from data_utils import (
     get_latest_csv,
     get_latest_quakes_chis_fsdn,
     get_red_volcanoes,
+    read_targets_geojson,
     read_targets_geojson,
 )
 
@@ -49,6 +53,11 @@ markers_green = get_green_volcanoes()
 epicenters_df = get_latest_quakes_chis_fsdn()
 summary_table_df = build_summary_table(read_targets_geojson())
 
+markers_red = get_red_volcanoes()
+markers_green = get_green_volcanoes()
+epicenters_df = get_latest_quakes_chis_fsdn()
+summary_table_df = build_summary_table(read_targets_geojson())
+
 # LAYOUT
 layout = html.Div(
     style={
@@ -60,12 +69,17 @@ layout = html.Div(
         'justifyContent': 'center',
         'alignItems': 'flex-start',
         'background-color': 'white'
+        'justifyContent': 'center',
+        'alignItems': 'flex-start',
+        'background-color': 'white'
     },
     children=[  # All children should be in this list
         dcc.Location(id='url', refresh=True),
         # Hidden div for triggering callback (for page reload)
         html.Div(id='trigger-reload', style={'display': 'none'}),
         dcc.Store(id='selected_feature'),
+        # HEADER
+        gc_header('VRRC InSAR National Overview'),
         # HEADER
         gc_header('VRRC InSAR National Overview'),
         # MAP
@@ -77,9 +91,16 @@ layout = html.Div(
                 'position': 'relative',
                 'margin': '0 auto',
             },
+            style={
+                'width': '98%',
+                'height': '90vh',
+                'position': 'relative',
+                'margin': '0 auto',
+            },
             children=[
                 Map(
                     id='map',
+                    style={'width': '100%', 'height': '88vh'},
                     style={'width': '100%', 'height': '88vh'},
                     center=[54.64, -123.60],
                     zoom=6,
@@ -110,6 +131,8 @@ layout = html.Div(
                 style={
                     'position': 'absolute',
                     'top': '165px',
+                    'right': '25px',
+                    'width': '480px',
                     'right': '25px',
                     'width': '480px',
                     'zIndex': 1000
