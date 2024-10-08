@@ -16,11 +16,6 @@ import os
 import sys
 from io import StringIO
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from scripts.get_latest_baselines import get_latest_baselines
-from scripts.get_latest_coh_matrices import get_latest_coh_matrices
-from scripts.get_latest_insar_pairs import get_latest_insar_pairs
-
 import numpy as np
 import pandas as pd
 import requests
@@ -46,6 +41,11 @@ from global_variables import (
     MAX_YEARS,
     YEAR_AXES_COUNT
 )
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from scripts.get_latest_baselines import get_latest_baselines
+from scripts.get_latest_coh_matrices import get_latest_coh_matrices
+from scripts.get_latest_insar_pairs import get_latest_insar_pairs
 
 logger = logging.getLogger(__name__)
 
