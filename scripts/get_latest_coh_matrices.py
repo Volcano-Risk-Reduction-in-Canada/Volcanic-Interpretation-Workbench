@@ -28,13 +28,13 @@ def get_latest_coh_matrices():
     for site in beam_list:
         for beam in beam_list[site]:
             print(f'Site: {site}, Beam: {beam}')
-            if not os.path.exists(f'{site}/{beam}'):
-                os.makedirs(f'{site}/{beam}')
+            if not os.path.exists(f'app/Data/{site}/{beam}'):
+                os.makedirs(f'app/Data/{site}/{beam}')
             try:
                 s3.download_file(
                     Bucket=config['AWS_BUCKET_NAME'],
                     Key=f'{site}/{beam}/CoherenceMatrix.csv',
-                    Filename=f'{site}/{beam}/CoherenceMatrix.csv'
+                    Filename=f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
                 )
             except botocore.exceptions.ClientError:
                 print('CoherenceMatrix.csv File not found')
