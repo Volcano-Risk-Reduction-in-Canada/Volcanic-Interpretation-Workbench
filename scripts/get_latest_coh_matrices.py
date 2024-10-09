@@ -9,10 +9,9 @@ Copyright (C) 2021-2023 Government of Canada
 Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
-
+import logging
 import os
 import yaml
-import logging
 import botocore.exceptions
 
 from scripts.data_utils import get_config_params

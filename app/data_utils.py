@@ -143,7 +143,7 @@ def parse_dates(input_string):
         return f"{formatted_start_date} - {formatted_end_date}"
 
     except Exception as e:
-        raise ValueError(f"Error parsing input string: {e}")
+        raise ValueError(f"Error parsing input string: {e}") from e
 
 
 def get_latest_quakes_chis_fsdn():
@@ -694,7 +694,7 @@ def plot_annotation_tab():
         ],
         'insarPhaseAnomaliesOther': '',
         'additionalComments': 'hhhhhiii'
-    },
+    }
 
     log2 = {
         'id': 1,

@@ -14,7 +14,6 @@ import argparse
 import os
 import logging
 import dash
-import sys
 
 import dash_bootstrap_components as dbc
 
@@ -73,7 +72,6 @@ add_routes(server)
 
 
 if __name__ == '__main__':
-    print("\n".join(sys.path))
     logger.info(
         "Running server at %s:%s",
         args.host,

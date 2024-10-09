@@ -134,7 +134,7 @@ def generate_layers_control(opacity=0.5):
       - One overlay layer: WMSTileLayer for displaying
         glacier footprints with specified parameters.
     """
-    LAYERS_CONTROL = LayersControl(
+    layers_control = LayersControl(
         id='container',
         children=[
             # base layer of the map
@@ -171,7 +171,7 @@ def generate_layers_control(opacity=0.5):
             ),
         ]
     )
-    return LAYERS_CONTROL
+    return layers_control
 
 
 def generate_legend(overview=True):
@@ -193,7 +193,7 @@ def generate_legend(overview=True):
         get_glacier_markers(),
         get_volcano_markers() if overview else None,
         get_earthquake_markers(),
-        get_InSAR_phase_change() if not overview else None
+        get_insar_phase_change() if not overview else None
     ]
     # Filter out None values (markers not included if overview is False)
     legend_items = [item for item in legend_items if item is not None]
@@ -420,7 +420,7 @@ def get_earthquake_markers():
     return earthquake
 
 
-def get_InSAR_phase_change():
+def get_insar_phase_change():
     """
     Retrieves content for InSAR phase change legend label.
 
@@ -447,7 +447,7 @@ def get_InSAR_phase_change():
     # Join colors into linear gradient format
     gradient_colors = ', '.join(colors_rgba)
 
-    inSAR_phase_change = html.Div(
+    insar_phase_change = html.Div(
         [
             html.H6(
                 'InSAR Phase Change',
@@ -499,7 +499,7 @@ def get_InSAR_phase_change():
         ],
         style={"margin-bottom": "20px"}
     )
-    return inSAR_phase_change
+    return insar_phase_change
 
 
 @callback(
