@@ -14,8 +14,8 @@ import os
 import yaml
 import botocore.exceptions
 
-from scripts.data_utils import get_config_params
-from scripts.global_variables import s3
+from data_utils import get_config_params
+from global_variables import s3
 
 
 def get_latest_coh_matrices():
