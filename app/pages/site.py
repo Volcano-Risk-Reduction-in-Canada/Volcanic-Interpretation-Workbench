@@ -139,7 +139,7 @@ spatial_view = Map(
         TileLayer(
             id='tiles',
             url="".join(
-                (  
+                (
                     f"/getTileUrl?bucket={TILES_BUCKET}&",
                     f"site={SITE_INI}&",
                     f"beam={BEAM_INI}&",
