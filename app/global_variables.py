@@ -58,4 +58,4 @@ LEGEND_PLACEMENT_STYLING = {
     "right": "12px",
     "background-color": "red",
     "z-index": "2000"
-  }
+}

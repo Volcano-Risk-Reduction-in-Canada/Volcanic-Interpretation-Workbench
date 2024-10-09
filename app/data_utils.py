@@ -129,14 +129,14 @@ def parse_dates(input_string):
 
         # Format the dates into yyyy/mm/dd
         formatted_start_date = (
-            start_date[:4] + '/'
-            + start_date[4:6] + '/'
-            + start_date[6:]
+            f'{start_date[:4]}/'
+            f'{start_date[4:6]}/'
+            f'{start_date[6:]}'
         )
         formatted_end_date = (
-            end_date[:4] + '/'
-            + end_date[4:6] + '/'
-            + end_date[6:]
+            f'{end_date[:4]}/'
+            f'{end_date[4:6]}/'
+            f'{end_date[6:]}'
         )
 
         # Return the final formatted string
@@ -232,10 +232,10 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
             )
             # Parse the boundary lat long
             df = df[
-                (df['Latitude'] >= min_latitude)
-                & (df['Latitude'] <= max_latitude)
-                & (df['Longitude'] >= min_longitude)
-                & (df['Longitude'] <= max_longitude)
+                (df['Latitude'] >= min_latitude) &
+                (df['Latitude'] <= max_latitude) &
+                (df['Longitude'] >= min_longitude) &
+                (df['Longitude'] <= max_longitude) &
             ]
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
@@ -305,10 +305,14 @@ def get_green_volcanoes():
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A'):
                 if (
-                    feature['geometry']['type'] == 'Point'
-                    and not summary_table_df.loc[
-                        summary_table_df['Site'] == feature['properties']['name_en']
-                    ]['Unrest'].values[0]
+                    (feature['geometry']['type'] == 'Point')
+                    and not (
+                        summary_table_df.loc[
+                            summary_table_df[
+                                'Site'
+                            ] == feature['properties']['name_en']
+                        ]['Unrest'].values[0]
+                    )
                 ):
                     green_point_features.append(feature)
         green_markers = [
@@ -342,10 +346,14 @@ def get_red_volcanoes():
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
                 if (
-                    feature['geometry']['type'] == 'Point'
-                    and summary_table_df.loc[
-                        summary_table_df['Site'] == feature['properties']['name_en']
-                    ]['Unrest'].values[0]
+                    (feature['geometry']['type'] == 'Point')
+                    and (
+                        summary_table_df.loc[
+                            summary_table_df[
+                                'Site'
+                            ] == feature['properties']['name_en']
+                        ]['Unrest'].values[0]
+                    )
                 ):
                     red_point_features.append(feature)
         red_markers = [
@@ -446,10 +454,15 @@ def pivot_and_clean(coh_long):
     coh_wide = coh_wide.round(2)
     # trim empty edges
     coh_wide = coh_wide.loc[
-        (coh_wide.index >= 0)
-        & (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index()),
-        (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index())
-        & (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())]
+        (
+            (coh_wide.index >= 0) &
+            (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index())
+        ),
+        (
+            (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index()) &
+            (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())
+        )
+    ]
     return coh_wide
 
 
@@ -849,7 +862,8 @@ def _read_coherence(coherence_csv):
     if wrong_order.any():
         raise RuntimeError(
             'Some intereferogram dates not ordered as expected:\n'
-            + coh[wrong_order].to_string())
+            f'{coh[wrong_order].to_string()}'
+        )
     return coh
 
 
@@ -867,13 +881,12 @@ def _read_insar_pair(insar_pair_csv):
         parse_dates=['Reference_Date', 'Pair_Date'])
     insar.columns = ['first_date', 'second_date', 'insar_pair']
     wrong_order = (
-        (insar.second_date < insar.first_date) &
-        insar.insar_pair.notnull()
+        (insar.second_date < insar.first_date) & insar.insar_pair.notnull()
     )
     if wrong_order.any():
         raise RuntimeError(
             'Some intereferogram dates not ordered as expected:\n'
-            + insar[wrong_order].to_string()
+            f'{insar[wrong_order].to_string()}'
         )
     return insar
 
