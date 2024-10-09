@@ -2,6 +2,9 @@
 """
 Volcano InSAR Interpretation Workbench
 
+compiles a list of functions that aid in generating
+general control functions (LayerControl, Legend, Data Table)
+
 SPDX-License-Identifier: MIT
 
 Copyright (C) 2021-2023 Government of Canada
@@ -29,11 +32,6 @@ from global_variables import (
     LEGEND_PLACEMENT_STYLING,
     LEGEND_TEXT_STYLING
 )
-
-"""
-ABOUT THIS FILE: This file compiles a list of functions that aid
-in generating the general control functions (LayerControl, Legend, Data Table)
-"""
 
 
 def generate_controls(overview=True, opacity=0.5):

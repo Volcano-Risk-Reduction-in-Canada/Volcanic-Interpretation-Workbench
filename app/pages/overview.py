@@ -10,8 +10,8 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
-import dash
 import logging
+import dash
 from dash import html, dcc, callback
 from dash_leaflet import (
     Map,
@@ -36,9 +36,6 @@ from data_utils import (
 logger = logging.getLogger(__name__)
 
 dash.register_page(__name__, path='/')
-
-# VARIABLES
-initial_show_glacier_information = False
 
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
@@ -186,14 +183,6 @@ def update_map_data(_):
     return circle_markers
 
 
-"""
-    Callback to navigate to the site page about
-    the specific red or green volcano clicked.
-    INPUT: any of the green or red volcanos
-    OUTPUT: the url changes to '/site'
-"""
-
-
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
     [[Input(
@@ -222,6 +211,7 @@ def navigate_to_site_page(*args):
     Input('url', 'href')  # This triggers the callback when the page reloads
 )
 def update_summary_table(_):
+    """update summary table"""
     # Dynamically build the summary table each time the page is loaded
     summary_table_df = build_summary_table(read_targets_geojson())
     # Return the updated table
@@ -233,6 +223,7 @@ def update_summary_table(_):
     Input('temp-get-latest-csv-button', 'n_clicks')
 )
 def get_latest_csv_files(n_clicks):
+    """fetch latest csv files"""
     if n_clicks > 0:
         # Call the function/script you want to execute
         get_latest_csv()

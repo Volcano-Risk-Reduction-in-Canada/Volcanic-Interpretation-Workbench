@@ -52,7 +52,7 @@ def _dict_key_error_check(dict, key, none_value):
     return dict[key] if dict and key in dict else none_value
 
 
-def _textWithElementInRow(text, component):
+def _text_with_element_in_row(text, component):
     return html.Div(
         [
             html.P(text, style=title_text_styling),
@@ -205,7 +205,7 @@ def observation_log_ui(users, log=None):
             Store(id='all-users', data=users),
             html.Div(
                 children=[
-                    _textWithElementInRow(
+                    _text_with_element_in_row(
                         'User',
                         Dropdown(
                             id='user-name',
@@ -233,7 +233,7 @@ def observation_log_ui(users, log=None):
                         )
                     ),
                     html.Div(style={'width': '20px'}),
-                    _textWithElementInRow(
+                    _text_with_element_in_row(
                         'End Date Observed',
                         DatePickerSingle(
                             id='date-picker-single',
@@ -248,7 +248,7 @@ def observation_log_ui(users, log=None):
                         )
                     ),
                     html.Div(style={'width': '20px'}),
-                    _textWithElementInRow(
+                    _text_with_element_in_row(
                         'Date Range',
                         Input(
                             # id='date-range',
@@ -264,7 +264,7 @@ def observation_log_ui(users, log=None):
                 children=[
                     html.Div(
                         children=[
-                            _textWithElementInRow(
+                            _text_with_element_in_row(
                                 'Coherence Present',
                                 RadioItems(
                                     id='coherence-present',
@@ -284,7 +284,7 @@ def observation_log_ui(users, log=None):
                                     labelStyle=text_styling
                                 )
                             ),
-                            _textWithElementInRow(
+                            _text_with_element_in_row(
                                 'Confidence',
                                 html.Div(
                                     [
@@ -307,7 +307,7 @@ def observation_log_ui(users, log=None):
                                     style={"width": '400px'}
                                 )
                             ),
-                            _textWithElementInRow(
+                            _text_with_element_in_row(
                                 'Further Geoscience Interpretation Needed',
                                 RadioItems(
                                     id='geoscience-interpretation-needed',
@@ -424,7 +424,7 @@ def observation_log_ui(users, log=None):
             ),
             html.Div(
                 children=[
-                    _textWithElementInRow(
+                    _text_with_element_in_row(
                         'Additional Comments',
                         Input(
                             id='my-input',

@@ -14,13 +14,13 @@ from datetime import datetime as dt
 import json
 import os
 import sys
+import logging
 from io import StringIO
 
 import numpy as np
 import pandas as pd
 import requests
 import dash
-import logging
 from dash import html
 from dash_leaflet import Marker, Tooltip
 from dotenv import load_dotenv
@@ -199,12 +199,6 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     center_latitude = center_lat_long[0]
     center_longitude = center_lat_long[1]
 
-    # Geographic boundaries
-    min_latitude = center_latitude - 1
-    max_latitude = center_latitude + 1
-    min_longitude = center_longitude - 2
-    max_longitude = center_longitude + 2
-
     # Parameters for the query
     params = {
         'format': 'text',
@@ -213,10 +207,11 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
         ).strftime('%Y-%m-%d'),
         'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
         'eventtype': 'earthquake',
-        'minlatitude': min_latitude,
-        'maxlatitude': max_latitude,
-        'minlongitude': min_longitude,
-        'maxlongitude': max_longitude,
+        # Geographic boundaries
+        'minlatitude': center_latitude - 1,
+        'maxlatitude': center_latitude + 1,
+        'minlongitude': center_longitude - 2,
+        'maxlongitude': center_longitude + 2,
     }
     # Initialize df to an empty df to ensure it is always defined
     df = pd.DataFrame()
@@ -662,6 +657,7 @@ def plot_baseline(df_baseline, df_cohfull):
 
 
 def plot_annotation_tab():
+    """plot annotation tab"""
     def get_end_date(log):
         return dt.strptime(log['endDateObserved'], '%Y-%m-%d')
     # example data
@@ -865,7 +861,7 @@ def _read_insar_pair(insar_pair_csv):
     # Check if the file exists
     if not os.path.exists(insar_pair_csv):
         # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
-        logger.info(f"The file {insar_pair_csv} does not exist.")
+        logger.info("The file %s does not exist.", insar_pair_csv)
         return None
 
     insar = pd.read_csv(
@@ -889,7 +885,7 @@ def _read_baseline(baseline_csv):
     # Check if the file exists
     if not os.path.exists(baseline_csv):
         # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
-        logger.info(f"The file {baseline_csv} does not exist.")
+        logger.info("The file %s does not exist.", baseline_csv)
         return None
 
     baseline = pd.read_csv(
