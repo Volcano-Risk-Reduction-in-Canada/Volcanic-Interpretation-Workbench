@@ -235,7 +235,7 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
                 (df['Latitude'] >= min_latitude) &
                 (df['Latitude'] <= max_latitude) &
                 (df['Longitude'] >= min_longitude) &
-                (df['Longitude'] <= max_longitude) &
+                (df['Longitude'] <= max_longitude)
             ]
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
