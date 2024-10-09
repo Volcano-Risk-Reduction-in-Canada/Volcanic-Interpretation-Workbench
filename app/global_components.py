@@ -148,8 +148,8 @@ def generate_layers_control(opacity=0.5):
                 name=BASEMAP_NAME,
                 checked=True
             )
-        ] +
-        [
+        ]
+        + [
             Overlay(
                 html.Div([
                     # WMS Layer for Glacier Footprints

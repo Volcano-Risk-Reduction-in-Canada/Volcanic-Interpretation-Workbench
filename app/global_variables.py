@@ -35,9 +35,9 @@ DAYS_PER_YEAR = 365.25
 
 # styling for legend text
 LEGEND_TEXT_STYLING = {
-  "color": "black",
-  "font-size": "12px",
-  "vertical-align": "middle"
+    "color": "black",
+    "font-size": "12px",
+    "vertical-align": "middle"
 }
 
 # styling for legend button
@@ -57,7 +57,5 @@ LEGEND_PLACEMENT_STYLING = {
     "bottom": "30px",
     "right": "12px",
     "background-color": "red",
-    # "padding": "10px",
-    # "border": "1px solid #ccc",
     "z-index": "2000"
   }

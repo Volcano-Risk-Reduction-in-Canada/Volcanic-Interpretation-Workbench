@@ -129,14 +129,14 @@ def parse_dates(input_string):
 
         # Format the dates into yyyy/mm/dd
         formatted_start_date = (
-            start_date[:4] + '/' +
-            start_date[4:6] + '/' +
-            start_date[6:]
+            start_date[:4] + '/'
+            + start_date[4:6] + '/'
+            + start_date[6:]
         )
         formatted_end_date = (
-            end_date[:4] + '/' +
-            end_date[4:6] + '/' +
-            end_date[6:]
+            end_date[:4] + '/'
+            + end_date[4:6] + '/'
+            + end_date[6:]
         )
 
         # Return the final formatted string
@@ -152,9 +152,9 @@ def get_latest_quakes_chis_fsdn():
     # Parameters for the query
     params = {
         'format': 'text',
-        'starttime': (datetime.datetime.today() -
-                      datetime.timedelta(
-                          days=365)).strftime('%Y-%m-%d'),
+        'starttime': (
+            datetime.datetime.today() - datetime.timedelta(days=365)
+        ).strftime('%Y-%m-%d'),
         'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
         'eventtype': 'earthquake',
     }
@@ -167,18 +167,20 @@ def get_latest_quakes_chis_fsdn():
             # Parse the response text to a dataframe
             df = pd.read_csv(
                 StringIO(response.text), delimiter='|'
-                )
+            )
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
-                df['Time'])-datetime.datetime.now(datetime.timezone.utc)
-            df['Time_Delta'] = pd.to_numeric(-df['Time_Delta'].dt.days,
-                                             downcast='integer')
+                df['Time']) - datetime.datetime.now(datetime.timezone.utc)
+            df['Time_Delta'] = pd.to_numeric(
+                -df['Time_Delta'].dt.days,
+                downcast='integer'
+            )
             conditions = [
                 (df['Time_Delta'] <= 2),
                 (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
                 (df['Time_Delta'] > 7) & (df['Time_Delta'] <= 31),
                 (df['Time_Delta'] > 31)
-                ]
+            ]
             values = ['red', 'orange', 'yellow', 'white']
             df['quake_colour'] = np.select(conditions, values)
             df.sort_values(by='#EventID')
@@ -206,9 +208,9 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     # Parameters for the query
     params = {
         'format': 'text',
-        'starttime': (datetime.datetime.today() -
-                      datetime.timedelta(
-                          days=365)).strftime('%Y-%m-%d'),
+        'starttime': (
+            datetime.datetime.today() - datetime.timedelta(days=365)
+        ).strftime('%Y-%m-%d'),
         'endtime': datetime.datetime.today().strftime('%Y-%m-%d'),
         'eventtype': 'earthquake',
         'minlatitude': min_latitude,
@@ -227,20 +229,21 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
             # Parse the response text to a dataframe
             df = pd.read_csv(
                 StringIO(response.text), delimiter='|'
-                )
+            )
             # Parse the boundary lat long
             df = df[
-                (df['Latitude'] >= min_latitude) &
-                (df['Latitude'] <= max_latitude) &
-                (df['Longitude'] >= min_longitude) &
-                (df['Longitude'] <= max_longitude)
+                (df['Latitude'] >= min_latitude)
+                & (df['Latitude'] <= max_latitude)
+                & (df['Longitude'] >= min_longitude)
+                & (df['Longitude'] <= max_longitude)
             ]
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
-                df['Time'])-datetime.datetime.now(datetime.timezone.utc)
+                df['Time']
+            ) - datetime.datetime.now(datetime.timezone.utc)
             df['Time_Delta'] = pd.to_numeric(
                 -df['Time_Delta'].dt.days, downcast='integer'
-                )
+            )
             conditions = [
                 (df['Time_Delta'] <= 2),
                 (df['Time_Delta'] > 2) & (df['Time_Delta'] <= 7),
@@ -267,12 +270,12 @@ def read_targets_geojson():
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         calculate_and_append_centroids(response_geojson)
         for feature in response_geojson['features']:
-            if unrest_table_df.loc[unrest_table_df['Site'] ==
-                                   feature['properties']['name_en']
-                                   ]['Unrest'].values.size > 0:
+            if unrest_table_df.loc[
+                unrest_table_df['Site'] == feature['properties']['name_en']
+            ]['Unrest'].values.size > 0:
                 unrest_bool = unrest_table_df.loc[
                     unrest_table_df['Site'] == feature['properties']['name_en']
-                    ]['Unrest'].values[0]
+                ]['Unrest'].values[0]
             feature['properties']['tooltip'] = html.Div([
                 html.Span(f"Site: {feature['id']}"), html.Br(),
                 html.Span("Last Checked by: None"), html.Br(),
@@ -301,11 +304,12 @@ def get_green_volcanoes():
         }
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A'):
-                if (feature['geometry']['type'] == 'Point' and
-                    not summary_table_df.loc[
-                            summary_table_df[
-                                'Site'] == feature['properties']['name_en']
-                            ]['Unrest'].values[0]):
+                if (
+                    feature['geometry']['type'] == 'Point'
+                    and not summary_table_df.loc[
+                        summary_table_df['Site'] == feature['properties']['name_en']
+                    ]['Unrest'].values[0]
+                ):
                     green_point_features.append(feature)
         green_markers = [
             Marker(position=[point['geometry']['coordinates'][1],
@@ -337,11 +341,12 @@ def get_red_volcanoes():
         }
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
-                if (feature['geometry']['type'] == 'Point' and
-                    summary_table_df.loc[
-                        summary_table_df[
-                            'Site'] == feature['properties']['name_en']
-                        ]['Unrest'].values[0]):
+                if (
+                    feature['geometry']['type'] == 'Point'
+                    and summary_table_df.loc[
+                        summary_table_df['Site'] == feature['properties']['name_en']
+                    ]['Unrest'].values[0]
+                ):
                     red_point_features.append(feature)
         red_markers = [
             Marker(position=[point['geometry']['coordinates'][1],
@@ -441,10 +446,10 @@ def pivot_and_clean(coh_long):
     coh_wide = coh_wide.round(2)
     # trim empty edges
     coh_wide = coh_wide.loc[
-        (coh_wide.index >= 0) &
-        (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index()),
-        (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index()) &
-        (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())]
+        (coh_wide.index >= 0)
+        & (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index()),
+        (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index())
+        & (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())]
     return coh_wide
 
 
@@ -471,8 +476,9 @@ def pivot_and_clean_insar(insar_long):
 
 def pivot_and_clean_dates(coh_long, coh_wide):
     """Convert long-form df to wide-form date matrix matching coh_wide."""
-    coh_long = coh_long.drop(coh_long[coh_long.second_date <
-                                      coh_long.first_date].index)
+    coh_long = coh_long.drop(
+        coh_long[coh_long.second_date < coh_long.first_date].index
+    )
     date_wide = coh_long.pivot(
         index='delta_days',
         columns='second_date',
@@ -501,14 +507,14 @@ def plot_coherence(coh_long, insar_long):
 
     coh_long['delta_days'] = (
         coh_long.second_date - coh_long.first_date
-        ).dt.days
+    ).dt.days
     coh_wide = pivot_and_clean(coh_long)
     date_wide = pivot_and_clean_dates(coh_long, coh_wide)
 
     if insar_long is not None:
         insar_long['delta_days'] = (
             insar_long.second_date - insar_long.first_date
-            ).dt.days
+        ).dt.days
         insar_wide = pivot_and_clean_insar(insar_long)
         insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
         insar_colorscale = [
@@ -558,17 +564,17 @@ def plot_coherence(coh_long, insar_long):
             baseline_limits = list(
                 int(
                     year * DAYS_PER_YEAR
-                    ) + BASELINE_MAX / 2 * np.array([-1, 1])
-                )
+                ) + BASELINE_MAX / 2 * np.array([-1, 1])
+            )
         second_date_limits = [
             max(
                 coh_wide.columns.min(),
                 coh_wide.columns.max() - pd.to_timedelta(
                     DAYS_PER_YEAR * MAX_YEARS, 'days'
-                    )
-                ) - pd.to_timedelta(4, 'days'),
+                )
+            ) - pd.to_timedelta(4, 'days'),
             coh_wide.columns.max() + pd.to_timedelta(4, 'days')
-            ]
+        ]
         fig.update_yaxes(
             range=baseline_limits,
             dtick=BASELINE_DTICK,
@@ -842,8 +848,8 @@ def _read_coherence(coherence_csv):
     wrong_order = (coh.second_date < coh.first_date) & coh.coherence.notnull()
     if wrong_order.any():
         raise RuntimeError(
-            'Some intereferogram dates not ordered as expected:\n' +
-            coh[wrong_order].to_string())
+            'Some intereferogram dates not ordered as expected:\n'
+            + coh[wrong_order].to_string())
     return coh
 
 
@@ -861,13 +867,14 @@ def _read_insar_pair(insar_pair_csv):
         parse_dates=['Reference_Date', 'Pair_Date'])
     insar.columns = ['first_date', 'second_date', 'insar_pair']
     wrong_order = (
-        (insar.second_date < insar.first_date)
-        & insar.insar_pair.notnull()
-        )
+        (insar.second_date < insar.first_date) &
+        insar.insar_pair.notnull()
+    )
     if wrong_order.any():
         raise RuntimeError(
-            'Some intereferogram dates not ordered as expected:\n' +
-            insar[wrong_order].to_string())
+            'Some intereferogram dates not ordered as expected:\n'
+            + insar[wrong_order].to_string()
+        )
     return insar
 
 

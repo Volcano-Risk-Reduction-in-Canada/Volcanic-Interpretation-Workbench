@@ -159,7 +159,7 @@ def update_map_data(_):
     circle_markers = [
         CircleMarker(
             center=[row['Latitude'], row['Longitude']],
-            radius=3*row['Magnitude'],
+            radius=3 * row['Magnitude'],
             fillColor=row['quake_colour'],
             fillOpacity=0.6,
             color='black',
