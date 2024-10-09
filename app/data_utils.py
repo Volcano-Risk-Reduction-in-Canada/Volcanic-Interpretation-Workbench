@@ -230,13 +230,12 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
             df = pd.read_csv(
                 StringIO(response.text), delimiter='|'
             )
+            c1 = df['Latitude'] >= min_latitude
+            c2 = df['Latitude'] <= max_latitude
+            c3 = df['Longitude'] >= min_longitude
+            c4 = df['Longitude'] <= max_longitude
             # Parse the boundary lat long
-            df = df[
-                (df['Latitude'] >= min_latitude) &
-                (df['Latitude'] <= max_latitude) &
-                (df['Longitude'] >= min_longitude) &
-                (df['Longitude'] <= max_longitude)
-            ]
+            df = df[c1 & c2 & c3 & c4]
             # Create marker colour code based on event age
             df['Time_Delta'] = pd.to_datetime(
                 df['Time']
@@ -304,16 +303,13 @@ def get_green_volcanoes():
         }
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A'):
-                if (
-                    (feature['geometry']['type'] == 'Point')
-                    and not (
-                        summary_table_df.loc[
-                            summary_table_df[
-                                'Site'
-                            ] == feature['properties']['name_en']
-                        ]['Unrest'].values[0]
-                    )
-                ):
+                cond1 = feature['geometry']['type'] == 'Point'
+                cond2 = summary_table_df.loc[
+                    summary_table_df[
+                        'Site'
+                    ] == feature['properties']['name_en']
+                ]['Unrest'].values[0]
+                if (cond1 and not cond2):
                     green_point_features.append(feature)
         green_markers = [
             Marker(position=[point['geometry']['coordinates'][1],
@@ -345,16 +341,13 @@ def get_red_volcanoes():
         }
         for feature in targets_geojson['features']:
             if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
-                if (
-                    (feature['geometry']['type'] == 'Point')
-                    and (
-                        summary_table_df.loc[
-                            summary_table_df[
-                                'Site'
-                            ] == feature['properties']['name_en']
-                        ]['Unrest'].values[0]
-                    )
-                ):
+                cond1 = feature['geometry']['type'] == 'Point'
+                cond2 = summary_table_df.loc[
+                    summary_table_df[
+                        'Site'
+                    ] == feature['properties']['name_en']
+                ]['Unrest'].values[0]
+                if (cond1 and cond2):
                     red_point_features.append(feature)
         red_markers = [
             Marker(position=[point['geometry']['coordinates'][1],
@@ -452,16 +445,15 @@ def pivot_and_clean(coh_long):
     coh_wide.sort_index(inplace=True)
     # because hovertemplate 'f' format doesn't handle NaN properly
     coh_wide = coh_wide.round(2)
+
+    cw_last_col = coh_wide.max(axis='columns').last_valid_index()
+    cw_first_ind = coh_wide.max(axis='index').first_valid_index()
+    cw_last_ind = coh_wide.max(axis='index').last_valid_index()
+    cw_col = coh_wide.columns
     # trim empty edges
     coh_wide = coh_wide.loc[
-        (
-            (coh_wide.index >= 0) &
-            (coh_wide.index <= coh_wide.max(axis='columns').last_valid_index())
-        ),
-        (
-            (coh_wide.columns >= coh_wide.max(axis='index').first_valid_index()) &
-            (coh_wide.columns <= coh_wide.max(axis='index').last_valid_index())
-        )
+        (coh_wide.index >= 0) & (coh_wide.index <= cw_last_col),
+        (cw_col >= cw_first_ind) & (cw_col <= cw_last_ind)
     ]
     return coh_wide
 
