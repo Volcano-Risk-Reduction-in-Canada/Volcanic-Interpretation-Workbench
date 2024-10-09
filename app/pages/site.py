@@ -138,12 +138,16 @@ spatial_view = Map(
         ],
         TileLayer(
             id='tiles',
-            url="".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
-                     f"site={SITE_INI}&",
-                     f"beam={BEAM_INI}&",
-                     "startdate=20220821&",
-                     "enddate=20220914&",
-                     "x={x}&y={y}&z={z}")),
+            url="".join(
+                (  
+                    f"/getTileUrl?bucket={TILES_BUCKET}&",
+                    f"site={SITE_INI}&",
+                    f"beam={BEAM_INI}&",
+                    "startdate=20220821&",
+                    "enddate=20220914&",
+                    "x={x}&y={y}&z={z}"
+                )
+            ),
             # maxZoom=30,
             # minZoom=1,
             # attribution='&copy; Open Street Map Contributors',

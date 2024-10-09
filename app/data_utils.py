@@ -225,10 +225,10 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
             df = pd.read_csv(
                 StringIO(response.text), delimiter='|'
             )
-            c1 = df['Latitude'] >= min_latitude
-            c2 = df['Latitude'] <= max_latitude
-            c3 = df['Longitude'] >= min_longitude
-            c4 = df['Longitude'] <= max_longitude
+            c1 = df['Latitude'] >= center_latitude - 1
+            c2 = df['Latitude'] <= center_latitude + 1
+            c3 = df['Longitude'] >= center_longitude - 2
+            c4 = df['Longitude'] <= center_longitude + 2
             # Parse the boundary lat long
             df = df[c1 & c2 & c3 & c4]
             # Create marker colour code based on event age
