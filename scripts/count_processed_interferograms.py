@@ -10,7 +10,7 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
 
-import boto3
+from scripts_config import s3
 
 BUCKET_NAME = 'vrrc-insar-store'
 FILE_EXTENSION = '.adf.wrp.geo.tif'
@@ -18,8 +18,6 @@ FILE_EXTENSION = '.adf.wrp.geo.tif'
 
 def count_objects_with_extension(bucket_name, file_extension):
     '''Count the number of objects with a specific extension '''
-    # Initialize the S3 client
-    s3 = boto3.client('s3', verify=False)
     # Initialize counter for the file count
     file_count = 0
     # Paginator to handle pagination

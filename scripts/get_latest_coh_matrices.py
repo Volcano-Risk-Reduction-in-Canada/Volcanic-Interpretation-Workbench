@@ -14,9 +14,8 @@ import os
 import yaml
 import botocore.exceptions
 
-# from .data_utils import get_config_params
-# from .global_variables import s3
 from scripts_config import get_config_params, s3
+
 
 def get_latest_coh_matrices():
     '''Main function, retrieve latest coherence
