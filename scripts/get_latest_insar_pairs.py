@@ -6,20 +6,19 @@ Copyright (C) 2021-2024 Government of Canada
 Authors:
   - Mandip Sond <mandip.sond@nrcan-rncan.gc.ca>
 """
-
+import logging
 import os
 import botocore.exceptions
 import yaml
 
-from data_utils import get_config_params
-from global_variables import s3
+from scripts_config import get_config_params, s3
 
 
-def main():
+def get_latest_insar_pairs():
     '''Main function, retrieve latest potential
     insar pairs files for all site/beam combos'''
     config = get_config_params()
-
+    logging.info('RUNNING get_latest_insar_pairs')
     with open('app/Data/beamList.yml', encoding="utf-8") as beam_list_yml:
         beam_list = yaml.safe_load(beam_list_yml)
         print(beam_list)
@@ -37,7 +36,4 @@ def main():
                 )
             except botocore.exceptions.ClientError:
                 print('InSAR_Pair_All.csv File not found')
-
-
-if __name__ == '__main__':
-    main()
+    logging.info('DONE get_latest_insar_pairs')

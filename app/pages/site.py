@@ -77,20 +77,11 @@ epicenters_df = get_latest_quakes_chis_fsdn_site(
 TEMPLATE = 'darkly'
 TITLE = 'Volcano InSAR Interpretation Workbench'
 
-initial_show_glacier_information = False
-
 # construct dashboard
 load_figure_template('darkly')
 app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
-
-tiles_url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
-                     f"site={SITE_INI}&",
-                     f"beam={BEAM_INI}&",
-                     "startdate=20220821&",
-                     "enddate=20220914&",
-                     "x={x}&y={y}&z={z}"))
 
 # different components in page layout + styling variables
 selector = html.Div(
@@ -123,7 +114,7 @@ spatial_view = Map(
         *[
             CircleMarker(
                 center=[row['Latitude'], row['Longitude']],
-                radius=3*row['Magnitude'],
+                radius=3 * row['Magnitude'],
                 fillColor=row['quake_colour'],
                 fillOpacity=0.6,
                 color='black',
@@ -143,11 +134,20 @@ spatial_view = Map(
             )
             for _, row in epicenters_df.sort_values(
                 by='#EventID'
-                ).iterrows()
+            ).iterrows()
         ],
         TileLayer(
             id='tiles',
-            url=tiles_url,
+            url="".join(
+                (
+                    f"/getTileUrl?bucket={TILES_BUCKET}&",
+                    f"site={SITE_INI}&",
+                    f"beam={BEAM_INI}&",
+                    "startdate=20220821&",
+                    "enddate=20220914&",
+                    "x={x}&y={y}&z={z}"
+                )
+            ),
             # maxZoom=30,
             # minZoom=1,
             # attribution='&copy; Open Street Map Contributors',
@@ -171,7 +171,7 @@ temporal_view = html.Div(
             figure=plot_coherence(
                 _read_coherence(_coherence_csv(INITIAL_TARGET)),
                 _read_insar_pair(_insar_pair_csv(INITIAL_TARGET))
-                ),
+            ),
             style={'height': TEMPORAL_HEIGHT},
         )
     ]
@@ -220,7 +220,7 @@ baseline_tab = html.Div(
                 #     style=tab_style,
                 #     selected_style=tab_selected_style
                 # )
-                ],
+            ],
             style={
                 'width': '15%',
                 'height': '25px',
@@ -326,7 +326,7 @@ layout = html.Div(
     Input('tiles', 'zoom'),
     Input('tiles', 'bounds'),
     prevent_initial_call=True
-    )
+)
 def update_interferogram(click_data, target_id, zoom, bounds):
     """
     Update interferogram display and information text
@@ -396,7 +396,7 @@ def update_interferogram(click_data, target_id, zoom, bounds):
            allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
     prevent_initial_call=True
-    )
+)
 def update_coherence(target_id):
     """
     Display a new coherence matrix based on the selected site.
@@ -429,7 +429,7 @@ def update_coherence(target_id):
     [Input(component_id='tabs-example-graph', component_property='value'),
      Input(component_id='site-dropdown', component_property='value')],
     prevent_initial_call=True
-    )
+)
 def switch_temporal_view(tab, site):
     """
     Switch between temporal and spatial baseline plots
@@ -494,7 +494,7 @@ def switch_temporal_view(tab, site):
     # Output('ifg-info', 'children', allow_duplicate=True),
     Input(component_id='site-dropdown', component_property='value'),
     # prevent_initial_call=True
-    )
+)
 def recenter_map(target_id):
     """
     Recenter the map on a new site and update information text.
@@ -542,7 +542,7 @@ def update_earthquake_markers(target_id):
         new_markers = [
             CircleMarker(
                 center=[row['Latitude'], row['Longitude']],
-                radius=3*row['Magnitude'],
+                radius=3 * row['Magnitude'],
                 fillColor=row['quake_colour'],
                 fillOpacity=0.6,
                 color='black',
@@ -562,7 +562,7 @@ def update_earthquake_markers(target_id):
             )
             for index, row in new_epicenters_df.sort_values(
                 by='#EventID'
-                ).iterrows()
+            ).iterrows()
         ]
     else:
         new_markers = []
@@ -588,7 +588,7 @@ def update_earthquake_markers(target_id):
     Output(component_id='gc-header-container', component_property='children'),
     Input(component_id='site-dropdown', component_property='value'),
     # prevent_initial_call=True
-    )
+)
 def update_gc_header_title(target_id):
     """Display new gc header title"""
 

@@ -9,9 +9,9 @@ Copyright (C) 2021-2024 Government of Canada
 Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
+import logging
 from flask import Response, request
 import requests
-import logging
 
 from global_variables import s3
 
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def add_routes(server):
+    """ add routes"""
     def get_signed_url(bucket, key):
         logger.debug("Bucket: %s",
                      bucket)

@@ -12,8 +12,7 @@ Authors:
 import argparse
 import os
 
-from data_utils import get_config_params
-from global_variables import s3
+from scripts_config import get_config_params, s3
 
 
 def main():

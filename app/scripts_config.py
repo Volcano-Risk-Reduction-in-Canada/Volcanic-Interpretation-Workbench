@@ -12,6 +12,10 @@ Authors:
 
 import os
 from dotenv import load_dotenv
+import boto3
+
+# verify = False for when working in office to bypass SSL Certificate Error
+s3 = boto3.client('s3', verify=False)
 
 
 def get_config_params():

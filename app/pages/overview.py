@@ -10,8 +10,8 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
   - Nick Ackerley <nicholas.ackerley@nrcan-rncan.gc.ca>
 """
-import dash
 import logging
+import dash
 from dash import html, dcc, callback
 from dash_leaflet import (
     Map,
@@ -27,6 +27,7 @@ from global_components import generate_controls
 from data_utils import (
     build_summary_table,
     get_green_volcanoes,
+    get_latest_csv,
     get_latest_quakes_chis_fsdn,
     get_red_volcanoes,
     read_targets_geojson,
@@ -36,12 +37,14 @@ logger = logging.getLogger(__name__)
 
 dash.register_page(__name__, path='/')
 
-# VARIABLES
-initial_show_glacier_information = False
-
 on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
+
+markers_red = get_red_volcanoes()
+markers_green = get_green_volcanoes()
+epicenters_df = get_latest_quakes_chis_fsdn()
+summary_table_df = build_summary_table(read_targets_geojson())
 
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
@@ -94,6 +97,20 @@ layout = html.Div(
                 ),
             ]
         ),
+        html.Button(
+            children=[
+                html.P('get latest csv files')
+            ],
+            id='temp-get-latest-csv-button',
+            n_clicks=0,
+            style={
+                "background-color": "red",
+                "position": "absolute",
+                "top": "50px",
+                "left": "450px"
+            }
+        ),
+        html.Div(id='output-temp-get-latest-csv'),
         # TABLE (on top right corner)
         html.Div(
             html.Div(
@@ -101,6 +118,8 @@ layout = html.Div(
                 style={
                     'position': 'absolute',
                     'top': '165px',
+                    'right': '25px',
+                    'width': '480px',
                     'right': '25px',
                     'width': '480px',
                     'zIndex': 1000
@@ -137,7 +156,7 @@ def update_map_data(_):
     circle_markers = [
         CircleMarker(
             center=[row['Latitude'], row['Longitude']],
-            radius=3*row['Magnitude'],
+            radius=3 * row['Magnitude'],
             fillColor=row['quake_colour'],
             fillOpacity=0.6,
             color='black',
@@ -162,14 +181,6 @@ def update_map_data(_):
 
     # updated data
     return circle_markers
-
-
-"""
-    Callback to navigate to the site page about
-    the specific red or green volcano clicked.
-    INPUT: any of the green or red volcanos
-    OUTPUT: the url changes to '/site'
-"""
 
 
 @callback(
@@ -200,7 +211,21 @@ def navigate_to_site_page(*args):
     Input('url', 'href')  # This triggers the callback when the page reloads
 )
 def update_summary_table(_):
+    """update summary table"""
     # Dynamically build the summary table each time the page is loaded
     summary_table_df = build_summary_table(read_targets_geojson())
     # Return the updated table
     return summary_table_ui(summary_table_df)
+
+
+@callback(
+    Output('output-temp-get-latest-csv', 'children'),
+    Input('temp-get-latest-csv-button', 'n_clicks')
+)
+def get_latest_csv_files(n_clicks):
+    """fetch latest csv files"""
+    if n_clicks > 0:
+        # Call the function/script you want to execute
+        get_latest_csv()
+        return 'Fetching latest CSV files!'
+    return "Click the button to fetch CSV files."
