@@ -146,6 +146,36 @@ def parse_dates(input_string):
         raise ValueError(f"Error parsing input string: {e}") from e
 
 
+
+def get_latest_pair_dates(site, beam):
+    print('GET LATEST PAIR', site, beam)
+    coherence_csv_file_path = f'app/Data/{site}/{beam}/CoherenceMatrix.csv'
+    
+    # Read the CSV file
+    df = pd.read_csv(coherence_csv_file_path)
+    # Filter rows where 'Average Coherence' is not NaN
+    filtered_df = df[df['Average Coherence'].notna()]
+    # Get the last row of the filtered DataFrame
+    if filtered_df.empty:
+        raise ValueError("No rows with non-NaN 'Average Coherence' found")
+    last_dates = filtered_df.iloc[-1]
+    print(last_dates)
+    
+    latest_start_date = last_dates['Pair Date']
+    latest_end_date = last_dates['Reference Date']
+
+    # Check if start date is after end date
+    if dt.strptime(latest_start_date, '%Y-%m-%d') > dt.strptime(latest_end_date, '%Y-%m-%d'):
+        # switch them around
+        latest_start_date = last_dates['Reference Date']
+        latest_end_date = last_dates['Pair Date']
+    print(latest_start_date, latest_end_date)
+    formatted_latest_start_date = dt.strptime(latest_start_date, '%Y-%m-%d').strftime('%Y%m%d')
+    formatted_latest_end_date = dt.strptime(latest_end_date, '%Y-%m-%d').strftime('%Y%m%d')
+    print(formatted_latest_start_date, formatted_latest_end_date)
+    return formatted_latest_start_date, formatted_latest_end_date
+
+
 def get_latest_quakes_chis_fsdn():
     """Query the CHIS fsdn for latest earthquakes"""
     url = 'https://earthquakescanada.nrcan.gc.ca/fdsnws/event/1/query'

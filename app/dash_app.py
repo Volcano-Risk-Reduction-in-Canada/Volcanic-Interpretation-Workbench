@@ -15,12 +15,18 @@ import os
 import logging
 import dash
 
+# import urllib3
+# import warnings
+
 import dash_bootstrap_components as dbc
 
 from dash import html, Dash
 from dotenv import load_dotenv
 from routes import add_routes
 
+
+# # Suppress only InsecureRequestWarning
+# warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
 
 # Load environment variables from .env file during development
 load_dotenv()
