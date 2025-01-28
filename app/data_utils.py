@@ -270,6 +270,8 @@ def read_targets_geojson():
                 unrest_bool = unrest_table_df.loc[
                     unrest_table_df['Site'] == feature['properties']['name_en']
                 ]['Unrest'].values[0]
+            else:
+                unrest_bool = False
             feature['properties']['tooltip'] = html.Div([
                 html.Span(f"Site: {feature['id']}"), html.Br(),
                 html.Span("Last Checked by: None"), html.Br(),
