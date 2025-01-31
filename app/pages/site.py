@@ -373,7 +373,7 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                         f"startdate={first_str}&",
                         f"enddate={second_str}&",
                         "x=0&y=0&z=0"))
-    response = requests.get(test_url, timeout=10, verify=False)
+    response = requests.get(test_url, timeout=10)
     if response.status_code == 200:
         logger.info('Interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,

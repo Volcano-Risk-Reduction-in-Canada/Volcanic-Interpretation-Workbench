@@ -10,8 +10,7 @@ Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
 import boto3
-# verify = False for when working in office to bypass SSL Certificate Error
-s3 = boto3.client('s3', verify=False)
+s3 = boto3.client('s3')
 
 # basemap configuration
 BASEMAP_URL = (
