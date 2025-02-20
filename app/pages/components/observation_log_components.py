@@ -9,7 +9,8 @@ Copyright (C) 2021-2024 Government of Canada
 Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
-from dash import html, Input as DashInput, Output, ALL, callback, ctx
+from dash import html, Input as DashInput, Output, ALL, callback, ctx, State as DashState
+from datetime import datetime
 
 from dash.dcc import (
     Dropdown,
@@ -73,11 +74,11 @@ def _annotations_card(log):
             html.Div(
                 [
                     html.P(
-                        f"Date Range: {log['dateRange']}",
+                        f"Date Range: {log['date_range']}",
                         style=text_styling
                     ),
                     html.P(
-                        f"Date Added/Modified: {log['dateAddedModified']}",
+                        f"Date Added/Modified: {log['annotation_created']}",
                         style=text_styling
                     )
                 ],
@@ -86,7 +87,7 @@ def _annotations_card(log):
             html.P('Observation Notes', style=text_styling),
             html.Div(
                 [
-                    html.P(log['user']['name'], style=text_styling),
+                    html.P(log['user']['username'], style=text_styling),
                     html.P(log['user']['email'], style=text_styling)
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
@@ -216,17 +217,17 @@ def observation_log_ui(users, log=None):
                             options=[
                                 {
                                     'label': html.Span(
-                                        [user['name']],
+                                        [user['username']],
                                         style={
                                             'color': 'black',
                                             'font-size': 15
                                         }
                                     ),
-                                    'value': user['name']
+                                    'value': user['username']
                                 } for user in users
                             ],
                             value=(
-                                users[log_user_index]['name']
+                                users[log_user_index]['username']
                                 if log_user_index
                                 else ''
                             )
@@ -239,9 +240,10 @@ def observation_log_ui(users, log=None):
                             id='date-picker-single',
                             date=_dict_key_error_check(
                                 log,
-                                'endDateObserved',
+                                'end_date_observed',
                                 ''
                             ),
+                            # date=datetime.today().strftime('%Y-%m-%d'),
                             display_format='YYYY-MM-DD',  # Format to display
                             clearable=True,
                             reopen_calendar_on_clear=True,
@@ -254,7 +256,7 @@ def observation_log_ui(users, log=None):
                             # id='date-range',
                             type='number',
                             placeholder='Enter date range',
-                            value=_dict_key_error_check(log, 'dateRange', 0),
+                            value=_dict_key_error_check(log, 'date_range', 0),
                         )
                     )
                 ],
@@ -484,6 +486,7 @@ def update_card_styles(clicks, new_clicks, logs):
     """
     # Find which button was clicked
     triggered = ctx.triggered_id if ctx.triggered_id else None
+    print(triggered)
 
     if 'create-new-annotation-button' in triggered:
         return (
@@ -518,7 +521,7 @@ def update_card_styles(clicks, new_clicks, logs):
 
 
 @callback(
-    Output('observation_log_container', 'children'),
+    Output('observation_log_container', 'children', allow_duplicate=True),
     [
         DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'),
         DashInput('create-new-annotation-button', 'n_clicks')
@@ -560,6 +563,33 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
 
     return None  # Default return if no valid trigger
 
+@callback(
+    Output('observation_log_container', 'children', allow_duplicate=True),
+    DashInput('submit-update-annotation', 'n_clicks'),
+    DashState('logs-store', 'data'),
+    DashState('all-users', 'data'),
+    prevent_initial_call=True
+)
+def submit_update_annotation(clicks, logs, users):
+    """
+    Callback function to submit or update an observation log.
+    It listens to click events on the "Submit Annotation" button.
+    When triggered, it either creates a new observation log or
+    updates an existing observation log based on the form data.
+
+    Parameters:
+    clicks (int): Click event from the "Submit Annotation" button.
+
+    Returns:
+    Component or None: The updated observation log UI based on
+    the interaction, or None if no valid trigger occurs.
+    """
+    triggered = ctx.triggered_id
+    if triggered:
+        print(clicks, new_clicks)
+        print(triggered)
+        print("submit update button clicked")
+    raise exceptions.PreventUpdate
 
 @callback(
     Output('lat-long-interpretation', 'style'),

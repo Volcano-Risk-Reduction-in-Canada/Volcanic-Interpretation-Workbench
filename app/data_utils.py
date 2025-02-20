@@ -661,7 +661,8 @@ def plot_baseline(df_baseline, df_cohfull):
 def plot_annotation_tab():
     """plot annotation tab"""
     def get_end_date(log):
-        return dt.strptime(log['endDateObserved'], '%Y-%m-%d')
+        return dt.strptime(log['end_date_observed'], '%Y-%m-%dT%H:%M:%S.%f').strftime('%Y-%m-%d')
+    url = config['API_VRRC_IP']
     # example data
     user1 = {
         'name': 'User 1',
@@ -759,13 +760,14 @@ def plot_annotation_tab():
         'additionalComments': 'hhhhhiii'
     }
 
-    users = [user1, user2, user3]
-    logs = [
-        log1,
-        log2,
-        log3,
-        log4
-    ]
+    response = requests.get(
+                    f"http://{url}/users/",
+                    timeout=10, verify=False)
+    users = json.loads(response.content)
+    response = requests.get(
+                    f"http://{url}/annotations/",
+                    timeout=10, verify=False)
+    logs = json.loads(response.content)
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
     # most recent log first
     sorted_logs = sorted(cleaned_logs, key=get_end_date, reverse=True)
