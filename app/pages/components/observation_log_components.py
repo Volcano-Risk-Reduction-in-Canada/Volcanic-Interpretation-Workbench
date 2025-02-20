@@ -253,7 +253,7 @@ def observation_log_ui(users, log=None):
                     _text_with_element_in_row(
                         'Date Range',
                         Input(
-                            # id='date-range',
+                            id='date-range',
                             type='number',
                             placeholder='Enter date range',
                             value=_dict_key_error_check(log, 'date_range', 0),
@@ -568,9 +568,18 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
     DashInput('submit-update-annotation', 'n_clicks'),
     DashState('logs-store', 'data'),
     DashState('all-users', 'data'),
+    DashState('user-name', 'value'),
+    DashState('date-picker-single', 'date'),
+    DashState('date-range', 'value'),
+    DashState('coherence-present', 'value'),
+    DashState('confidence', 'value'),
+    DashState('geoscience-interpretation-needed', 'value'),
+    DashState('insar-phase-anomalies', 'value'),
+    DashState('other-anomaly', 'value'),
+    DashState('my-input', 'value'),
     prevent_initial_call=True
 )
-def submit_update_annotation(clicks, logs, users):
+def submit_update_annotation(clicks, logs, users, user_name, date_picker_single, date_range, coherence_present, confidence, geoscience_interpretation_needed, insar_phase_anomalies, other_anomaly, my_input):
     """
     Callback function to submit or update an observation log.
     It listens to click events on the "Submit Annotation" button.
@@ -579,17 +588,38 @@ def submit_update_annotation(clicks, logs, users):
 
     Parameters:
     clicks (int): Click event from the "Submit Annotation" button.
+    logs (list): The current list of observation logs stored in 'logs-store'.
+    users (list): List of all users for user selection in the UI.
+    user_name (str): The selected user name.
+    date_picker_single (str): The selected end date observed.
+    date_range (int): The entered date range.
+    coherence_present (str): The selected coherence present option.
+    confidence (int): The selected confidence value.
+    geoscience_interpretation_needed (bool): The selected geoscience interpretation needed option.
+    latitude (str): The entered latitude.
+    longitude (str): The entered longitude.
+    insar_phase_anomalies (list): The selected InSAR phase anomalies.
+    other_anomaly (str): The entered other anomaly.
+    my_input (str): The entered additional comments.
 
     Returns:
     Component or None: The updated observation log UI based on
     the interaction, or None if no valid trigger occurs.
     """
     triggered = ctx.triggered_id
-    if triggered:
-        print(clicks, new_clicks)
-        print(triggered)
+    if triggered == 'submit-update-annotation':
         print("submit update button clicked")
-    raise exceptions.PreventUpdate
+        print(f"User: {user_name}")
+        print(f"End Date Observed: {date_picker_single}")
+        print(f"Date Range: {date_range}")
+        print(f"Coherence Present: {coherence_present}")
+        print(f"Confidence: {confidence}")
+        print(f"Geoscience Interpretation Needed: {geoscience_interpretation_needed}")
+        print(f"InSAR Phase Anomalies: {insar_phase_anomalies}")
+        print(f"Other Anomaly: {other_anomaly}")
+        print(f"Additional Comments: {my_input}")
+        # Add your logic here to handle the submission or update
+        return
 
 @callback(
     Output('lat-long-interpretation', 'style'),
