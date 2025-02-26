@@ -660,8 +660,31 @@ def plot_baseline(df_baseline, df_cohfull):
 
 def plot_annotation_tab():
     """plot annotation tab"""
+    from datetime import datetime as dt
+
     def get_end_date(log):
-        return dt.strptime(log['end_date_observed'], '%Y-%m-%dT%H:%M:%S.%f').strftime('%Y-%m-%d')
+        """
+        Extracts and returns the end date observed from a log entry.
+        Handles date strings with or without microseconds.
+
+        Parameters:
+        ----------
+        log : dict
+            A dictionary representing a log entry with an 'end_date_observed' key.
+
+        Returns:
+        -------
+        str
+            The end date observed in 'YYYY-MM-DD' format.
+        """
+        date_str = log['end_date_observed']
+        try:
+            # Try to parse the date string with microseconds
+            return dt.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f').strftime('%Y-%m-%d')
+        except ValueError:
+            # If parsing fails, try without microseconds
+            return dt.strptime(date_str, '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d')
+
     url = config['API_VRRC_IP']
     # example data
     user1 = {
