@@ -11,6 +11,8 @@ Authors:
 """
 from dash import html, Input as DashInput, exceptions, Output, ALL, callback, ctx, State as DashState
 from datetime import datetime
+import requests
+import os
 
 from dash.dcc import (
     Dropdown,
@@ -47,7 +49,6 @@ SELECTED_ANNOTATION_COLOUR = 'red'
 
 # ######################################################
 #  HELPER Components
-
 
 def _dict_key_error_check(dict, key, none_value):
     return dict[key] if dict and key in dict else none_value
@@ -131,6 +132,7 @@ def logs_list_ui(logs, width):
         },
         children=[
             Store(id='logs-store', data=logs),
+            Store(id='selected-log-id', data=None),  # Store for selected log ID
             html.H5(
                 'Previous Annotations (End Date: )',
                 style={**title_text_styling, 'margin': '10px 5px'}
@@ -219,6 +221,7 @@ def observation_log_ui(users, log=None):
         children=[
             Store(id='all-users', data=users),
             Store(id='n_clicks_store', data=0),
+            Store(id='current_log', data=log),
             html.Div(
                 children=[
                     _text_with_element_in_row(
@@ -467,6 +470,7 @@ def observation_log_ui(users, log=None):
     [
         Output({"type": "annotation-triangle", "index": ALL}, 'style'),
         Output({"type": "annotation-card", "index": ALL}, 'style'),
+        Output('selected-log-id', 'data')  # Output for selected log ID
     ],
     [
         DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'),
@@ -487,9 +491,8 @@ def update_card_styles(clicks, new_clicks, logs):
     logs (list): The current list of observation logs stored in 'logs-store'.
 
     Returns:
-    tuple: A list of style dictionaries for the annotation triangles and a
-    list of style dictionaries for the annotation cards, reflecting the
-    selected log or a new log creation.
+    tuple: A list of style dictionaries for the annotation triangles, a
+    list of style dictionaries for the annotation cards, and the selected log ID.
     """
     # Find which button was clicked
     triggered = ctx.triggered_id if ctx.triggered_id else None
@@ -498,7 +501,8 @@ def update_card_styles(clicks, new_clicks, logs):
     if 'create-new-annotation-button' in triggered:
         return (
             [{**triangle_style} for _ in logs],
-            [{**annotation_card_style} for _ in logs]
+            [{**annotation_card_style} for _ in logs],
+            None  # No log selected
         )
     if 'annotation-card' in triggered['type']:
         index = triggered.get('index') if triggered else None
@@ -522,10 +526,10 @@ def update_card_styles(clicks, new_clicks, logs):
                     )
                 }
                 for log in logs
-            ]
+            ],
+            index  # Selected log ID
         )
     return None  # Default return if no valid trigger
-
 
 @callback(
     Output('observation_log_container', 'children', allow_duplicate=True),
@@ -593,9 +597,11 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
     DashState('insar-phase-anomalies', 'value'),
     DashState('other-anomaly', 'value'),
     DashState('my-input', 'value'),
+    DashState('selected-log-id', 'data'),  # Add selected log ID state
+    DashState('submit-update-annotation', 'children'),
     prevent_initial_call=True
 )
-def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, date_picker_single, date_range, coherence_present, confidence, geoscience_interpretation_needed, insar_phase_anomalies, other_anomaly, my_input):
+def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, date_picker_single, date_range, coherence_present, confidence, geoscience_interpretation_needed, insar_phase_anomalies, other_anomaly, my_input, selected_log_id, button_text):
     """
     Callback function to submit or update an observation log.
     It listens to click events on the "Submit Annotation" button.
@@ -603,24 +609,42 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
     updates an existing observation log based on the form data.
 
     Parameters:
-    n_clicks (int): Click event from the "Submit Annotation" button.
-    prev_n_clicks (int): Previous value of n_clicks stored in 'n_clicks_store'.
-    logs (list): The current list of observation logs stored in 'logs-store'.
-    users (list): List of all users for user selection in the UI.
-    user_name (str): The selected user name.
-    date_picker_single (str): The selected end date observed.
-    date_range (int): The entered date range.
-    coherence_present (str): The selected coherence present option.
-    confidence (int): The selected confidence value.
-    geoscience_interpretation_needed (bool): The selected geoscience interpretation needed option.
-    latitude (str): The entered latitude.
-    longitude (str): The entered longitude.
-    insar_phase_anomalies (list): The selected InSAR phase anomalies.
-    other_anomaly (str): The entered other anomaly.
-    my_input (str): The entered additional comments.
+    ----------
+    n_clicks : int
+        Click event from the "Submit Annotation" button.
+    prev_n_clicks : int
+        Previous value of n_clicks stored in 'n_clicks_store'.
+    logs : list
+        The current list of observation logs stored in 'logs-store'.
+    users : list
+        List of all users for user selection in the UI.
+    user_name : str
+        The selected user name.
+    date_picker_single : str
+        The selected end date observed.
+    date_range : int
+        The entered date range.
+    coherence_present : str
+        The selected coherence present option.
+    confidence : int
+        The selected confidence value.
+    geoscience_interpretation_needed : bool
+        The selected geoscience interpretation needed option.
+    insar_phase_anomalies : list
+        The selected InSAR phase anomalies.
+    other_anomaly : str
+        The entered other anomaly.
+    my_input : str
+        The entered additional comments.
+    selected_log_id : int
+        The ID of the selected log.
+    button_text : str
+        The text of the "Submit Annotation" button.
 
     Returns:
-    tuple: The updated observation log UI and the new value of n_clicks.
+    -------
+    tuple
+        The updated observation log UI and the new value of n_clicks.
     """
     if n_clicks and n_clicks > prev_n_clicks:
         print("submit update button clicked")
@@ -633,44 +657,70 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
         print(f"InSAR Phase Anomalies: {insar_phase_anomalies}")
         print(f"Other Anomaly: {other_anomaly}")
         print(f"Additional Comments: {my_input}")
-        data = {
-            "end_date_observed": date_picker_single,
-            "date_range": date_range,
-            "coherence_present": coherence_present,
-            "confidence": confidence,
-            "further_interpretation_needed": geoscience_interpretation_needed,
-            "interpretation_latitude": None,
-            "interpretation_longitude": None,
-            "anomaly_magmatic_deformation": 'Magmatic Deformation' in insar_phase_anomalies,
-            "anomaly_slope_movement": 'Slope Movement' in insar_phase_anomalies,
-            "anomaly_glacial_movement": 'Glacial Movement' in insar_phase_anomalies,
-            "anomaly_topographic_phase_error": 'Topographic Phase Error' in insar_phase_anomalies,
-            "anomaly_atmospheric_phase_error": 'Atmospheric Phase Error' in insar_phase_anomalies,
-            "anomaly_baseline_phase_error": 'Baseline Phase Error' in insar_phase_anomalies,
-            "anomaly_other": 'Other' in insar_phase_anomalies,
-            "insar_phase_anomalies_other": other_anomaly,
-            "additional_comments": my_input,
-            "user_username": user_name
-        }
+        print(f"Selected Log ID: {selected_log_id}")
 
-        # Determine if this is a new annotation or an update
-        existing_log = next((log for log in logs if log['user']['username'] == user_name and log['end_date_observed'] == date_picker_single), None)
+        # Convert date_picker_single to the required format
+        date_obj = datetime.fromisoformat(date_picker_single)
+        formatted_date = date_obj.isoformat()
+        print(formatted_date)
 
-        if existing_log:
+        url = os.getenv("API_VRRC_IP")
+        if button_text.startswith("Update") and selected_log_id:
             # Update existing annotation (PUT request)
-            url = f"http://your-api-endpoint/{existing_log['id']}"
-            response = requests.put(url, json=data)
+            data = {
+                "end_date_observed": formatted_date,
+                "date_range": date_range,
+                "coherence_present": coherence_present,
+                "confidence": confidence,
+                "further_interpretation_needed": geoscience_interpretation_needed,
+                "interpretation_latitude": None,
+                "interpretation_longitude": None,
+                "anomaly_magmatic_deformation": 'Magmatic Deformation' in insar_phase_anomalies,
+                "anomaly_slope_movement": 'Slope Movement' in insar_phase_anomalies,
+                "anomaly_glacial_movement": 'Glacial Movement' in insar_phase_anomalies,
+                "anomaly_topographic_phase_error": 'Topographic Phase Error' in insar_phase_anomalies,
+                "anomaly_atmospheric_phase_error": 'Atmospheric Phase Error' in insar_phase_anomalies,
+                "anomaly_baseline_phase_error": 'Baseline Phase Error' in insar_phase_anomalies,
+                "anomaly_other": 'Other' in insar_phase_anomalies,
+                "insar_phase_anomalies_other": other_anomaly,
+                "additional_comments": my_input,
+            }
+            response = requests.put(f"http://{url}/annotations/{selected_log_id}",
+                                    json=data,
+                                    headers={'Content-Type': 'application/json'}, 
+                                    timeout=10)
         else:
             # Create new annotation (POST request)
-            url = "http://your-api-endpoint"
-            response = requests.post(url, json=data)
+            data = {
+                "end_date_observed": formatted_date,
+                "date_range": date_range,
+                "coherence_present": coherence_present,
+                "confidence": confidence,
+                "further_interpretation_needed": geoscience_interpretation_needed,
+                "interpretation_latitude": 0,
+                "interpretation_longitude": 0,
+                "anomaly_magmatic_deformation": 'Magmatic Deformation' in insar_phase_anomalies,
+                "anomaly_slope_movement": 'Slope Movement' in insar_phase_anomalies,
+                "anomaly_glacial_movement": 'Glacial Movement' in insar_phase_anomalies,
+                "anomaly_topographic_phase_error": 'Topographic Phase Error' in insar_phase_anomalies,
+                "anomaly_atmospheric_phase_error": 'Atmospheric Phase Error' in insar_phase_anomalies,
+                "anomaly_baseline_phase_error": 'Baseline Phase Error' in insar_phase_anomalies,
+                "anomaly_other": 'Other' in insar_phase_anomalies,
+                "insar_phase_anomalies_other": other_anomaly,
+                "additional_comments": my_input,
+                "beam_id": 6,
+                "user_username": user_name
+            }
+            response = requests.post(f"http://{url}/annotations/",
+                                    json=data,
+                                    headers={'Content-Type': 'application/json'}, 
+                                    timeout=10)
 
         if response.status_code in [200, 201]:
             print("Request successful")
         else:
             print(f"Request failed with status code {response.status_code}")
 
-        # Add your logic here to handle the submission or update
         return observation_log_ui(users, None), n_clicks
 
     raise exceptions.PreventUpdate
