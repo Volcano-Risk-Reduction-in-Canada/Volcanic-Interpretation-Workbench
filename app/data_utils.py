@@ -28,6 +28,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 from pages.components.observation_log_components import (
+    get_beam_id,
     logs_list_ui,
     observation_log_ui
 )
@@ -658,7 +659,28 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 
-def plot_annotation_tab():
+def filter_logs_by_beam_id(logs, site_beam):
+    """
+    Filter logs to only include those with the matching beam ID.
+
+    Parameters:
+    ----------
+    logs : list
+        A list of dictionaries where each dictionary represents a log.
+    site_beam : str
+        The site and beam identifier in the format "target_label_short_name".
+
+    Returns:
+    -------
+    list
+        A list of filtered logs with the matching beam ID.
+    """
+    beam_id = get_beam_id(site_beam)
+    if beam_id is not None:
+        return [log for log in logs if log.get('beam_id') == beam_id]
+    return []
+
+def plot_annotation_tab(site_beam):
     """plot annotation tab"""
     from datetime import datetime as dt
 
@@ -792,8 +814,10 @@ def plot_annotation_tab():
                     timeout=10, verify=False)
     logs = json.loads(response.content)
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
-    # most recent log first
-    sorted_logs = sorted(cleaned_logs, key=get_end_date, reverse=True)
+    # Filter logs by beam ID
+    filtered_logs = filter_logs_by_beam_id(cleaned_logs, site_beam)
+    # Most recent log first
+    sorted_logs = sorted(filtered_logs, key=get_end_date, reverse=True)
     observation_log_ui_width = 70
     return html.Div(
         style={

@@ -99,6 +99,34 @@ def _annotations_card(log):
     )
 
 
+def get_beam_id(site_beam):
+    """
+    Function to iterate through the JSON response of the beams endpoint
+    and return the "id" that matches the site_beam variable.
+
+    Parameters:
+    ----------
+    site_beam : str
+        The site and beam identifier in the format "target_label_short_name".
+
+    Returns:
+    -------
+    int or None
+        The "id" of the matching beam record, or None if no match is found.
+    """
+    url = os.getenv("API_VRRC_IP")
+    response = requests.get(f"http://{url}/beams/",
+                            headers={'Content-Type': 'application/json'}, 
+                            timeout=10)
+    if response.status_code == 200:
+        beams = response.json()
+        for beam in beams:
+            if f"{beam['target_label']}_{beam['short_name']}" == site_beam:
+                return beam['id']
+    else:
+        print(f"Failed to retrieve beams with status code {response.status_code}")
+    return None
+
 # ####################################################
 #  MAIN List of Logs UI
 def logs_list_ui(logs, width):
@@ -599,9 +627,10 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
     DashState('my-input', 'value'),
     DashState('selected-log-id', 'data'),  # Add selected log ID state
     DashState('submit-update-annotation', 'children'),
+    DashInput('site-dropdown', 'value'),  # Add site-dropdown as input
     prevent_initial_call=True
 )
-def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, date_picker_single, date_range, coherence_present, confidence, geoscience_interpretation_needed, insar_phase_anomalies, other_anomaly, my_input, selected_log_id, button_text):
+def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, date_picker_single, date_range, coherence_present, confidence, geoscience_interpretation_needed, insar_phase_anomalies, other_anomaly, my_input, selected_log_id, button_text, site_beam):
     """
     Callback function to submit or update an observation log.
     It listens to click events on the "Submit Annotation" button.
@@ -640,6 +669,8 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
         The ID of the selected log.
     button_text : str
         The text of the "Submit Annotation" button.
+    site_beam : str
+        The selected site and beam ID from 'site-dropdown'.
 
     Returns:
     -------
@@ -658,6 +689,8 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
         print(f"Other Anomaly: {other_anomaly}")
         print(f"Additional Comments: {my_input}")
         print(f"Selected Log ID: {selected_log_id}")
+        print(f"Selected Site Beam: {site_beam}")
+        print(f"Selected Beam ID: {get_beam_id(site_beam)}")
 
         # Convert date_picker_single to the required format
         date_obj = datetime.fromisoformat(date_picker_single)
@@ -708,7 +741,7 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
                 "anomaly_other": 'Other' in insar_phase_anomalies,
                 "insar_phase_anomalies_other": other_anomaly,
                 "additional_comments": my_input,
-                "beam_id": 6,
+                "beam_id": get_beam_id(site_beam),
                 "user_username": user_name
             }
             response = requests.post(f"http://{url}/annotations/",
@@ -720,6 +753,7 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
             print("Request successful")
         else:
             print(f"Request failed with status code {response.status_code}")
+            print(f"Response content: {response.content}")
 
         return observation_log_ui(users, None), n_clicks
 

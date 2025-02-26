@@ -465,7 +465,7 @@ def switch_temporal_view(tab, site):
         )
     if tab == 'tab-3-annotations':
         logger.info('annotations for %s', site)
-        return plot_annotation_tab()
+        return plot_annotation_tab(site)
     return None
 
 
