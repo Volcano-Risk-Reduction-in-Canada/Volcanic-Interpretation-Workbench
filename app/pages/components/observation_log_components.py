@@ -78,28 +78,28 @@ def _annotations_card(log):
                 [
                     html.P(
                         f"Observation Date: {end_date_observed}",
-                        style={**text_styling, 'textAlign': 'left'}
+                        style=text_styling
                     ),
                     html.P(
                         f"Date Range: {log['date_range']} days",
-                        style={**text_styling, 'textAlign': 'left'}
+                        style=text_styling
                     ),
                     html.P(
                         f"Date Added/Modified: {annotation_created}",
-                        style={**text_styling, 'textAlign': 'left'}
+                        style=text_styling
                     )
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
             html.Div(
                 [
-                    html.P(log['user']['username'], style={**text_styling, 'textAlign': 'left'}),
-                    html.P(log['user']['email'], style={**text_styling, 'textAlign': 'left'})
+                    html.P(log['user']['username'], style=text_styling),
+                    html.P(log['user']['email'], style=text_styling)
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
             html.P(f'Observation Notes: {log["additional_comments"]}', 
-                   style={**text_styling, 'textAlign': 'left'}),
+                   style=text_styling),
         ],
         style=annotation_card_style,
         n_clicks=0
