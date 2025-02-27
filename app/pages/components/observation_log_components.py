@@ -65,6 +65,8 @@ def _text_with_element_in_row(text, component):
 
 
 def _annotations_card(log):
+    annotation_created = datetime.fromisoformat(log['annotation_created']).strftime('%Y-%m-%d')
+    end_date_observed = datetime.fromisoformat(log['end_date_observed']).strftime('%Y-%m-%d')
     return html.Button(
         id={'type': 'annotation-card', 'index': log['id']},
         children=[
@@ -75,24 +77,29 @@ def _annotations_card(log):
             html.Div(
                 [
                     html.P(
-                        f"Date Range: {log['date_range']}",
-                        style=text_styling
+                        f"Observation Date: {end_date_observed}",
+                        style={**text_styling, 'textAlign': 'left'}
                     ),
                     html.P(
-                        f"Date Added/Modified: {log['annotation_created']}",
-                        style=text_styling
+                        f"Date Range: {log['date_range']} days",
+                        style={**text_styling, 'textAlign': 'left'}
+                    ),
+                    html.P(
+                        f"Date Added/Modified: {annotation_created}",
+                        style={**text_styling, 'textAlign': 'left'}
                     )
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
-            html.P('Observation Notes', style=text_styling),
             html.Div(
                 [
-                    html.P(log['user']['username'], style=text_styling),
-                    html.P(log['user']['email'], style=text_styling)
+                    html.P(log['user']['username'], style={**text_styling, 'textAlign': 'left'}),
+                    html.P(log['user']['email'], style={**text_styling, 'textAlign': 'left'})
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
+            html.P(f'Observation Notes: {log["additional_comments"]}', 
+                   style={**text_styling, 'textAlign': 'left'}),
         ],
         style=annotation_card_style,
         n_clicks=0
@@ -101,13 +108,12 @@ def _annotations_card(log):
 
 def get_beam_id(site_beam):
     """
-    Function to iterate through the JSON response of the beams endpoint
-    and return the "id" that matches the site_beam variable.
+    Function to find the beam ID that matches the site_beam variable.
 
     Parameters:
     ----------
     site_beam : str
-        The site and beam identifier in the format "target_label_short_name".
+        The site and beam identifier in the format "name_en_short_name".
 
     Returns:
     -------
@@ -115,16 +121,40 @@ def get_beam_id(site_beam):
         The "id" of the matching beam record, or None if no match is found.
     """
     url = os.getenv("API_VRRC_IP")
+    
+    # Split site_beam into name_en and short_name
+    name_en, short_name = site_beam.split('_')
+    
+    # Step 1: Get the target label from the targets endpoint
+    response = requests.get(f"http://{url}/targets/",
+                            headers={'Content-Type': 'application/json'}, 
+                            timeout=10)
+    if response.status_code == 200:
+        targets = response.json()
+        target_label = None
+        for target in targets:
+            if target['name_en'] == name_en:
+                target_label = target['label']
+                break
+        if not target_label:
+            print(f"No target found for name_en: {name_en}")
+            return None
+    else:
+        print(f"Failed to retrieve targets with status code {response.status_code}")
+        return None
+    
+    # Step 2: Get the beam ID from the beams endpoint
     response = requests.get(f"http://{url}/beams/",
                             headers={'Content-Type': 'application/json'}, 
                             timeout=10)
     if response.status_code == 200:
         beams = response.json()
         for beam in beams:
-            if f"{beam['target_label']}_{beam['short_name']}" == site_beam:
+            if beam['target_label'] == target_label and beam['short_name'] == short_name:
                 return beam['id']
     else:
         print(f"Failed to retrieve beams with status code {response.status_code}")
+    
     return None
 
 # ####################################################
