@@ -676,8 +676,11 @@ def filter_logs_by_beam_id(logs, site_beam):
         A list of filtered logs with the matching beam ID.
     """
     beam_id = get_beam_id(site_beam)
+    print(f"filter_logs_by_beam_id - Beam ID for {site_beam}: {beam_id}")  # Debugging statement
     if beam_id is not None:
-        return [log for log in logs if log.get('beam_id') == beam_id]
+        filtered_logs = [log for log in logs if log.get('beam', {}).get('id') == beam_id]
+        print(f"Filtered logs: {filtered_logs}")  # Debugging statement
+        return filtered_logs
     return []
 
 def plot_annotation_tab(site_beam):
@@ -708,103 +711,7 @@ def plot_annotation_tab(site_beam):
             return dt.strptime(date_str, '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d')
 
     url = config['API_VRRC_IP']
-    # example data
-    user1 = {
-        'name': 'User 1',
-        'email': 'user1@gmail.com'
-    }
-
-    user2 = {
-        'name': 'User 2',
-        'email': 'user2@gmail.com'
-    }
-
-    user3 = {
-        'name': 'User 3',
-        'email': 'user3@gmail.com'
-    }
-
-    log1 = {
-        'id': 0,
-        'user': user1,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-10',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 80,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
-
-    log2 = {
-        'id': 1,
-        'user': user2,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-12',
-        'dateRange': 28,
-        'coherencePresent': 'Yes',
-        'confidence': 20,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Other',
-            'Atmospheric Phase Error'
-        ],
-        'insarPhaseAnomaliesOther': 'other reasoning',
-        'additionalComments': 'this is greatttt'
-    }
-
-    log3 = {
-        'id': 2,
-        'user': user3,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-07',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 80,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
-
-    log4 = {
-        'id': 3,
-        'user': user3,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-18',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 90,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
-
+    
     response = requests.get(
                     f"http://{url}/users/",
                     timeout=10, verify=False)
