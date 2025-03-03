@@ -99,7 +99,8 @@ def _annotations_card(log):
                 style={**row_element, 'justify-content': 'space-between'}
             ),
             html.P(f'Observation Notes: {log["additional_comments"]}', 
-                   style=text_styling),
+                   style={**text_styling, "textAlign": "left"}
+            ),
         ],
         style=annotation_card_style,
         n_clicks=0
