@@ -138,10 +138,8 @@ def get_beam_id(site_beam):
                 target_label = target['label']
                 break
         if not target_label:
-            print(f"No target found for name_en: {name_en}")
             return None
     else:
-        print(f"Failed to retrieve targets with status code {response.status_code}")
         return None
     
     # Step 2: Get the beam ID from the beams endpoint
@@ -153,9 +151,6 @@ def get_beam_id(site_beam):
         for beam in beams:
             if beam['target_label'] == target_label and beam['short_name'] == short_name:
                 return beam['id']
-    else:
-        print(f"Failed to retrieve beams with status code {response.status_code}")
-    
     return None
 
 # ####################################################
@@ -555,7 +550,6 @@ def update_card_styles(clicks, new_clicks, logs):
     """
     # Find which button was clicked
     triggered = ctx.triggered_id if ctx.triggered_id else None
-    print(triggered)
 
     if 'create-new-annotation-button' in triggered:
         return (
@@ -625,18 +619,12 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
             return observation_log_ui(users, None)
         if isinstance(triggered, dict) and triggered.get('type') == 'annotation-card':
             selected_id = triggered['index']
-            print(f"Selected annotation card ID: {selected_id}")
             selected_log = next(
                 (log for log in logs if log['id'] == selected_id),
                 None
             )
-            if selected_log:
-                print(f"Selected log: {selected_log}")
-            else:
-                print("No log found with the selected ID")
             return observation_log_ui(users, selected_log)
 
-    print("No valid trigger, returning default UI")
     return observation_log_ui(users, None)
 
 
@@ -709,24 +697,9 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
         The updated observation log UI and the new value of n_clicks.
     """
     if n_clicks and n_clicks > prev_n_clicks:
-        print("submit update button clicked")
-        print(f"User: {user_name}")
-        print(f"End Date Observed: {date_picker_single}")
-        print(f"Date Range: {date_range}")
-        print(f"Coherence Present: {coherence_present}")
-        print(f"Confidence: {confidence}")
-        print(f"Geoscience Interpretation Needed: {geoscience_interpretation_needed}")
-        print(f"InSAR Phase Anomalies: {insar_phase_anomalies}")
-        print(f"Other Anomaly: {other_anomaly}")
-        print(f"Additional Comments: {my_input}")
-        print(f"Selected Log ID: {selected_log_id}")
-        print(f"Selected Site Beam: {site_beam}")
-        print(f"Selected Beam ID: {get_beam_id(site_beam)}")
-
         # Convert date_picker_single to the required format
         date_obj = datetime.fromisoformat(date_picker_single)
         formatted_date = date_obj.isoformat()
-        print(formatted_date)
 
         url = os.getenv("API_VRRC_IP")
         if button_text.startswith("Update") and selected_log_id:
@@ -779,13 +752,6 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
                                     json=data,
                                     headers={'Content-Type': 'application/json'}, 
                                     timeout=10)
-
-        if response.status_code in [200, 201]:
-            print("Request successful")
-        else:
-            print(f"Request failed with status code {response.status_code}")
-            print(f"Response content: {response.content}")
-
         return observation_log_ui(users, None), n_clicks
 
     raise exceptions.PreventUpdate
