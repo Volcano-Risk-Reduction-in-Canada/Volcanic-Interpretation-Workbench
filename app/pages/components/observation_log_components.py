@@ -122,10 +122,10 @@ def get_beam_id(site_beam):
         The "id" of the matching beam record, or None if no match is found.
     """
     url = os.getenv("API_VRRC_IP")
-    
+
     # Split site_beam into name_en and short_name
-    name_en, short_name = site_beam.split('_')
-    
+    name_en, short_name = site_beam.rsplit('_', 1)
+
     # Step 1: Get the target label from the targets endpoint
     response = requests.get(f"http://{url}/targets/",
                             headers={'Content-Type': 'application/json'}, 
