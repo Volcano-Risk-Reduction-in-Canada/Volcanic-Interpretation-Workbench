@@ -163,7 +163,7 @@ def get_latest_quakes_chis_fsdn():
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10, verify=False)
+                                timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -220,7 +220,7 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10, verify=False)
+                                timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -260,7 +260,7 @@ def read_targets_geojson():
     try:
         vrrc_api_ip = config['API_VRRC_IP']
         response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
-                                timeout=10, verify=False)
+                                timeout=10)
         response_geojson = json.loads(response.content)
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         calculate_and_append_centroids(response_geojson)
@@ -368,7 +368,7 @@ def get_api_response(vrrc_api_ip, route):
     """Get a response from the vrrc API given an ip and a route"""
     try:
         response = requests.get(f'http://{vrrc_api_ip}/{route}/',
-                                timeout=10, verify=False)
+                                timeout=10)
         response.raise_for_status()
         response_dict = json.loads(response.text)
         return response_dict
@@ -714,11 +714,11 @@ def plot_annotation_tab(site_beam):
     
     response = requests.get(
                     f"http://{url}/users/",
-                    timeout=10, verify=False)
+                    timeout=10)
     users = json.loads(response.content)
     response = requests.get(
                     f"http://{url}/annotations/",
-                    timeout=10, verify=False)
+                    timeout=10)
     logs = json.loads(response.content)
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
     # Filter logs by beam ID
@@ -761,8 +761,7 @@ def get_latest_observation_date(label):
     url='localhost:8000'
     response = requests.get(
         f"http://{url}/annotations/",
-        timeout=10, verify=False
-    )
+        timeout=10)
     api_response = json.loads(response.content)
     filtered_records = [record for record in api_response 
                         if record.get('beam', {}).get('target_label') == label]
@@ -799,7 +798,7 @@ def build_summary_table(targs_geojson):
                 url = config['API_VRRC_IP']
                 response = requests.get(
                     f"http://{url}/targets/{site}",
-                    timeout=10, verify=False)
+                    timeout=10)
                 response_geojson = json.loads(response.content)
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]

@@ -115,7 +115,7 @@ layout = html.Div(
                     'position': 'absolute',
                     'top': '165px',
                     'right': '25px',
-                    'width': '570px',
+                    'width': '660px',
                     'zIndex': 1000,
                     'overflow': 'auto'
                 },

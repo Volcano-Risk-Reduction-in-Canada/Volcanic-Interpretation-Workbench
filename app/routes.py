@@ -44,5 +44,5 @@ def add_routes(server):
         bucket = request.args.get('bucket')
         key = f"{site}/{beam}/{startdate}_{enddate}/{z}/{x}/{y}.png"
         signed_url = get_signed_url(bucket, key)
-        response = requests.get(signed_url, timeout=10, verify=False)
+        response = requests.get(signed_url, timeout=10)
         return Response(response.content, mimetype='image/png')
