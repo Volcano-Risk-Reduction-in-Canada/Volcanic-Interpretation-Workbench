@@ -747,6 +747,32 @@ def plot_annotation_tab(site_beam):
     )
 
 
+def get_latest_observation_date(label):
+    """
+    Fetches the latest end_date_observed for a given label from the API.
+
+    Parameters:
+        label (str): The target label to filter by (e.g., 'A4207_Volcano_Nazko').
+
+    Returns:
+        str: The latest end_date_observed, or None if no matching records found.
+    """
+    # url = config['API_VRRC_IP']
+    url='localhost:8000'
+    response = requests.get(
+        f"http://{url}/annotations/",
+        timeout=10, verify=False
+    )
+    api_response = json.loads(response.content)
+    filtered_records = [record for record in api_response 
+                        if record.get('beam', {}).get('target_label') == label]
+    if not filtered_records:
+        return None
+    latest_record = max(filtered_records,
+                        key=lambda r: r.get('end_date_observed'))
+    return latest_record.get('end_date_observed')
+
+
 def build_summary_table(targs_geojson):
     """Build a summary table with volcanoes and info on their unrest"""
     def date_difference(date_string):
@@ -758,7 +784,8 @@ def build_summary_table(targs_geojson):
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
         targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
-        targets_df['latest SAR Image Date'] = None
+        targets_df['Latest SAR Image Date'] = None
+        targets_df['Latest Observation'] = None
         targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         # targets_df['Unrest'] = None
@@ -787,14 +814,31 @@ def build_summary_table(targs_geojson):
                                    ] = format_output
             except requests.exceptions.ConnectionError:
                 targets_df.loc[site_index, 'Latest SAR Image'] = None
+            try:
+                latest_observation = get_latest_observation_date(site)
+
+                if isinstance(latest_observation, str):
+                    latest_observation_date = latest_observation[0:10]
+                    format_output = (
+                        f'{date_difference(latest_observation_date)} days ago'
+                    )
+                    targets_df.loc[site_index,
+                                   'Latest Observation'
+                                   ] = format_output
+            except requests.exceptions.ConnectionError:
+                targets_df.loc[site_index, 'Latest Observation'] = None
 
         targets_df = targets_df.sort_values('id')
     except NotImplementedError:
         targets_df = pd.DataFrame(columns=['Site',
                                            'Latest SAR Image',
+                                           'Latest Observation',
                                            'Unrest'])
         targets_df.loc[0] = ["API Connection Error"] * 3
-    return targets_df[['Site', 'Latest SAR Image', 'Unrest']]
+    return targets_df[['Site',
+                       'Latest SAR Image',
+                       'Latest Observation',
+                       'Unrest']]
 
 
 def _read_coherence(coherence_csv):
