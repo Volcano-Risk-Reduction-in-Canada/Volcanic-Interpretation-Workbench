@@ -9,10 +9,14 @@ Copyright (C) 2021-2024 Government of Canada
 Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
-from dash import html, Input as DashInput, exceptions, Output, ALL, callback, ctx, State as DashState
+from dash import (
+    html, Input as DashInput, exceptions, Output, ALL, callback, ctx,
+    State as DashState
+)
 from datetime import datetime
-import requests
+import logging
 import os
+import requests
 
 from dash.dcc import (
     Dropdown,
@@ -36,6 +40,8 @@ from global_styling import (
 # #######################################################
 # LOCAL variables used throughout this file
 
+logger = logging.getLogger(__name__)
+
 insar_phase_anomalies = [
     'Magmatic Deformation',
     'Slope Movement',
@@ -49,6 +55,7 @@ SELECTED_ANNOTATION_COLOUR = 'red'
 
 # ######################################################
 #  HELPER Components
+
 
 def _dict_key_error_check(dict, key, none_value):
     return dict[key] if dict and key in dict else none_value
@@ -65,8 +72,12 @@ def _text_with_element_in_row(text, component):
 
 
 def _annotations_card(log):
-    annotation_created = datetime.fromisoformat(log['annotation_created']).strftime('%Y-%m-%d')
-    end_date_observed = datetime.fromisoformat(log['end_date_observed']).strftime('%Y-%m-%d')
+    annotation_created = datetime.fromisoformat(
+        log['annotation_created']
+    ).strftime('%Y-%m-%d')
+    end_date_observed = datetime.fromisoformat(
+        log['end_date_observed']
+    ).strftime('%Y-%m-%d')
     return html.Button(
         id={'type': 'annotation-card', 'index': log['id']},
         children=[
@@ -98,12 +109,11 @@ def _annotations_card(log):
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
-            html.P(f'Observation Notes: {log["additional_comments"]}', 
-                   style={**text_styling, "textAlign": "left"}
-            ),
+            html.P(f'Observation Notes: {log["additional_comments"]}',
+                   style={**text_styling, "textAlign": "left"}),
         ],
         style=annotation_card_style,
-        n_clicks=0
+        n_clicks=0,
     )
 
 
@@ -128,7 +138,7 @@ def get_beam_id(site_beam):
 
     # Step 1: Get the target label from the targets endpoint
     response = requests.get(f"http://{url}/targets/",
-                            headers={'Content-Type': 'application/json'}, 
+                            headers={'Content-Type': 'application/json'},
                             timeout=10)
     if response.status_code == 200:
         targets = response.json()
@@ -141,20 +151,25 @@ def get_beam_id(site_beam):
             return None
     else:
         return None
-    
+
     # Step 2: Get the beam ID from the beams endpoint
     response = requests.get(f"http://{url}/beams/",
-                            headers={'Content-Type': 'application/json'}, 
+                            headers={'Content-Type': 'application/json'},
                             timeout=10)
     if response.status_code == 200:
         beams = response.json()
         for beam in beams:
-            if beam['target_label'] == target_label and beam['short_name'] == short_name:
+            if (
+                beam['target_label'] == target_label
+                and beam['short_name'] == short_name
+            ):
                 return beam['id']
     return None
 
 # ####################################################
 #  MAIN List of Logs UI
+
+
 def logs_list_ui(logs, width):
     """
     Creates the UI layout for displaying a list of observation logs.
@@ -186,7 +201,7 @@ def logs_list_ui(logs, width):
         },
         children=[
             Store(id='logs-store', data=logs),
-            Store(id='selected-log-id', data=None),  # Store for selected log ID
+            Store(id='selected-log-id', data=None),
             html.H5(
                 'Previous Annotations (End Date: )',
                 style={**title_text_styling, 'margin': '10px 5px'}
@@ -250,16 +265,42 @@ def observation_log_ui(users, log=None):
     """
     coherence_present_options = ['Yes', 'No', 'Unsure, need a second opinion']
     insar_phase_anomalies_values = [
-        'Magmatic Deformation' if log and log.get('anomaly_magmatic_deformation') else None,
-        'Slope Movement' if log and log.get('anomaly_slope_movement') else None,
-        'Glacial Movement' if log and log.get('anomaly_glacial_movement') else None,
-        'Topographic Phase Error' if log and log.get('anomaly_topographic_phase_error') else None,
-        'Atmospheric Phase Error' if log and log.get('anomaly_atmospheric_phase_error') else None,
-        'Baseline Phase Error' if log and log.get('anomaly_baseline_phase_error') else None,
+        (
+            'Magmatic Deformation'
+            if log and log.get('anomaly_magmatic_deformation')
+            else None
+        ),
+        (
+            'Slope Movement'
+            if log and log.get('anomaly_slope_movement')
+            else None
+        ),
+        (
+            'Glacial Movement'
+            if log and log.get('anomaly_glacial_movement')
+            else None
+        ),
+        (
+            'Topographic Phase Error'
+            if log and log.get('anomaly_topographic_phase_error')
+            else None
+        ),
+        (
+            'Atmospheric Phase Error'
+            if log and log.get('anomaly_atmospheric_phase_error')
+            else None
+        ),
+        (
+            'Baseline Phase Error'
+            if log and log.get('anomaly_baseline_phase_error')
+            else None
+        ),
     ]
     # Filter out None values
-    insar_phase_anomalies_values = [value for value in insar_phase_anomalies_values if value is not None]
-   
+    insar_phase_anomalies_values = [
+        value for value in insar_phase_anomalies_values if value is not None
+    ]
+
     log_user_index = (
         None
         if not log
@@ -315,7 +356,6 @@ def observation_log_ui(users, log=None):
                                 'end_date_observed',
                                 current_date  # Use current date as default
                             ),
-                            # date=datetime.today().strftime('%Y-%m-%d'),
                             display_format='YYYY-MM-DD',  # Format to display
                             clearable=True,
                             reopen_calendar_on_clear=True,
@@ -457,7 +497,8 @@ def observation_log_ui(users, log=None):
                                             'label': 'Other',
                                             'value': 'Other'
                                         }],
-                                        value=['Other'] if log and log.get('anomaly_other') else [],
+                                        value=['Other'] if log and log.get(
+                                            'anomaly_other') else [],
                                         labelStyle=text_styling,
                                         inline=True
                                     ),
@@ -546,7 +587,8 @@ def update_card_styles(clicks, new_clicks, logs):
 
     Returns:
     tuple: A list of style dictionaries for the annotation triangles, a
-    list of style dictionaries for the annotation cards, and the selected log ID.
+    list of style dictionaries for the annotation cards,
+    and the selected log ID.
     """
     # Find which button was clicked
     triggered = ctx.triggered_id if ctx.triggered_id else None
@@ -584,6 +626,7 @@ def update_card_styles(clicks, new_clicks, logs):
         )
     return None  # Default return if no valid trigger
 
+
 @callback(
     Output('observation_log_container', 'children', allow_duplicate=True),
     [
@@ -617,7 +660,10 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
     if triggered:
         if triggered == 'create-new-annotation-button':
             return observation_log_ui(users, None)
-        if isinstance(triggered, dict) and triggered.get('type') == 'annotation-card':
+        if (
+            isinstance(triggered, dict)
+            and triggered.get('type') == 'annotation-card'
+        ):
             selected_id = triggered['index']
             selected_log = next(
                 (log for log in logs if log['id'] == selected_id),
@@ -649,7 +695,11 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
     DashInput('site-dropdown', 'value'),  # Add site-dropdown as input
     prevent_initial_call=True
 )
-def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, date_picker_single, date_range, coherence_present, confidence, geoscience_interpretation_needed, insar_phase_anomalies, other_anomaly, my_input, selected_log_id, button_text, site_beam):
+def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name,
+                             date_picker_single, date_range, coherence_present,
+                             confidence, geoscience_interpretation_needed,
+                             insar_phase_anomalies, other_anomaly, my_input,
+                             selected_log_id, button_text, site_beam):
     """
     Callback function to submit or update an observation log.
     It listens to click events on the "Submit Annotation" button.
@@ -702,59 +752,54 @@ def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name, da
         formatted_date = date_obj.isoformat()
 
         url = os.getenv("API_VRRC_IP")
+        data = {
+            "end_date_observed": formatted_date,
+            "date_range": date_range,
+            "coherence_present": coherence_present,
+            "confidence": confidence,
+            "further_interpretation_needed": geoscience_interpretation_needed,
+            "interpretation_latitude": 0,
+            "interpretation_longitude": 0,
+            "anomaly_magmatic_deformation": 'Magmatic Deformation' in
+                                            insar_phase_anomalies,
+            "anomaly_slope_movement": 'Slope Movement' in
+                                            insar_phase_anomalies,
+            "anomaly_glacial_movement": 'Glacial Movement' in
+                                        insar_phase_anomalies,
+            "anomaly_topographic_phase_error": 'Topographic Phase Error' in
+                                               insar_phase_anomalies,
+            "anomaly_atmospheric_phase_error": 'Atmospheric Phase Error' in
+                                               insar_phase_anomalies,
+            "anomaly_baseline_phase_error": 'Baseline Phase Error' in
+                                            insar_phase_anomalies,
+            "anomaly_other": 'Other' in insar_phase_anomalies,
+            "insar_phase_anomalies_other": other_anomaly,
+            "additional_comments": my_input,
+        }
+
         if button_text.startswith("Update") and selected_log_id:
             # Update existing annotation (PUT request)
-            data = {
-                "end_date_observed": formatted_date,
-                "date_range": date_range,
-                "coherence_present": coherence_present,
-                "confidence": confidence,
-                "further_interpretation_needed": geoscience_interpretation_needed,
-                "interpretation_latitude": 0,
-                "interpretation_longitude": 0,
-                "anomaly_magmatic_deformation": 'Magmatic Deformation' in insar_phase_anomalies,
-                "anomaly_slope_movement": 'Slope Movement' in insar_phase_anomalies,
-                "anomaly_glacial_movement": 'Glacial Movement' in insar_phase_anomalies,
-                "anomaly_topographic_phase_error": 'Topographic Phase Error' in insar_phase_anomalies,
-                "anomaly_atmospheric_phase_error": 'Atmospheric Phase Error' in insar_phase_anomalies,
-                "anomaly_baseline_phase_error": 'Baseline Phase Error' in insar_phase_anomalies,
-                "anomaly_other": 'Other' in insar_phase_anomalies,
-                "insar_phase_anomalies_other": other_anomaly,
-                "additional_comments": my_input,
-            }
-            response = requests.put(f"http://{url}/annotations/{selected_log_id}",
-                                    json=data,
-                                    headers={'Content-Type': 'application/json'}, 
-                                    timeout=10)
+            response = requests.put(
+                f"http://{url}/annotations/{selected_log_id}",
+                json=data,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
         else:
             # Create new annotation (POST request)
-            data = {
-                "end_date_observed": formatted_date,
-                "date_range": date_range,
-                "coherence_present": coherence_present,
-                "confidence": confidence,
-                "further_interpretation_needed": geoscience_interpretation_needed,
-                "interpretation_latitude": 0,
-                "interpretation_longitude": 0,
-                "anomaly_magmatic_deformation": 'Magmatic Deformation' in insar_phase_anomalies,
-                "anomaly_slope_movement": 'Slope Movement' in insar_phase_anomalies,
-                "anomaly_glacial_movement": 'Glacial Movement' in insar_phase_anomalies,
-                "anomaly_topographic_phase_error": 'Topographic Phase Error' in insar_phase_anomalies,
-                "anomaly_atmospheric_phase_error": 'Atmospheric Phase Error' in insar_phase_anomalies,
-                "anomaly_baseline_phase_error": 'Baseline Phase Error' in insar_phase_anomalies,
-                "anomaly_other": 'Other' in insar_phase_anomalies,
-                "insar_phase_anomalies_other": other_anomaly,
-                "additional_comments": my_input,
-                "beam_id": get_beam_id(site_beam),
-                "user_username": user_name
-            }
-            response = requests.post(f"http://{url}/annotations/",
-                                    json=data,
-                                    headers={'Content-Type': 'application/json'}, 
-                                    timeout=10)
+            data["beam_id"] = get_beam_id(site_beam)
+            data["user_username"] = user_name
+            response = requests.post(
+                f"http://{url}/annotations/",
+                json=data,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+        logger.debug(response.status_code)
         return observation_log_ui(users, None), n_clicks
 
     raise exceptions.PreventUpdate
+
 
 @callback(
     Output('lat-long-interpretation', 'style'),

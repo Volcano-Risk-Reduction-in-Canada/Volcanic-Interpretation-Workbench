@@ -676,12 +676,14 @@ def filter_logs_by_beam_id(logs, site_beam):
         A list of filtered logs with the matching beam ID.
     """
     beam_id = get_beam_id(site_beam)
-    print(f"filter_logs_by_beam_id - Beam ID for {site_beam}: {beam_id}")  # Debugging statement
     if beam_id is not None:
-        filtered_logs = [log for log in logs if log.get('beam', {}).get('id') == beam_id]
+        filtered_logs = [
+            log for log in logs if log.get('beam', {}).get('id') == beam_id
+        ]
         print(f"Filtered logs: {filtered_logs}")  # Debugging statement
         return filtered_logs
     return []
+
 
 def plot_annotation_tab(site_beam):
     """plot annotation tab"""
@@ -695,7 +697,7 @@ def plot_annotation_tab(site_beam):
         Parameters:
         ----------
         log : dict
-            A dictionary representing a log entry with an 'end_date_observed' key.
+            Dictionary representing a log entry with 'end_date_observed' key.
 
         Returns:
         -------
@@ -705,20 +707,24 @@ def plot_annotation_tab(site_beam):
         date_str = log['end_date_observed']
         try:
             # Try to parse the date string with microseconds
-            return dt.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%f').strftime('%Y-%m-%d')
+            return dt.strptime(
+                date_str, '%Y-%m-%dT%H:%M:%S.%f'
+            ).strftime('%Y-%m-%d')
         except ValueError:
             # If parsing fails, try without microseconds
-            return dt.strptime(date_str, '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d')
+            return dt.strptime(
+                date_str, '%Y-%m-%dT%H:%M:%S'
+            ).strftime('%Y-%m-%d')
 
     url = config['API_VRRC_IP']
-    
+
     response = requests.get(
-                    f"http://{url}/users/",
-                    timeout=10)
+        f"http://{url}/users/",
+        timeout=10)
     users = json.loads(response.content)
     response = requests.get(
-                    f"http://{url}/annotations/",
-                    timeout=10)
+        f"http://{url}/annotations/",
+        timeout=10)
     logs = json.loads(response.content)
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
     # Filter logs by beam ID
@@ -752,18 +758,18 @@ def get_latest_observation_date(label):
     Fetches the latest end_date_observed for a given label from the API.
 
     Parameters:
-        label (str): The target label to filter by (e.g., 'A4207_Volcano_Nazko').
+        label (str): Target label to filter by (e.g., 'A4207_Volcano_Nazko').
 
     Returns:
-        str: The latest end_date_observed, or None if no matching records found.
+        str: Latest end_date_observed, or None if no matching records found.
     """
     # url = config['API_VRRC_IP']
-    url='localhost:8000'
+    url = 'localhost:8000'
     response = requests.get(
         f"http://{url}/annotations/",
         timeout=10)
     api_response = json.loads(response.content)
-    filtered_records = [record for record in api_response 
+    filtered_records = [record for record in api_response
                         if record.get('beam', {}).get('target_label') == label]
     if not filtered_records:
         return None
