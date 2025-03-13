@@ -763,8 +763,7 @@ def get_latest_observation_date(label):
     Returns:
         str: Latest end_date_observed, or None if no matching records found.
     """
-    # url = config['API_VRRC_IP']
-    url = 'localhost:8000'
+    url = config['API_VRRC_IP']
     response = requests.get(
         f"http://{url}/annotations/",
         timeout=10)
