@@ -8,6 +8,7 @@ Garibaldi:
 Cayley:
   - 3M1
   - 3M13
+  - 3M36
 Edgecumbe:
   - 3M36
 Edziza_North:
@@ -19,9 +20,11 @@ Edziza_South:
 Tseax:
   - 3M7
   - 3M9
+  - 3m19
 Nazko:
   - 3M9
   - 3M20
+  - 3M31
 Hoodoo:
   - 3M8
   - 3M14
@@ -44,3 +47,5 @@ Spurr:
 Chilcotin:
   - 5M13
   - 5M20
+Klyuchevskaya:
+  - 5m21

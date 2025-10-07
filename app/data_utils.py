@@ -300,7 +300,7 @@ def get_green_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if feature['id'].startswith('A'):
+            if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
