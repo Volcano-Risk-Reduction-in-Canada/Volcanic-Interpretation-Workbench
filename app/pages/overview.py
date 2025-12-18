@@ -41,10 +41,6 @@ on_each_feature = assign("""function(feature, layer, context){
     layer.bindTooltip(`${feature.properties.name_en}`)
 }""")
 
-markers_red = get_red_volcanoes()
-markers_green = get_green_volcanoes()
-epicenters_df = get_latest_quakes_chis_fsdn()
-summary_table_df = build_summary_table(read_targets_geojson())
 
 markers_red = get_red_volcanoes()
 markers_green = get_green_volcanoes()
@@ -119,10 +115,9 @@ layout = html.Div(
                     'position': 'absolute',
                     'top': '165px',
                     'right': '25px',
-                    'width': '480px',
-                    'right': '25px',
-                    'width': '480px',
-                    'zIndex': 1000
+                    'width': '660px',
+                    'zIndex': 1000,
+                    'overflow': 'auto'
                 },
                 children=summary_table_ui(summary_table_df)
             ),

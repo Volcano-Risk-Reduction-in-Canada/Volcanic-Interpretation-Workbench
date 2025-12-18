@@ -28,6 +28,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 from pages.components.observation_log_components import (
+    get_beam_id,
     logs_list_ui,
     observation_log_ui
 )
@@ -162,7 +163,7 @@ def get_latest_quakes_chis_fsdn():
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10, verify=False)
+                                timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -219,7 +220,7 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10, verify=False)
+                                timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -259,7 +260,7 @@ def read_targets_geojson():
     try:
         vrrc_api_ip = config['API_VRRC_IP']
         response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
-                                timeout=10, verify=False)
+                                timeout=10)
         response_geojson = json.loads(response.content)
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         calculate_and_append_centroids(response_geojson)
@@ -299,7 +300,7 @@ def get_green_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if feature['id'].startswith('A'):
+            if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -367,7 +368,7 @@ def get_api_response(vrrc_api_ip, route):
     """Get a response from the vrrc API given an ip and a route"""
     try:
         response = requests.get(f'http://{vrrc_api_ip}/{route}/',
-                                timeout=10, verify=False)
+                                timeout=10)
         response.raise_for_status()
         response_dict = json.loads(response.text)
         return response_dict
@@ -658,117 +659,78 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 
-def plot_annotation_tab():
+def filter_logs_by_beam_id(logs, site_beam):
+    """
+    Filter logs to only include those with the matching beam ID.
+
+    Parameters:
+    ----------
+    logs : list
+        A list of dictionaries where each dictionary represents a log.
+    site_beam : str
+        The site and beam identifier in the format "target_label_short_name".
+
+    Returns:
+    -------
+    list
+        A list of filtered logs with the matching beam ID.
+    """
+    beam_id = get_beam_id(site_beam)
+    if beam_id is not None:
+        filtered_logs = [
+            log for log in logs if log.get('beam', {}).get('id') == beam_id
+        ]
+        print(f"Filtered logs: {filtered_logs}")  # Debugging statement
+        return filtered_logs
+    return []
+
+
+def plot_annotation_tab(site_beam):
     """plot annotation tab"""
+    from datetime import datetime as dt
+
     def get_end_date(log):
-        return dt.strptime(log['endDateObserved'], '%Y-%m-%d')
-    # example data
-    user1 = {
-        'name': 'User 1',
-        'email': 'user1@gmail.com'
-    }
+        """
+        Extracts and returns the end date observed from a log entry.
+        Handles date strings with or without microseconds.
 
-    user2 = {
-        'name': 'User 2',
-        'email': 'user2@gmail.com'
-    }
+        Parameters:
+        ----------
+        log : dict
+            Dictionary representing a log entry with 'end_date_observed' key.
 
-    user3 = {
-        'name': 'User 3',
-        'email': 'user3@gmail.com'
-    }
+        Returns:
+        -------
+        str
+            The end date observed in 'YYYY-MM-DD' format.
+        """
+        date_str = log['end_date_observed']
+        try:
+            # Try to parse the date string with microseconds
+            return dt.strptime(
+                date_str, '%Y-%m-%dT%H:%M:%S.%f'
+            ).strftime('%Y-%m-%d')
+        except ValueError:
+            # If parsing fails, try without microseconds
+            return dt.strptime(
+                date_str, '%Y-%m-%dT%H:%M:%S'
+            ).strftime('%Y-%m-%d')
 
-    log1 = {
-        'id': 0,
-        'user': user1,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-10',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 80,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
+    url = config['API_VRRC_IP']
 
-    log2 = {
-        'id': 1,
-        'user': user2,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-12',
-        'dateRange': 28,
-        'coherencePresent': 'Yes',
-        'confidence': 20,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Other',
-            'Atmospheric Phase Error'
-        ],
-        'insarPhaseAnomaliesOther': 'other reasoning',
-        'additionalComments': 'this is greatttt'
-    }
-
-    log3 = {
-        'id': 2,
-        'user': user3,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-07',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 80,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
-
-    log4 = {
-        'id': 3,
-        'user': user3,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-18',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 90,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
-
-    users = [user1, user2, user3]
-    logs = [
-        log1,
-        log2,
-        log3,
-        log4
-    ]
+    response = requests.get(
+        f"http://{url}/users/",
+        timeout=10)
+    users = json.loads(response.content)
+    response = requests.get(
+        f"http://{url}/annotations/",
+        timeout=10)
+    logs = json.loads(response.content)
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
-    # most recent log first
-    sorted_logs = sorted(cleaned_logs, key=get_end_date, reverse=True)
+    # Filter logs by beam ID
+    filtered_logs = filter_logs_by_beam_id(cleaned_logs, site_beam)
+    # Most recent log first
+    sorted_logs = sorted(filtered_logs, key=get_end_date, reverse=True)
     observation_log_ui_width = 70
     return html.Div(
         style={
@@ -791,6 +753,30 @@ def plot_annotation_tab():
     )
 
 
+def get_latest_observation_date(label):
+    """
+    Fetches the latest end_date_observed for a given label from the API.
+
+    Parameters:
+        label (str): Target label to filter by (e.g., 'A4207_Volcano_Nazko').
+
+    Returns:
+        str: Latest end_date_observed, or None if no matching records found.
+    """
+    url = config['API_VRRC_IP']
+    response = requests.get(
+        f"http://{url}/annotations/",
+        timeout=10)
+    api_response = json.loads(response.content)
+    filtered_records = [record for record in api_response
+                        if record.get('beam', {}).get('target_label') == label]
+    if not filtered_records:
+        return None
+    latest_record = max(filtered_records,
+                        key=lambda r: r.get('end_date_observed'))
+    return latest_record.get('end_date_observed')
+
+
 def build_summary_table(targs_geojson):
     """Build a summary table with volcanoes and info on their unrest"""
     def date_difference(date_string):
@@ -802,7 +788,8 @@ def build_summary_table(targs_geojson):
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
         targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
-        targets_df['latest SAR Image Date'] = None
+        targets_df['Latest SAR Image Date'] = None
+        targets_df['Latest Observation'] = None
         targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         # targets_df['Unrest'] = None
@@ -816,7 +803,7 @@ def build_summary_table(targs_geojson):
                 url = config['API_VRRC_IP']
                 response = requests.get(
                     f"http://{url}/targets/{site}",
-                    timeout=10, verify=False)
+                    timeout=10)
                 response_geojson = json.loads(response.content)
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
@@ -831,14 +818,31 @@ def build_summary_table(targs_geojson):
                                    ] = format_output
             except requests.exceptions.ConnectionError:
                 targets_df.loc[site_index, 'Latest SAR Image'] = None
+            try:
+                latest_observation = get_latest_observation_date(site)
+
+                if isinstance(latest_observation, str):
+                    latest_observation_date = latest_observation[0:10]
+                    format_output = (
+                        f'{date_difference(latest_observation_date)} days ago'
+                    )
+                    targets_df.loc[site_index,
+                                   'Latest Observation'
+                                   ] = format_output
+            except requests.exceptions.ConnectionError:
+                targets_df.loc[site_index, 'Latest Observation'] = None
 
         targets_df = targets_df.sort_values('id')
     except NotImplementedError:
         targets_df = pd.DataFrame(columns=['Site',
                                            'Latest SAR Image',
+                                           'Latest Observation',
                                            'Unrest'])
         targets_df.loc[0] = ["API Connection Error"] * 3
-    return targets_df[['Site', 'Latest SAR Image', 'Unrest']]
+    return targets_df[['Site',
+                       'Latest SAR Image',
+                       'Latest Observation',
+                       'Unrest']]
 
 
 def _read_coherence(coherence_csv):

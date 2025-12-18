@@ -1,27 +1,13 @@
 ---
 Meager:
-  - 5M2
   - 5M3
-  - 5M8
   - 5M10
-  - 5M15
-  - 5M21
 Garibaldi:
-  - 3M6
-  - 3M7
-  - 3M18
   - 3M23
-  - 3M30
   - 3M34
-  - 3M42
 Cayley:
   - 3M1
-  - 3M6
   - 3M13
-  - 3M14
-  - 3M17
-  - 3M24
-  - 3M30
   - 3M36
 Edgecumbe:
   - 3M36
@@ -29,7 +15,6 @@ Edziza_North:
   - 3M13
   - 3M41
 Edziza_South:
-  - 3M12
   - 3M31
   - 3M42
 Tseax:
@@ -43,33 +28,35 @@ Nazko:
   - 3M31
 Hoodoo:
   - 3M8
-  - 3M11
   - 3M14
-  - 3M38
-  - 3M41
 Lava_Fork:
-  - 3M11
-  - 3M20
   - 3M21
   - 3M29
-  - 3M31
   - 3M41
-Campi_Flegrei:
-  - 5M4
-  - 5M18
-Vesuvius:
-  - 5M2
-  - 5M20
 Fagradalsfjall:
-  - 5M4
-  - 5M9
   - 5M13
-  - 5M17
-  - 5M18
   - 5M22
-Thompson_River_Valley:
-  - 3M14
 Baker:
   - 5M21
 Reykjanes:
   - 5M4
+  - 5M8
+  - 5M18
+  - 5M23
+Spurr:
+  - 5M9
+  - 5M14
+  - 5M17
+  - 5M22
+Chilcotin:
+  - 5M13
+  - 5M20
+Klyuchevskaya:
+  - 5M21
+Anahim_N:
+  - 5M6
+Anahim_S:
+  - 5M6
+Semeru:
+  - 5M10
+  - 5M22

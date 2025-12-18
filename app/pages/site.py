@@ -213,13 +213,12 @@ baseline_tab = html.Div(
                     style=tab_style,
                     selected_style=tab_selected_style
                 ),
-                # HIDE Annotation Tab for now
-                # Tab(
-                #     label='Annotations',
-                #     value='tab-3-annotations',
-                #     style=tab_style,
-                #     selected_style=tab_selected_style
-                # )
+                Tab(
+                    label='Annotations',
+                    value='tab-3-annotations',
+                    style=tab_style,
+                    selected_style=tab_selected_style
+                )
             ],
             style={
                 'width': '15%',
@@ -373,7 +372,7 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                         f"startdate={first_str}&",
                         f"enddate={second_str}&",
                         "x=0&y=0&z=0"))
-    response = requests.get(test_url, timeout=10, verify=False)
+    response = requests.get(test_url, timeout=10)
     if response.status_code == 200:
         logger.info('Interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,
@@ -466,7 +465,7 @@ def switch_temporal_view(tab, site):
         )
     if tab == 'tab-3-annotations':
         logger.info('annotations for %s', site)
-        return plot_annotation_tab()
+        return plot_annotation_tab(site)
     return None
 
 
