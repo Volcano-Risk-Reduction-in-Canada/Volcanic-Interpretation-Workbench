@@ -20,7 +20,8 @@ Edziza_South:
 Tseax:
   - 3M7
   - 3M9
-  - 3m19
+  - 3M19
+  - 3M40
 Nazko:
   - 3M9
   - 3M20
@@ -39,6 +40,9 @@ Baker:
   - 5M21
 Reykjanes:
   - 5M4
+  - 5M8
+  - 5M18
+  - 5M23
 Spurr:
   - 5M9
   - 5M14
@@ -48,4 +52,11 @@ Chilcotin:
   - 5M13
   - 5M20
 Klyuchevskaya:
-  - 5m21
+  - 5M21
+Anahim_N:
+  - 5M6
+Anahim_S:
+  - 5M6
+Semeru:
+  - 5M10
+  - 5M22
