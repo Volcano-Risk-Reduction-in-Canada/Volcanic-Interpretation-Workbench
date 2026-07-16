@@ -95,7 +95,7 @@ layout = html.Div(
         ),
         html.Button(
             children=[
-                html.P('get latest csv files')
+                html.P('Update Coherence Matrices')
             ],
             id='temp-get-latest-csv-button',
             n_clicks=0,
