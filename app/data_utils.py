@@ -521,6 +521,8 @@ def plot_coherence(coh_long, insar_long, x_range=None, y_range=None):
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
         start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
+    # keep Pan mode tool selected on re-draw
+    fig.update_layout(dragmode='pan')
     if coh_long is None:
         return fig
 
