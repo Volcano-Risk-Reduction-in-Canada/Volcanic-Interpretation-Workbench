@@ -14,6 +14,7 @@ from datetime import datetime as dt
 import functools
 import json
 import os
+import re
 import sys
 import logging
 from io import StringIO
@@ -289,6 +290,19 @@ def read_targets_geojson():
     return response_geojson
 
 
+def _is_summary_site(site_id):
+    """True for sites shown in the volcano summary table.
+
+    Matches 'A' followed by a digit (e.g. A4207_Volcano_Nazko) or Edgecumbe,
+    plus Baker explicitly; Semeru is explicitly excluded.
+    """
+    if site_id == 'Semeru':
+        return False
+    if site_id in ('Baker', 'Edgecumbe'):
+        return True
+    return bool(re.match(r'^A\d', site_id))
+
+
 def get_green_volcanoes():
     """Return a list of green volcano points"""
     logger.info("GET green volc")
@@ -301,7 +315,7 @@ def get_green_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
+            if _is_summary_site(feature['id']):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -339,7 +353,7 @@ def get_red_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
+            if _is_summary_site(feature['id']):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -860,7 +874,7 @@ def build_summary_table(targs_geojson):
     try:
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
-        targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
+        targets_df = targets_df[targets_df['id'].apply(_is_summary_site)]
         targets_df['Latest SAR Image Date'] = None
         targets_df['Latest Observation'] = None
         targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
