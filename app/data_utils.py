@@ -451,6 +451,10 @@ def pivot_and_clean(coh_long):
     cw_last_col = coh_wide.max(axis='columns').last_valid_index()
     cw_first_ind = coh_wide.max(axis='index').first_valid_index()
     cw_last_ind = coh_wide.max(axis='index').last_valid_index()
+    if cw_last_col is None or cw_first_ind is None or cw_last_ind is None:
+        # sometimes there are no coherence values, i.e. no interferograms 
+        # have been processed but we will want to display potential pairs
+        return pd.DataFrame()
     cw_col = coh_wide.columns
     # trim empty edges
     coh_wide = coh_wide.loc[
@@ -475,10 +479,15 @@ def pivot_and_clean_insar(insar_long):
     # because hovertemplate 'f' format doesn't handle NaN properly
     insar_wide = insar_wide.round(2)
     # trim empty edges
-    first_valid_row_index = insar_wide.dropna(how='all').index[0]
-    last_valid_row_index = insar_wide.dropna(how='all').index[-1]
-    first_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[0]
-    last_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[-1]
+    valid_rows = insar_wide.dropna(how='all')
+    valid_cols = insar_wide.dropna(axis=1, how='all')
+    if valid_rows.empty or valid_cols.empty:
+        # No valid (non-NaN) potential pairs anywhere in this window
+        return pd.DataFrame()
+    first_valid_row_index = valid_rows.index[0]
+    last_valid_row_index = valid_rows.index[-1]
+    first_valid_col_index = valid_cols.columns[0]
+    last_valid_col_index = valid_cols.columns[-1]
     insar_wide = insar_wide.loc[first_valid_row_index:last_valid_row_index,
                                 first_valid_col_index:last_valid_col_index]
     return insar_wide
