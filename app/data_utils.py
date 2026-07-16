@@ -511,6 +511,20 @@ def plot_coherence(coh_long, insar_long):
     coh_long['delta_days'] = (
         coh_long.second_date - coh_long.first_date
     ).dt.days
+
+    # Coherence matrices have grown too large to plot efficiently
+    # Trim horizontal and vertical extents of matrix before plotting
+    latest_date = coh_long.second_date.max()
+    min_date = latest_date - pd.to_timedelta(DAYS_PER_YEAR * MAX_YEARS, 'days')
+    max_baseline = (
+        BASELINE_MAX if YEAR_AXES_COUNT == 1
+        else (YEAR_AXES_COUNT - 1) * DAYS_PER_YEAR + BASELINE_MAX / 2
+    )
+    coh_long = coh_long[
+        (coh_long.second_date >= min_date) &
+        (coh_long.delta_days <= max_baseline)
+    ]
+
     coh_wide = pivot_and_clean(coh_long)
     date_wide = pivot_and_clean_dates(coh_long, coh_wide)
 
@@ -518,6 +532,10 @@ def plot_coherence(coh_long, insar_long):
         insar_long['delta_days'] = (
             insar_long.second_date - insar_long.first_date
         ).dt.days
+        insar_long = insar_long[
+            (insar_long.second_date >= min_date) &
+            (insar_long.delta_days <= max_baseline)
+        ]
         insar_wide = pivot_and_clean_insar(insar_long)
         insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
         insar_colorscale = [
