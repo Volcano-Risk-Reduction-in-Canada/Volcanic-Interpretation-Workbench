@@ -25,10 +25,8 @@ docker build -t volc_interp_wb .
 
 Start Docker container with a command like:
 ```bash
-sudo docker run -p 8050:8050/tcp --name volc_interp_wb volc_interp_wb &
+docker run -p 8050:8050/tcp --name volc_interp_wb volc_interp_wb &
 ```
-
-See also `runDocker.sh`.
 
 ### VSCode (development)
 
@@ -39,19 +37,6 @@ conda env create --file vrrc.yml
 (If the correct version of python is already available on your system,
 this could instead be done using a virtualenv.)
 
-Upon first run, and periodically thereafter, the AWS environment variables for "Command line or programmatic access" must be updated, from https://nrcan-rncan.awsapps.com/start#/.
-
-For each session with the workbench, the user must complete the two-factor authentication to login to AWS using:
-```bash
-aws sso login
-```
-
-Find the `vrrc-insar-geoserver` instance ID among the running EC2 instances in `landmass-sandbox`.
-
-Start forwarding local port 8080 to remote port 8080 of the geoserver instance using:
-```bash
-aws ssm start-session --target <GEOSERVER_INSTANCE_ID> --document-name AWS-StartPortForwardingSession --parameters "portNumber"=["8080"],"localPortNumber"=["8080"]
-```
 
 Start forwarding local port 8081 to remote port 8080 of the vrrc-api using:
 ```bash

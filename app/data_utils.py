@@ -11,6 +11,7 @@ Authors:
 """
 import datetime
 from datetime import datetime as dt
+import functools
 import json
 import os
 import sys
@@ -434,6 +435,9 @@ def populate_beam_selector(vrrc_api_ip):
 
 def pivot_and_clean(coh_long):
     """Convert long-form coherence to wide-form and clean it up."""
+    if coh_long.empty:
+        # e.g. the user panned/zoomed to a window with no data in it
+        return pd.DataFrame()
     coh_wide = coh_long.pivot(
         index='delta_days',
         columns='second_date',
@@ -458,6 +462,9 @@ def pivot_and_clean(coh_long):
 
 def pivot_and_clean_insar(insar_long):
     """Convert long-form coherence to wide-form and clean it up."""
+    if insar_long.empty:
+        # e.g. the user panned/zoomed to a window with no data in it
+        return pd.DataFrame()
     insar_wide = insar_long.pivot(
         index='delta_days',
         columns='second_date',
@@ -498,8 +505,17 @@ def pivot_and_clean_dates(coh_long, coh_wide):
     return date_wide
 
 
-def plot_coherence(coh_long, insar_long):
-    """Plot coherence for different baselines as a function of time."""
+def plot_coherence(coh_long, insar_long, x_range=None, y_range=None):
+    """Plot coherence for different baselines as a function of time.
+
+    x_range / y_range let the caller override the displayed window, e.g.
+    with the (second_date, delta_days) range a Plotly relayout event
+    reports after the user pans/zooms the matrix. Only that window is
+    filtered/pivoted, so cost stays bounded regardless of how much history
+    the underlying CSV has accumulated. When omitted (initial load / site
+    switch), this defaults to the most recent MAX_YEARS / BASELINE_MAX
+    window, as before.
+    """
     print('PLOT COHERENCE', coh_long, insar_long)
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
@@ -508,20 +524,35 @@ def plot_coherence(coh_long, insar_long):
     if coh_long is None:
         return fig
 
+    coh_long = coh_long.copy()
     coh_long['delta_days'] = (
         coh_long.second_date - coh_long.first_date
     ).dt.days
 
-    # Coherence matrices have grown too large to plot efficiently
-    # Trim horizontal and vertical extents of matrix before plotting
-    latest_date = coh_long.second_date.max()
-    min_date = latest_date - pd.to_timedelta(DAYS_PER_YEAR * MAX_YEARS, 'days')
-    max_baseline = (
-        BASELINE_MAX if YEAR_AXES_COUNT == 1
-        else (YEAR_AXES_COUNT - 1) * DAYS_PER_YEAR + BASELINE_MAX / 2
-    )
+    # Coherence matrices have grown too large to plot efficiently.
+    # Trim horizontal and vertical extents of matrix before plotting -
+    # either to the default recent-history window, or to whatever window
+    # the user has just panned/zoomed to.
+    if x_range is not None:
+        min_date, max_date = sorted(pd.to_datetime(list(x_range)))
+    else:
+        latest_date = coh_long.second_date.max()
+        min_date = latest_date - pd.to_timedelta(
+            DAYS_PER_YEAR * MAX_YEARS, 'days')
+        max_date = latest_date + pd.to_timedelta(4, 'days')
+
+    if y_range is not None:
+        min_baseline, max_baseline = sorted(y_range)
+    else:
+        min_baseline = -np.inf
+        max_baseline = (
+            BASELINE_MAX if YEAR_AXES_COUNT == 1
+            else (YEAR_AXES_COUNT - 1) * DAYS_PER_YEAR + BASELINE_MAX / 2
+        )
     coh_long = coh_long[
         (coh_long.second_date >= min_date) &
+        (coh_long.second_date <= max_date) &
+        (coh_long.delta_days >= min_baseline) &
         (coh_long.delta_days <= max_baseline)
     ]
 
@@ -529,11 +560,14 @@ def plot_coherence(coh_long, insar_long):
     date_wide = pivot_and_clean_dates(coh_long, coh_wide)
 
     if insar_long is not None:
+        insar_long = insar_long.copy()
         insar_long['delta_days'] = (
             insar_long.second_date - insar_long.first_date
         ).dt.days
         insar_long = insar_long[
             (insar_long.second_date >= min_date) &
+            (insar_long.second_date <= max_date) &
+            (insar_long.delta_days >= min_baseline) &
             (insar_long.delta_days <= max_baseline)
         ]
         insar_wide = pivot_and_clean_insar(insar_long)
@@ -544,7 +578,7 @@ def plot_coherence(coh_long, insar_long):
         ]
 
     for year in range(YEAR_AXES_COUNT):
-        if insar_long is not None:
+        if insar_long is not None and not insar_wide.empty:
             # Grey heatmap for potential insar pair
             fig.add_trace(
                 go.Heatmap(
@@ -564,22 +598,25 @@ def plot_coherence(coh_long, insar_long):
                     opacity=0.5),
                 row=year + 1, col=1)
         # Colored heatmap for processed insar pairs
-        fig.add_trace(
-            go.Heatmap(
-                z=coh_wide.values,
-                x=coh_wide.columns,
-                y=coh_wide.index,
-                xgap=1,
-                ygap=1,
-                customdata=date_wide,
-                hovertemplate=(
-                    'Start Date: %{customdata}<br>'
-                    'End Date: %{x}<br>'
-                    'Temporal Baseline: %{y} days<br>'
-                    'Coherence: %{z}'),
-                coloraxis='coloraxis'),
-            row=year + 1, col=1)
-        if year == 0:
+        if not coh_wide.empty:
+            fig.add_trace(
+                go.Heatmap(
+                    z=coh_wide.values,
+                    x=coh_wide.columns,
+                    y=coh_wide.index,
+                    xgap=1,
+                    ygap=1,
+                    customdata=date_wide,
+                    hovertemplate=(
+                        'Start Date: %{customdata}<br>'
+                        'End Date: %{x}<br>'
+                        'Temporal Baseline: %{y} days<br>'
+                        'Coherence: %{z}'),
+                    coloraxis='coloraxis'),
+                row=year + 1, col=1)
+        if year == 0 and y_range is not None:
+            baseline_limits = [min_baseline, max_baseline]
+        elif year == 0:
             baseline_limits = [0, BASELINE_MAX]
         else:
             baseline_limits = list(
@@ -587,15 +624,22 @@ def plot_coherence(coh_long, insar_long):
                     year * DAYS_PER_YEAR
                 ) + BASELINE_MAX / 2 * np.array([-1, 1])
             )
-        second_date_limits = [
-            max(
-                coh_wide.columns.min(),
-                coh_wide.columns.max() - pd.to_timedelta(
-                    DAYS_PER_YEAR * MAX_YEARS, 'days'
-                )
-            ) - pd.to_timedelta(4, 'days'),
-            coh_wide.columns.max() + pd.to_timedelta(4, 'days')
-        ]
+        if x_range is not None or coh_wide.empty:
+            # Either an explicit pan/zoom window was requested, or there is
+            # no data in view to derive a range from - use the requested/
+            # default window directly rather than the (possibly missing)
+            # data extents.
+            second_date_limits = [min_date, max_date]
+        else:
+            second_date_limits = [
+                max(
+                    coh_wide.columns.min(),
+                    coh_wide.columns.max() - pd.to_timedelta(
+                        DAYS_PER_YEAR * MAX_YEARS, 'days'
+                    )
+                ) - pd.to_timedelta(4, 'days'),
+                coh_wide.columns.max() + pd.to_timedelta(4, 'days')
+            ]
         fig.update_yaxes(
             range=baseline_limits,
             dtick=BASELINE_DTICK,
@@ -863,9 +907,15 @@ def build_summary_table(targs_geojson):
                        'Unrest']]
 
 
-def _read_coherence(coherence_csv):
-    if coherence_csv is None:
-        return None
+@functools.lru_cache(maxsize=64)
+def _read_coherence_cached(coherence_csv, _mtime):
+    """Parse a coherence CSV. `_mtime` busts the cache when the file changes.
+
+    Panning/zooming the coherence matrix re-reads the CSV for the current
+    site on every interaction (see plot_coherence's x_range/y_range), so
+    this is cached to keep that cheap instead of re-parsing the whole file
+    from disk each time.
+    """
     coh = pd.read_csv(
         coherence_csv,
         parse_dates=['Reference Date', 'Pair Date'])
@@ -879,15 +929,16 @@ def _read_coherence(coherence_csv):
     return coh
 
 
-def _read_insar_pair(insar_pair_csv):
-    if insar_pair_csv is None:
+def _read_coherence(coherence_csv):
+    if coherence_csv is None:
         return None
-    # Check if the file exists
-    if not os.path.exists(insar_pair_csv):
-        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
-        logger.info("The file %s does not exist.", insar_pair_csv)
-        return None
+    mtime = os.path.getmtime(coherence_csv)
+    return _read_coherence_cached(coherence_csv, mtime).copy()
 
+
+@functools.lru_cache(maxsize=64)
+def _read_insar_pair_cached(insar_pair_csv, _mtime):
+    """Parse an InSAR-pair CSV; see _read_coherence_cached for why cached."""
     insar = pd.read_csv(
         insar_pair_csv,
         parse_dates=['Reference_Date', 'Pair_Date'])
@@ -901,6 +952,19 @@ def _read_insar_pair(insar_pair_csv):
             f'{insar[wrong_order].to_string()}'
         )
     return insar
+
+
+def _read_insar_pair(insar_pair_csv):
+    if insar_pair_csv is None:
+        return None
+    # Check if the file exists
+    if not os.path.exists(insar_pair_csv):
+        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
+        logger.info("The file %s does not exist.", insar_pair_csv)
+        return None
+
+    mtime = os.path.getmtime(insar_pair_csv)
+    return _read_insar_pair_cached(insar_pair_csv, mtime).copy()
 
 
 def _read_baseline(baseline_csv):
