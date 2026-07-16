@@ -290,15 +290,14 @@ def read_targets_geojson():
     return response_geojson
 
 
-def _is_summary_site(site_id):
+def _is_summary_site(site_id, site_name):
     """True for sites shown in the volcano summary table.
-
-    Matches 'A' followed by a digit (e.g. A4207_Volcano_Nazko) or Edgecumbe,
-    plus Baker explicitly; Semeru is explicitly excluded.
+    Matches 'A' followed by a digit in the id (e.g. A4207_Volcano_Nazko) or
+    Edgecumbe; Baker is explicitly included and Semeru explicitly excluded
     """
-    if site_id == 'Semeru':
+    if site_name == 'Semeru':
         return False
-    if site_id in ('Baker', 'Edgecumbe'):
+    if site_name == 'Baker' or site_id == 'Edgecumbe':
         return True
     return bool(re.match(r'^A\d', site_id))
 
@@ -315,7 +314,7 @@ def get_green_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if _is_summary_site(feature['id']):
+            if _is_summary_site(feature['id'], feature['properties']['name_en']):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -353,7 +352,7 @@ def get_red_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if _is_summary_site(feature['id']):
+            if _is_summary_site(feature['id'], feature['properties']['name_en']):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -874,7 +873,14 @@ def build_summary_table(targs_geojson):
     try:
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
-        targets_df = targets_df[targets_df['id'].apply(_is_summary_site)]
+        targets_df = targets_df[
+            targets_df.apply(
+                lambda row: _is_summary_site(
+                    row['id'], row['properties.name_en']
+                ),
+                axis=1
+            )
+        ]
         targets_df['Latest SAR Image Date'] = None
         targets_df['Latest Observation'] = None
         targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
