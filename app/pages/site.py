@@ -478,7 +478,9 @@ def update_coherence_view(relayout_data, target_id, tab):
     insar_pair_csv = _insar_pair_csv(target_id)
     coherence = _read_coherence(coherence_csv)
     insar_pair = _read_insar_pair(insar_pair_csv)
-    return plot_coherence(coherence, insar_pair, x_range=x_range, y_range=y_range)
+    return plot_coherence(
+        coherence, insar_pair, x_range=x_range, y_range=y_range
+    )
 
 
 @callback(

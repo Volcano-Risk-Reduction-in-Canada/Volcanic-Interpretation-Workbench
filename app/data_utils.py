@@ -452,7 +452,7 @@ def pivot_and_clean(coh_long):
     cw_first_ind = coh_wide.max(axis='index').first_valid_index()
     cw_last_ind = coh_wide.max(axis='index').last_valid_index()
     if cw_last_col is None or cw_first_ind is None or cw_last_ind is None:
-        # sometimes there are no coherence values, i.e. no interferograms 
+        # sometimes there are no coherence values, i.e. no interferograms
         # have been processed but we will want to display potential pairs
         return pd.DataFrame()
     cw_col = coh_wide.columns
