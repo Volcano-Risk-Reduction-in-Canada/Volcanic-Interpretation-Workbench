@@ -314,7 +314,9 @@ def get_green_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if _is_summary_site(feature['id'], feature['properties']['name_en']):
+            if _is_summary_site(
+                feature['id'], feature['properties']['name_en']
+            ):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -352,7 +354,9 @@ def get_red_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if _is_summary_site(feature['id'], feature['properties']['name_en']):
+            if _is_summary_site(
+                feature['id'], feature['properties']['name_en']
+            ):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
