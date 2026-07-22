@@ -31,6 +31,7 @@ from dash_extensions.enrich import (
     Output,
     DashProxy,
     Input,
+    State,
     MultiplexerTransform
 )
 from pages.components.gc_header import gc_header, gc_line
@@ -213,13 +214,12 @@ baseline_tab = html.Div(
                     style=tab_style,
                     selected_style=tab_selected_style
                 ),
-                # HIDE Annotation Tab for now
-                # Tab(
-                #     label='Annotations',
-                #     value='tab-3-annotations',
-                #     style=tab_style,
-                #     selected_style=tab_selected_style
-                # )
+                Tab(
+                    label='Annotations',
+                    value='tab-3-annotations',
+                    style=tab_style,
+                    selected_style=tab_selected_style
+                )
             ],
             style={
                 'width': '15%',
@@ -373,7 +373,7 @@ def update_interferogram(click_data, target_id, zoom, bounds):
                         f"startdate={first_str}&",
                         f"enddate={second_str}&",
                         "x=0&y=0&z=0"))
-    response = requests.get(test_url, timeout=10, verify=False)
+    response = requests.get(test_url, timeout=10)
     if response.status_code == 200:
         logger.info('Interferogram: %s_HH_%s_HH.adf.wrp.geo.tif',
                     first_str,
@@ -418,6 +418,69 @@ def update_coherence(target_id):
     insar_pair = _read_insar_pair(insar_pair_csv)
     print(coherence, insar_pair)
     return plot_coherence(coherence, insar_pair)
+
+
+def _relayout_range(relayout_data, axis):
+    """
+    Pull an (min, max) range for the given axis ('xaxis'/'yaxis') out of a
+    Plotly relayoutData payload, if the user's interaction changed it.
+
+    Returns None if relayout_data doesn't carry an explicit range for this
+    axis (e.g. it was some other relayout event, like an autoscale/reset or
+    a dragmode change).
+    """
+    if relayout_data is None:
+        return None
+    lo_key, hi_key = f'{axis}.range[0]', f'{axis}.range[1]'
+    if lo_key in relayout_data and hi_key in relayout_data:
+        return (relayout_data[lo_key], relayout_data[hi_key])
+    if f'{axis}.range' in relayout_data:
+        return tuple(relayout_data[f'{axis}.range'])
+    return None
+
+
+@callback(
+    Output(component_id='coherence-matrix',
+           component_property='figure',
+           allow_duplicate=True),
+    Input(component_id='coherence-matrix', component_property='relayoutData'),
+    State(component_id='site-dropdown', component_property='value'),
+    State(component_id='tabs-example-graph', component_property='value'),
+    prevent_initial_call=True
+)
+def update_coherence_view(relayout_data, target_id, tab):
+    """
+    Re-trim and re-render the coherence matrix to whatever window the user
+    just panned or zoomed to, instead of loading/plotting the full history.
+
+    Parameters:
+    - relayout_data (dict or None): Plotly relayout event data from the
+        'coherence-matrix' component (fired on pan/zoom/autoscale).
+    - target_id (str or None): Currently selected site from 'site-dropdown'.
+    - tab (str): Currently selected tab from 'tabs-example-graph'. The
+        B-Perp/Annotations tabs reuse the same 'coherence-matrix' id for a
+        different plot, so this callback must stay out of their way.
+
+    Returns:
+    - plotly.graph_objs.Figure: Coherence matrix re-plotted for the visible
+        window, or dash.exceptions.PreventUpdate if the event carried no
+        usable range (e.g. an autoscale/reset or an unrelated relayout), or
+        the coherence tab isn't the one currently showing.
+    """
+    if not target_id or tab != 'tab-1-coherence-graph':
+        raise PreventUpdate
+    x_range = _relayout_range(relayout_data, 'xaxis')
+    y_range = _relayout_range(relayout_data, 'yaxis')
+    if x_range is None and y_range is None:
+        raise PreventUpdate
+
+    coherence_csv = _coherence_csv(target_id)
+    insar_pair_csv = _insar_pair_csv(target_id)
+    coherence = _read_coherence(coherence_csv)
+    insar_pair = _read_insar_pair(insar_pair_csv)
+    return plot_coherence(
+        coherence, insar_pair, x_range=x_range, y_range=y_range
+    )
 
 
 @callback(
@@ -466,7 +529,7 @@ def switch_temporal_view(tab, site):
         )
     if tab == 'tab-3-annotations':
         logger.info('annotations for %s', site)
-        return plot_annotation_tab()
+        return plot_annotation_tab(site)
     return None
 
 

@@ -9,7 +9,14 @@ Copyright (C) 2021-2024 Government of Canada
 Authors:
   - Chloe Lam <chloe.lam@nrcan-rncan.gc.ca>
 """
-from dash import html, Input as DashInput, Output, ALL, callback, ctx
+from dash import (
+    html, Input as DashInput, exceptions, Output, ALL, callback, ctx,
+    State as DashState
+)
+from datetime import datetime
+import logging
+import os
+import requests
 
 from dash.dcc import (
     Dropdown,
@@ -32,6 +39,8 @@ from global_styling import (
 
 # #######################################################
 # LOCAL variables used throughout this file
+
+logger = logging.getLogger(__name__)
 
 insar_phase_anomalies = [
     'Magmatic Deformation',
@@ -63,6 +72,12 @@ def _text_with_element_in_row(text, component):
 
 
 def _annotations_card(log):
+    annotation_created = datetime.fromisoformat(
+        log['annotation_created']
+    ).strftime('%Y-%m-%d')
+    end_date_observed = datetime.fromisoformat(
+        log['end_date_observed']
+    ).strftime('%Y-%m-%d')
     return html.Button(
         id={'type': 'annotation-card', 'index': log['id']},
         children=[
@@ -73,32 +88,88 @@ def _annotations_card(log):
             html.Div(
                 [
                     html.P(
-                        f"Date Range: {log['dateRange']}",
+                        f"Observation Date: {end_date_observed}",
                         style=text_styling
                     ),
                     html.P(
-                        f"Date Added/Modified: {log['dateAddedModified']}",
+                        f"Date Range: {log['date_range']} days",
+                        style=text_styling
+                    ),
+                    html.P(
+                        f"Date Added/Modified: {annotation_created}",
                         style=text_styling
                     )
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
-            html.P('Observation Notes', style=text_styling),
             html.Div(
                 [
-                    html.P(log['user']['name'], style=text_styling),
+                    html.P(log['user']['username'], style=text_styling),
                     html.P(log['user']['email'], style=text_styling)
                 ],
                 style={**row_element, 'justify-content': 'space-between'}
             ),
+            html.P(f'Observation Notes: {log["additional_comments"]}',
+                   style={**text_styling, "textAlign": "left"}),
         ],
         style=annotation_card_style,
-        n_clicks=0
+        n_clicks=0,
     )
 
 
+def get_beam_id(site_beam):
+    """
+    Function to find the beam ID that matches the site_beam variable.
+
+    Parameters:
+    ----------
+    site_beam : str
+        The site and beam identifier in the format "name_en_short_name".
+
+    Returns:
+    -------
+    int or None
+        The "id" of the matching beam record, or None if no match is found.
+    """
+    url = os.getenv("API_VRRC_IP")
+
+    # Split site_beam into name_en and short_name
+    name_en, short_name = site_beam.rsplit('_', 1)
+
+    # Step 1: Get the target label from the targets endpoint
+    response = requests.get(f"http://{url}/targets/",
+                            headers={'Content-Type': 'application/json'},
+                            timeout=10)
+    if response.status_code == 200:
+        targets = response.json()
+        target_label = None
+        for target in targets:
+            if target['name_en'] == name_en:
+                target_label = target['label']
+                break
+        if not target_label:
+            return None
+    else:
+        return None
+
+    # Step 2: Get the beam ID from the beams endpoint
+    response = requests.get(f"http://{url}/beams/",
+                            headers={'Content-Type': 'application/json'},
+                            timeout=10)
+    if response.status_code == 200:
+        beams = response.json()
+        for beam in beams:
+            if (
+                beam['target_label'] == target_label
+                and beam['short_name'] == short_name
+            ):
+                return beam['id']
+    return None
+
 # ####################################################
 #  MAIN List of Logs UI
+
+
 def logs_list_ui(logs, width):
     """
     Creates the UI layout for displaying a list of observation logs.
@@ -130,6 +201,7 @@ def logs_list_ui(logs, width):
         },
         children=[
             Store(id='logs-store', data=logs),
+            Store(id='selected-log-id', data=None),
             html.H5(
                 'Previous Annotations (End Date: )',
                 style={**title_text_styling, 'margin': '10px 5px'}
@@ -192,17 +264,59 @@ def observation_log_ui(users, log=None):
         and submission buttons.
     """
     coherence_present_options = ['Yes', 'No', 'Unsure, need a second opinion']
+    insar_phase_anomalies_values = [
+        (
+            'Magmatic Deformation'
+            if log and log.get('anomaly_magmatic_deformation')
+            else None
+        ),
+        (
+            'Slope Movement'
+            if log and log.get('anomaly_slope_movement')
+            else None
+        ),
+        (
+            'Glacial Movement'
+            if log and log.get('anomaly_glacial_movement')
+            else None
+        ),
+        (
+            'Topographic Phase Error'
+            if log and log.get('anomaly_topographic_phase_error')
+            else None
+        ),
+        (
+            'Atmospheric Phase Error'
+            if log and log.get('anomaly_atmospheric_phase_error')
+            else None
+        ),
+        (
+            'Baseline Phase Error'
+            if log and log.get('anomaly_baseline_phase_error')
+            else None
+        ),
+    ]
+    # Filter out None values
+    insar_phase_anomalies_values = [
+        value for value in insar_phase_anomalies_values if value is not None
+    ]
+
     log_user_index = (
         None
         if not log
         else [i for i in range(len(users)) if users[i] == log['user']][0]
     )
+
+    current_date = datetime.today().strftime('%Y-%m-%d')
+
     return html.Div(
         style={
             'margin': '10px 5px 5px',  # top, left and right, bottom
         },
         children=[
             Store(id='all-users', data=users),
+            Store(id='n_clicks_store', data=0),
+            Store(id='current_log', data=log),
             html.Div(
                 children=[
                     _text_with_element_in_row(
@@ -216,18 +330,18 @@ def observation_log_ui(users, log=None):
                             options=[
                                 {
                                     'label': html.Span(
-                                        [user['name']],
+                                        [user['username']],
                                         style={
                                             'color': 'black',
                                             'font-size': 15
                                         }
                                     ),
-                                    'value': user['name']
+                                    'value': user['username']
                                 } for user in users
                             ],
                             value=(
-                                users[log_user_index]['name']
-                                if log_user_index
+                                users[log_user_index]['username']
+                                if log_user_index is not None
                                 else ''
                             )
                         )
@@ -239,8 +353,8 @@ def observation_log_ui(users, log=None):
                             id='date-picker-single',
                             date=_dict_key_error_check(
                                 log,
-                                'endDateObserved',
-                                ''
+                                'end_date_observed',
+                                current_date  # Use current date as default
                             ),
                             display_format='YYYY-MM-DD',  # Format to display
                             clearable=True,
@@ -251,10 +365,10 @@ def observation_log_ui(users, log=None):
                     _text_with_element_in_row(
                         'Date Range',
                         Input(
-                            # id='date-range',
+                            id='date-range',
                             type='number',
                             placeholder='Enter date range',
-                            value=_dict_key_error_check(log, 'dateRange', 0),
+                            value=_dict_key_error_check(log, 'date_range', 0),
                         )
                     )
                 ],
@@ -278,7 +392,7 @@ def observation_log_ui(users, log=None):
                                     inline=True,
                                     value=_dict_key_error_check(
                                         log,
-                                        'coherencePresent',
+                                        'coherence_present',
                                         ''
                                     ),
                                     labelStyle=text_styling
@@ -319,7 +433,7 @@ def observation_log_ui(users, log=None):
                                     labelStyle=text_styling,
                                     value=_dict_key_error_check(
                                         log,
-                                        'furtherInterpretationNeeded',
+                                        'further_interpretation_needed',
                                         None
                                     ),
                                 )
@@ -332,7 +446,7 @@ def observation_log_ui(users, log=None):
                                         placeholder='Latitude',
                                         value=_dict_key_error_check(
                                             log,
-                                            'interpretationLatitude',
+                                            'interpretation_latitude',
                                             None
                                         ),
                                     ),
@@ -342,7 +456,7 @@ def observation_log_ui(users, log=None):
                                         placeholder='Longitude',
                                         value=_dict_key_error_check(
                                             log,
-                                            'interpretationLongitude',
+                                            'interpretation_longitude',
                                             None
                                         ),
                                     ),
@@ -372,11 +486,7 @@ def observation_log_ui(users, log=None):
                                         'value': anomaly
                                     } for anomaly in insar_phase_anomalies
                                 ],
-                                value=_dict_key_error_check(
-                                    log,
-                                    'insarPhaseAnomalies',
-                                    []
-                                ),
+                                value=insar_phase_anomalies_values,
                                 labelStyle=text_styling
                             ),
                             html.Div(
@@ -387,11 +497,8 @@ def observation_log_ui(users, log=None):
                                             'label': 'Other',
                                             'value': 'Other'
                                         }],
-                                        value=_dict_key_error_check(
-                                            log,
-                                            'insarPhaseAnomalies',
-                                            []
-                                        ),
+                                        value=['Other'] if log and log.get(
+                                            'anomaly_other') else [],
                                         labelStyle=text_styling,
                                         inline=True
                                     ),
@@ -432,7 +539,7 @@ def observation_log_ui(users, log=None):
                             placeholder='under 100/200 characters',
                             value=_dict_key_error_check(
                                 log,
-                                'additionalComments',
+                                'additional_comments',
                                 ''
                             )
                         )
@@ -458,6 +565,7 @@ def observation_log_ui(users, log=None):
     [
         Output({"type": "annotation-triangle", "index": ALL}, 'style'),
         Output({"type": "annotation-card", "index": ALL}, 'style'),
+        Output('selected-log-id', 'data')  # Output for selected log ID
     ],
     [
         DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'),
@@ -478,9 +586,9 @@ def update_card_styles(clicks, new_clicks, logs):
     logs (list): The current list of observation logs stored in 'logs-store'.
 
     Returns:
-    tuple: A list of style dictionaries for the annotation triangles and a
-    list of style dictionaries for the annotation cards, reflecting the
-    selected log or a new log creation.
+    tuple: A list of style dictionaries for the annotation triangles, a
+    list of style dictionaries for the annotation cards,
+    and the selected log ID.
     """
     # Find which button was clicked
     triggered = ctx.triggered_id if ctx.triggered_id else None
@@ -488,7 +596,8 @@ def update_card_styles(clicks, new_clicks, logs):
     if 'create-new-annotation-button' in triggered:
         return (
             [{**triangle_style} for _ in logs],
-            [{**annotation_card_style} for _ in logs]
+            [{**annotation_card_style} for _ in logs],
+            None  # No log selected
         )
     if 'annotation-card' in triggered['type']:
         index = triggered.get('index') if triggered else None
@@ -512,13 +621,14 @@ def update_card_styles(clicks, new_clicks, logs):
                     )
                 }
                 for log in logs
-            ]
+            ],
+            index  # Selected log ID
         )
     return None  # Default return if no valid trigger
 
 
 @callback(
-    Output('observation_log_container', 'children'),
+    Output('observation_log_container', 'children', allow_duplicate=True),
     [
         DashInput({'type': 'annotation-card', 'index': ALL}, 'n_clicks'),
         DashInput('create-new-annotation-button', 'n_clicks')
@@ -548,9 +658,12 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
     """
     triggered = ctx.triggered_id
     if triggered:
-        if 'create-new-annotation-button' in triggered:
+        if triggered == 'create-new-annotation-button':
             return observation_log_ui(users, None)
-        if 'annotation-card' in triggered['type']:
+        if (
+            isinstance(triggered, dict)
+            and triggered.get('type') == 'annotation-card'
+        ):
             selected_id = triggered['index']
             selected_log = next(
                 (log for log in logs if log['id'] == selected_id),
@@ -558,7 +671,134 @@ def update_observation_log_ui(clicks, new_clicks, logs, users):
             )
             return observation_log_ui(users, selected_log)
 
-    return None  # Default return if no valid trigger
+    return observation_log_ui(users, None)
+
+
+@callback(
+    Output('observation_log_container', 'children', allow_duplicate=True),
+    Output('n_clicks_store', 'data'),
+    DashInput('submit-update-annotation', 'n_clicks'),
+    DashState('n_clicks_store', 'data'),
+    DashState('logs-store', 'data'),
+    DashState('all-users', 'data'),
+    DashState('user-name', 'value'),
+    DashState('date-picker-single', 'date'),
+    DashState('date-range', 'value'),
+    DashState('coherence-present', 'value'),
+    DashState('confidence', 'value'),
+    DashState('geoscience-interpretation-needed', 'value'),
+    DashState('insar-phase-anomalies', 'value'),
+    DashState('other-anomaly', 'value'),
+    DashState('my-input', 'value'),
+    DashState('selected-log-id', 'data'),  # Add selected log ID state
+    DashState('submit-update-annotation', 'children'),
+    DashInput('site-dropdown', 'value'),  # Add site-dropdown as input
+    prevent_initial_call=True
+)
+def submit_update_annotation(n_clicks, prev_n_clicks, logs, users, user_name,
+                             date_picker_single, date_range, coherence_present,
+                             confidence, geoscience_interpretation_needed,
+                             insar_phase_anomalies, other_anomaly, my_input,
+                             selected_log_id, button_text, site_beam):
+    """
+    Callback function to submit or update an observation log.
+    It listens to click events on the "Submit Annotation" button.
+    When triggered, it either creates a new observation log or
+    updates an existing observation log based on the form data.
+
+    Parameters:
+    ----------
+    n_clicks : int
+        Click event from the "Submit Annotation" button.
+    prev_n_clicks : int
+        Previous value of n_clicks stored in 'n_clicks_store'.
+    logs : list
+        The current list of observation logs stored in 'logs-store'.
+    users : list
+        List of all users for user selection in the UI.
+    user_name : str
+        The selected user name.
+    date_picker_single : str
+        The selected end date observed.
+    date_range : int
+        The entered date range.
+    coherence_present : str
+        The selected coherence present option.
+    confidence : int
+        The selected confidence value.
+    geoscience_interpretation_needed : bool
+        The selected geoscience interpretation needed option.
+    insar_phase_anomalies : list
+        The selected InSAR phase anomalies.
+    other_anomaly : str
+        The entered other anomaly.
+    my_input : str
+        The entered additional comments.
+    selected_log_id : int
+        The ID of the selected log.
+    button_text : str
+        The text of the "Submit Annotation" button.
+    site_beam : str
+        The selected site and beam ID from 'site-dropdown'.
+
+    Returns:
+    -------
+    tuple
+        The updated observation log UI and the new value of n_clicks.
+    """
+    if n_clicks and n_clicks > prev_n_clicks:
+        # Convert date_picker_single to the required format
+        date_obj = datetime.fromisoformat(date_picker_single)
+        formatted_date = date_obj.isoformat()
+
+        url = os.getenv("API_VRRC_IP")
+        data = {
+            "end_date_observed": formatted_date,
+            "date_range": date_range,
+            "coherence_present": coherence_present,
+            "confidence": confidence,
+            "further_interpretation_needed": geoscience_interpretation_needed,
+            "interpretation_latitude": 0,
+            "interpretation_longitude": 0,
+            "anomaly_magmatic_deformation": 'Magmatic Deformation' in
+                                            insar_phase_anomalies,
+            "anomaly_slope_movement": 'Slope Movement' in
+                                            insar_phase_anomalies,
+            "anomaly_glacial_movement": 'Glacial Movement' in
+                                        insar_phase_anomalies,
+            "anomaly_topographic_phase_error": 'Topographic Phase Error' in
+                                               insar_phase_anomalies,
+            "anomaly_atmospheric_phase_error": 'Atmospheric Phase Error' in
+                                               insar_phase_anomalies,
+            "anomaly_baseline_phase_error": 'Baseline Phase Error' in
+                                            insar_phase_anomalies,
+            "anomaly_other": 'Other' in insar_phase_anomalies,
+            "insar_phase_anomalies_other": other_anomaly,
+            "additional_comments": my_input,
+        }
+
+        if button_text.startswith("Update") and selected_log_id:
+            # Update existing annotation (PUT request)
+            response = requests.put(
+                f"http://{url}/annotations/{selected_log_id}",
+                json=data,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+        else:
+            # Create new annotation (POST request)
+            data["beam_id"] = get_beam_id(site_beam)
+            data["user_username"] = user_name
+            response = requests.post(
+                f"http://{url}/annotations/",
+                json=data,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+        logger.debug(response.status_code)
+        return observation_log_ui(users, None), n_clicks
+
+    raise exceptions.PreventUpdate
 
 
 @callback(

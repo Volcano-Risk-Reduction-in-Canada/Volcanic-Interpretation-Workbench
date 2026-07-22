@@ -11,8 +11,10 @@ Authors:
 """
 import datetime
 from datetime import datetime as dt
+import functools
 import json
 import os
+import re
 import sys
 import logging
 from io import StringIO
@@ -28,6 +30,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 from pages.components.observation_log_components import (
+    get_beam_id,
     logs_list_ui,
     observation_log_ui
 )
@@ -162,7 +165,7 @@ def get_latest_quakes_chis_fsdn():
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10, verify=False)
+                                timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -219,7 +222,7 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     try:
         response = requests.get(url,
                                 params=params,
-                                timeout=10, verify=False)
+                                timeout=10)
         if response.status_code == 200:
             # Parse the response text to a dataframe
             df = pd.read_csv(
@@ -259,7 +262,7 @@ def read_targets_geojson():
     try:
         vrrc_api_ip = config['API_VRRC_IP']
         response = requests.get(f'http://{vrrc_api_ip}/targets/geojson/',
-                                timeout=10, verify=False)
+                                timeout=10)
         response_geojson = json.loads(response.content)
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         calculate_and_append_centroids(response_geojson)
@@ -287,6 +290,18 @@ def read_targets_geojson():
     return response_geojson
 
 
+def _is_summary_site(site_id, site_name):
+    """True for sites shown in the volcano summary table.
+    Matches 'A' followed by a digit in the id (e.g. A4207_Volcano_Nazko) or
+    Edgecumbe; Baker is explicitly included and Semeru explicitly excluded
+    """
+    if site_name == 'Semeru':
+        return False
+    if site_name == 'Baker' or site_id == 'Edgecumbe':
+        return True
+    return bool(re.match(r'^A\d', site_id))
+
+
 def get_green_volcanoes():
     """Return a list of green volcano points"""
     logger.info("GET green volc")
@@ -299,7 +314,9 @@ def get_green_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if feature['id'].startswith('A'):
+            if _is_summary_site(
+                feature['id'], feature['properties']['name_en']
+            ):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -337,7 +354,9 @@ def get_red_volcanoes():
             "iconSize": [25, 25]
         }
         for feature in targets_geojson['features']:
-            if feature['id'].startswith('A') or feature['id'] == 'Edgecumbe':
+            if _is_summary_site(
+                feature['id'], feature['properties']['name_en']
+            ):
                 cond1 = feature['geometry']['type'] == 'Point'
                 cond2 = summary_table_df.loc[
                     summary_table_df[
@@ -367,7 +386,7 @@ def get_api_response(vrrc_api_ip, route):
     """Get a response from the vrrc API given an ip and a route"""
     try:
         response = requests.get(f'http://{vrrc_api_ip}/{route}/',
-                                timeout=10, verify=False)
+                                timeout=10)
         response.raise_for_status()
         response_dict = json.loads(response.text)
         return response_dict
@@ -433,6 +452,9 @@ def populate_beam_selector(vrrc_api_ip):
 
 def pivot_and_clean(coh_long):
     """Convert long-form coherence to wide-form and clean it up."""
+    if coh_long.empty:
+        # e.g. the user panned/zoomed to a window with no data in it
+        return pd.DataFrame()
     coh_wide = coh_long.pivot(
         index='delta_days',
         columns='second_date',
@@ -446,6 +468,10 @@ def pivot_and_clean(coh_long):
     cw_last_col = coh_wide.max(axis='columns').last_valid_index()
     cw_first_ind = coh_wide.max(axis='index').first_valid_index()
     cw_last_ind = coh_wide.max(axis='index').last_valid_index()
+    if cw_last_col is None or cw_first_ind is None or cw_last_ind is None:
+        # sometimes there are no coherence values, i.e. no interferograms
+        # have been processed but we will want to display potential pairs
+        return pd.DataFrame()
     cw_col = coh_wide.columns
     # trim empty edges
     coh_wide = coh_wide.loc[
@@ -457,6 +483,9 @@ def pivot_and_clean(coh_long):
 
 def pivot_and_clean_insar(insar_long):
     """Convert long-form coherence to wide-form and clean it up."""
+    if insar_long.empty:
+        # e.g. the user panned/zoomed to a window with no data in it
+        return pd.DataFrame()
     insar_wide = insar_long.pivot(
         index='delta_days',
         columns='second_date',
@@ -467,10 +496,15 @@ def pivot_and_clean_insar(insar_long):
     # because hovertemplate 'f' format doesn't handle NaN properly
     insar_wide = insar_wide.round(2)
     # trim empty edges
-    first_valid_row_index = insar_wide.dropna(how='all').index[0]
-    last_valid_row_index = insar_wide.dropna(how='all').index[-1]
-    first_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[0]
-    last_valid_col_index = insar_wide.dropna(axis=1, how='all').columns[-1]
+    valid_rows = insar_wide.dropna(how='all')
+    valid_cols = insar_wide.dropna(axis=1, how='all')
+    if valid_rows.empty or valid_cols.empty:
+        # No valid (non-NaN) potential pairs anywhere in this window
+        return pd.DataFrame()
+    first_valid_row_index = valid_rows.index[0]
+    last_valid_row_index = valid_rows.index[-1]
+    first_valid_col_index = valid_cols.columns[0]
+    last_valid_col_index = valid_cols.columns[-1]
     insar_wide = insar_wide.loc[first_valid_row_index:last_valid_row_index,
                                 first_valid_col_index:last_valid_col_index]
     return insar_wide
@@ -497,26 +531,73 @@ def pivot_and_clean_dates(coh_long, coh_wide):
     return date_wide
 
 
-def plot_coherence(coh_long, insar_long):
-    """Plot coherence for different baselines as a function of time."""
+def plot_coherence(coh_long, insar_long, x_range=None, y_range=None):
+    """Plot coherence for different baselines as a function of time.
+
+    x_range / y_range let the caller override the displayed window, e.g.
+    with the (second_date, delta_days) range a Plotly relayout event
+    reports after the user pans/zooms the matrix. Only that window is
+    filtered/pivoted, so cost stays bounded regardless of how much history
+    the underlying CSV has accumulated. When omitted (initial load / site
+    switch), this defaults to the most recent MAX_YEARS / BASELINE_MAX
+    window, as before.
+    """
     print('PLOT COHERENCE', coh_long, insar_long)
     fig = make_subplots(
         rows=YEAR_AXES_COUNT, cols=1, shared_xaxes=True,
         start_cell='bottom-left', vertical_spacing=0.02,
         y_title='Temporal baseline [days]')
+    # keep Pan mode tool selected on re-draw
+    fig.update_layout(dragmode='pan')
     if coh_long is None:
         return fig
 
+    coh_long = coh_long.copy()
     coh_long['delta_days'] = (
         coh_long.second_date - coh_long.first_date
     ).dt.days
+
+    # Coherence matrices have grown too large to plot efficiently.
+    # Trim horizontal and vertical extents of matrix before plotting -
+    # either to the default recent-history window, or to whatever window
+    # the user has just panned/zoomed to.
+    if x_range is not None:
+        min_date, max_date = sorted(pd.to_datetime(list(x_range)))
+    else:
+        latest_date = coh_long.second_date.max()
+        min_date = latest_date - pd.to_timedelta(
+            DAYS_PER_YEAR * MAX_YEARS, 'days')
+        max_date = latest_date + pd.to_timedelta(4, 'days')
+
+    if y_range is not None:
+        min_baseline, max_baseline = sorted(y_range)
+    else:
+        min_baseline = -np.inf
+        max_baseline = (
+            BASELINE_MAX if YEAR_AXES_COUNT == 1
+            else (YEAR_AXES_COUNT - 1) * DAYS_PER_YEAR + BASELINE_MAX / 2
+        )
+    coh_long = coh_long[
+        (coh_long.second_date >= min_date) &
+        (coh_long.second_date <= max_date) &
+        (coh_long.delta_days >= min_baseline) &
+        (coh_long.delta_days <= max_baseline)
+    ]
+
     coh_wide = pivot_and_clean(coh_long)
     date_wide = pivot_and_clean_dates(coh_long, coh_wide)
 
     if insar_long is not None:
+        insar_long = insar_long.copy()
         insar_long['delta_days'] = (
             insar_long.second_date - insar_long.first_date
         ).dt.days
+        insar_long = insar_long[
+            (insar_long.second_date >= min_date) &
+            (insar_long.second_date <= max_date) &
+            (insar_long.delta_days >= min_baseline) &
+            (insar_long.delta_days <= max_baseline)
+        ]
         insar_wide = pivot_and_clean_insar(insar_long)
         insar_date_wide = pivot_and_clean_dates(insar_long, insar_wide)
         insar_colorscale = [
@@ -525,7 +606,7 @@ def plot_coherence(coh_long, insar_long):
         ]
 
     for year in range(YEAR_AXES_COUNT):
-        if insar_long is not None:
+        if insar_long is not None and not insar_wide.empty:
             # Grey heatmap for potential insar pair
             fig.add_trace(
                 go.Heatmap(
@@ -545,22 +626,25 @@ def plot_coherence(coh_long, insar_long):
                     opacity=0.5),
                 row=year + 1, col=1)
         # Colored heatmap for processed insar pairs
-        fig.add_trace(
-            go.Heatmap(
-                z=coh_wide.values,
-                x=coh_wide.columns,
-                y=coh_wide.index,
-                xgap=1,
-                ygap=1,
-                customdata=date_wide,
-                hovertemplate=(
-                    'Start Date: %{customdata}<br>'
-                    'End Date: %{x}<br>'
-                    'Temporal Baseline: %{y} days<br>'
-                    'Coherence: %{z}'),
-                coloraxis='coloraxis'),
-            row=year + 1, col=1)
-        if year == 0:
+        if not coh_wide.empty:
+            fig.add_trace(
+                go.Heatmap(
+                    z=coh_wide.values,
+                    x=coh_wide.columns,
+                    y=coh_wide.index,
+                    xgap=1,
+                    ygap=1,
+                    customdata=date_wide,
+                    hovertemplate=(
+                        'Start Date: %{customdata}<br>'
+                        'End Date: %{x}<br>'
+                        'Temporal Baseline: %{y} days<br>'
+                        'Coherence: %{z}'),
+                    coloraxis='coloraxis'),
+                row=year + 1, col=1)
+        if year == 0 and y_range is not None:
+            baseline_limits = [min_baseline, max_baseline]
+        elif year == 0:
             baseline_limits = [0, BASELINE_MAX]
         else:
             baseline_limits = list(
@@ -568,15 +652,22 @@ def plot_coherence(coh_long, insar_long):
                     year * DAYS_PER_YEAR
                 ) + BASELINE_MAX / 2 * np.array([-1, 1])
             )
-        second_date_limits = [
-            max(
-                coh_wide.columns.min(),
-                coh_wide.columns.max() - pd.to_timedelta(
-                    DAYS_PER_YEAR * MAX_YEARS, 'days'
-                )
-            ) - pd.to_timedelta(4, 'days'),
-            coh_wide.columns.max() + pd.to_timedelta(4, 'days')
-        ]
+        if x_range is not None or coh_wide.empty:
+            # Either an explicit pan/zoom window was requested, or there is
+            # no data in view to derive a range from - use the requested/
+            # default window directly rather than the (possibly missing)
+            # data extents.
+            second_date_limits = [min_date, max_date]
+        else:
+            second_date_limits = [
+                max(
+                    coh_wide.columns.min(),
+                    coh_wide.columns.max() - pd.to_timedelta(
+                        DAYS_PER_YEAR * MAX_YEARS, 'days'
+                    )
+                ) - pd.to_timedelta(4, 'days'),
+                coh_wide.columns.max() + pd.to_timedelta(4, 'days')
+            ]
         fig.update_yaxes(
             range=baseline_limits,
             dtick=BASELINE_DTICK,
@@ -658,117 +749,78 @@ def plot_baseline(df_baseline, df_cohfull):
     return bperp_combined_fig
 
 
-def plot_annotation_tab():
+def filter_logs_by_beam_id(logs, site_beam):
+    """
+    Filter logs to only include those with the matching beam ID.
+
+    Parameters:
+    ----------
+    logs : list
+        A list of dictionaries where each dictionary represents a log.
+    site_beam : str
+        The site and beam identifier in the format "target_label_short_name".
+
+    Returns:
+    -------
+    list
+        A list of filtered logs with the matching beam ID.
+    """
+    beam_id = get_beam_id(site_beam)
+    if beam_id is not None:
+        filtered_logs = [
+            log for log in logs if log.get('beam', {}).get('id') == beam_id
+        ]
+        print(f"Filtered logs: {filtered_logs}")  # Debugging statement
+        return filtered_logs
+    return []
+
+
+def plot_annotation_tab(site_beam):
     """plot annotation tab"""
+    from datetime import datetime as dt
+
     def get_end_date(log):
-        return dt.strptime(log['endDateObserved'], '%Y-%m-%d')
-    # example data
-    user1 = {
-        'name': 'User 1',
-        'email': 'user1@gmail.com'
-    }
+        """
+        Extracts and returns the end date observed from a log entry.
+        Handles date strings with or without microseconds.
 
-    user2 = {
-        'name': 'User 2',
-        'email': 'user2@gmail.com'
-    }
+        Parameters:
+        ----------
+        log : dict
+            Dictionary representing a log entry with 'end_date_observed' key.
 
-    user3 = {
-        'name': 'User 3',
-        'email': 'user3@gmail.com'
-    }
+        Returns:
+        -------
+        str
+            The end date observed in 'YYYY-MM-DD' format.
+        """
+        date_str = log['end_date_observed']
+        try:
+            # Try to parse the date string with microseconds
+            return dt.strptime(
+                date_str, '%Y-%m-%dT%H:%M:%S.%f'
+            ).strftime('%Y-%m-%d')
+        except ValueError:
+            # If parsing fails, try without microseconds
+            return dt.strptime(
+                date_str, '%Y-%m-%dT%H:%M:%S'
+            ).strftime('%Y-%m-%d')
 
-    log1 = {
-        'id': 0,
-        'user': user1,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-10',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 80,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
+    url = config['API_VRRC_IP']
 
-    log2 = {
-        'id': 1,
-        'user': user2,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-12',
-        'dateRange': 28,
-        'coherencePresent': 'Yes',
-        'confidence': 20,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Other',
-            'Atmospheric Phase Error'
-        ],
-        'insarPhaseAnomaliesOther': 'other reasoning',
-        'additionalComments': 'this is greatttt'
-    }
-
-    log3 = {
-        'id': 2,
-        'user': user3,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-07',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 80,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
-
-    log4 = {
-        'id': 3,
-        'user': user3,
-        'dateAddedModified': '2024-09-10',
-        'endDateObserved': '2024-09-18',
-        'dateRange': 48,
-        'coherencePresent': 'Yes',
-        'confidence': 90,
-        'furtherInterpretationNeeded': True,
-        'interpretationLatitude': 111.11,
-        'interpretationLongitude': 123.00,
-        'insarPhaseAnomalies': [
-            'Magmatic Deformation',
-            'Slope Movement',
-            'Glacial Movement'
-        ],
-        'insarPhaseAnomaliesOther': '',
-        'additionalComments': 'hhhhhiii'
-    }
-
-    users = [user1, user2, user3]
-    logs = [
-        log1,
-        log2,
-        log3,
-        log4
-    ]
+    response = requests.get(
+        f"http://{url}/users/",
+        timeout=10)
+    users = json.loads(response.content)
+    response = requests.get(
+        f"http://{url}/annotations/",
+        timeout=10)
+    logs = json.loads(response.content)
     cleaned_logs = [log[0] if isinstance(log, tuple) else log for log in logs]
-    # most recent log first
-    sorted_logs = sorted(cleaned_logs, key=get_end_date, reverse=True)
+    # Filter logs by beam ID
+    filtered_logs = filter_logs_by_beam_id(cleaned_logs, site_beam)
+    # Most recent log first
+    sorted_logs = sorted(filtered_logs, key=get_end_date, reverse=True)
     observation_log_ui_width = 70
     return html.Div(
         style={
@@ -791,6 +843,30 @@ def plot_annotation_tab():
     )
 
 
+def get_latest_observation_date(label):
+    """
+    Fetches the latest end_date_observed for a given label from the API.
+
+    Parameters:
+        label (str): Target label to filter by (e.g., 'A4207_Volcano_Nazko').
+
+    Returns:
+        str: Latest end_date_observed, or None if no matching records found.
+    """
+    url = config['API_VRRC_IP']
+    response = requests.get(
+        f"http://{url}/annotations/",
+        timeout=10)
+    api_response = json.loads(response.content)
+    filtered_records = [record for record in api_response
+                        if record.get('beam', {}).get('target_label') == label]
+    if not filtered_records:
+        return None
+    latest_record = max(filtered_records,
+                        key=lambda r: r.get('end_date_observed'))
+    return latest_record.get('end_date_observed')
+
+
 def build_summary_table(targs_geojson):
     """Build a summary table with volcanoes and info on their unrest"""
     def date_difference(date_string):
@@ -801,8 +877,16 @@ def build_summary_table(targs_geojson):
     try:
         targets_df = pd.json_normalize(targs_geojson,
                                        record_path=['features'])
-        targets_df = targets_df[targets_df['id'].str.contains('^A|Edgecumbe')]
-        targets_df['latest SAR Image Date'] = None
+        targets_df = targets_df[
+            targets_df.apply(
+                lambda row: _is_summary_site(
+                    row['id'], row['properties.name_en']
+                ),
+                axis=1
+            )
+        ]
+        targets_df['Latest SAR Image Date'] = None
+        targets_df['Latest Observation'] = None
         targets_df = targets_df.rename(columns={'properties.name_en': 'Site'})
         unrest_table_df = pd.read_csv('app/Data/unrest_table.csv')
         # targets_df['Unrest'] = None
@@ -816,7 +900,7 @@ def build_summary_table(targs_geojson):
                 url = config['API_VRRC_IP']
                 response = requests.get(
                     f"http://{url}/targets/{site}",
-                    timeout=10, verify=False)
+                    timeout=10)
                 response_geojson = json.loads(response.content)
                 if isinstance(response_geojson['last_slc_datetime'], str):
                     last_slc_date = response_geojson['last_slc_datetime'][0:10]
@@ -831,19 +915,42 @@ def build_summary_table(targs_geojson):
                                    ] = format_output
             except requests.exceptions.ConnectionError:
                 targets_df.loc[site_index, 'Latest SAR Image'] = None
+            try:
+                latest_observation = get_latest_observation_date(site)
+
+                if isinstance(latest_observation, str):
+                    latest_observation_date = latest_observation[0:10]
+                    format_output = (
+                        f'{date_difference(latest_observation_date)} days ago'
+                    )
+                    targets_df.loc[site_index,
+                                   'Latest Observation'
+                                   ] = format_output
+            except requests.exceptions.ConnectionError:
+                targets_df.loc[site_index, 'Latest Observation'] = None
 
         targets_df = targets_df.sort_values('id')
     except NotImplementedError:
         targets_df = pd.DataFrame(columns=['Site',
                                            'Latest SAR Image',
+                                           'Latest Observation',
                                            'Unrest'])
         targets_df.loc[0] = ["API Connection Error"] * 3
-    return targets_df[['Site', 'Latest SAR Image', 'Unrest']]
+    return targets_df[['Site',
+                       'Latest SAR Image',
+                       'Latest Observation',
+                       'Unrest']]
 
 
-def _read_coherence(coherence_csv):
-    if coherence_csv is None:
-        return None
+@functools.lru_cache(maxsize=64)
+def _read_coherence_cached(coherence_csv, _mtime):
+    """Parse a coherence CSV. `_mtime` busts the cache when the file changes.
+
+    Panning/zooming the coherence matrix re-reads the CSV for the current
+    site on every interaction (see plot_coherence's x_range/y_range), so
+    this is cached to keep that cheap instead of re-parsing the whole file
+    from disk each time.
+    """
     coh = pd.read_csv(
         coherence_csv,
         parse_dates=['Reference Date', 'Pair Date'])
@@ -857,15 +964,16 @@ def _read_coherence(coherence_csv):
     return coh
 
 
-def _read_insar_pair(insar_pair_csv):
-    if insar_pair_csv is None:
+def _read_coherence(coherence_csv):
+    if coherence_csv is None:
         return None
-    # Check if the file exists
-    if not os.path.exists(insar_pair_csv):
-        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
-        logger.info("The file %s does not exist.", insar_pair_csv)
-        return None
+    mtime = os.path.getmtime(coherence_csv)
+    return _read_coherence_cached(coherence_csv, mtime).copy()
 
+
+@functools.lru_cache(maxsize=64)
+def _read_insar_pair_cached(insar_pair_csv, _mtime):
+    """Parse an InSAR-pair CSV; see _read_coherence_cached for why cached."""
     insar = pd.read_csv(
         insar_pair_csv,
         parse_dates=['Reference_Date', 'Pair_Date'])
@@ -879,6 +987,19 @@ def _read_insar_pair(insar_pair_csv):
             f'{insar[wrong_order].to_string()}'
         )
     return insar
+
+
+def _read_insar_pair(insar_pair_csv):
+    if insar_pair_csv is None:
+        return None
+    # Check if the file exists
+    if not os.path.exists(insar_pair_csv):
+        # raise FileNotFoundError(f"The file {insar_pair_csv} does not exist.")
+        logger.info("The file %s does not exist.", insar_pair_csv)
+        return None
+
+    mtime = os.path.getmtime(insar_pair_csv)
+    return _read_insar_pair_cached(insar_pair_csv, mtime).copy()
 
 
 def _read_baseline(baseline_csv):
