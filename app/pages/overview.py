@@ -24,6 +24,7 @@ from dash_extensions.javascript import (assign)
 from pages.components.summary_table import summary_table_ui
 from pages.components.gc_header import gc_header
 from global_components import generate_controls
+from global_variables import LEGEND_BUTTON_STYLING
 from data_utils import (
     build_summary_table,
     get_green_volcanoes,
@@ -91,20 +92,16 @@ layout = html.Div(
                         html.Div(id='circle-marker'),
                     ]
                 ),
+                html.Button(
+                    html.H6(
+                        'Update Coherence Matrices',
+                        id='temp-get-latest-csv-button-label'
+                    ),
+                    id='temp-get-latest-csv-button',
+                    n_clicks=0,
+                    style={**LEGEND_BUTTON_STYLING, "right": "390px"}
+                ),
             ]
-        ),
-        html.Button(
-            children=[
-                html.P('Update Coherence Matrices')
-            ],
-            id='temp-get-latest-csv-button',
-            n_clicks=0,
-            style={
-                "background-color": "red",
-                "position": "absolute",
-                "top": "50px",
-                "left": "450px"
-            }
         ),
         html.Div(id='output-temp-get-latest-csv'),
         # TABLE (on top right corner)
