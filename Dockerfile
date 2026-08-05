@@ -1,6 +1,7 @@
 FROM python:3.9-slim
 
 COPY requirements.txt /tmp/
+COPY ./components /components
 COPY ./app /app
 COPY ./scripts /scripts
 WORKDIR "/"
