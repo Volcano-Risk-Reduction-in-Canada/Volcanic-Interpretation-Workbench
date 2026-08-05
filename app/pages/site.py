@@ -18,15 +18,10 @@ import pandas as pd
 
 from dash import html, callback
 from dash.dcc import Graph, Tab, Tabs
+from dash.exceptions import PreventUpdate
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
-from dash_leaflet import (
-    Map,
-    TileLayer,
-    CircleMarker,
-    Popup
-)
-from dash.exceptions import PreventUpdate
+import dash_maplibre_gl as dml
 from dash_extensions.enrich import (
     Output,
     DashProxy,
@@ -35,7 +30,11 @@ from dash_extensions.enrich import (
     MultiplexerTransform
 )
 from pages.components.gc_header import gc_header, gc_line
-from global_components import generate_controls
+from global_components import (
+    generate_basemap_switcher,
+    generate_legend_visibility_control,
+    get_glacier_wms_overlay,
+)
 from data_utils import (
     _baseline_csv,
     _coherence_csv,
@@ -43,6 +42,7 @@ from data_utils import (
     _read_baseline,
     _read_coherence,
     _read_insar_pair,
+    epicenters_df_to_geojson,
     parse_dates,
     plot_annotation_tab,
     plot_baseline,
@@ -52,7 +52,12 @@ from data_utils import (
     get_latest_quakes_chis_fsdn_site
 )
 from global_variables import (
-    TEMPORAL_HEIGHT
+    TEMPORAL_HEIGHT,
+    MAPLIBRE_BASEMAPS,
+    MAPLIBRE_DEFAULT_BASEMAP,
+    DEM_TILE_URL,
+    DEM_ENCODING,
+    DEM_TERRAIN_EXAGGERATION,
 )
 
 logger = logging.getLogger(__name__)
@@ -84,6 +89,19 @@ app = DashProxy(prevent_initial_callbacks=True,
                 transforms=[MultiplexerTransform()],
                 external_stylesheets=[dbc.themes.DARKLY])
 
+
+def _interferogram_tile_url(site, beam, startdate, enddate):
+    """Build the /getTileUrl XYZ template for a given site/beam/date pair."""
+    return "".join((
+        f"/getTileUrl?bucket={TILES_BUCKET}&",
+        f"site={site}&",
+        f"beam={beam}&",
+        f"startdate={startdate}&",
+        f"enddate={enddate}&",
+        "x={x}&y={y}&z={z}"
+    ))
+
+
 # different components in page layout + styling variables
 selector = html.Div(
     title=TITLE,
@@ -108,60 +126,34 @@ selector = html.Div(
     ),
 )
 
-spatial_view = Map(
+spatial_view = html.Div(
+    id='spatial_view_container',
+    style={'position': 'relative', 'height': '100%', 'flexGrow': '1'},
     children=[
-        TileLayer(),
-        generate_controls(overview=False),
-        *[
-            CircleMarker(
-                center=[row['Latitude'], row['Longitude']],
-                radius=3 * row['Magnitude'],
-                fillColor=row['quake_colour'],
-                fillOpacity=0.6,
-                color='black',
-                weight=1,
-                children=Popup(
-                    html.P([
-                        f"""Magnitude: {row['Magnitude']} {row['MagType']}""",
-                        html.Br(),
-                        f"Date: {row['Time'][0:10]}",
-                        html.Br(),
-                        f"Depth: {row['Depth/km']} km",
-                        html.Br(),
-                        f"EventID: {row['#EventID']}",
-                        html.Br(),
-                    ])
-                ),
-            )
-            for _, row in epicenters_df.sort_values(
-                by='#EventID'
-            ).iterrows()
-        ],
-        TileLayer(
-            id='tiles',
-            url="".join(
-                (
-                    f"/getTileUrl?bucket={TILES_BUCKET}&",
-                    f"site={SITE_INI}&",
-                    f"beam={BEAM_INI}&",
-                    "startdate=20220821&",
-                    "enddate=20220914&",
-                    "x={x}&y={y}&z={z}"
-                )
+        dml.MapLibreMap(
+            id='interferogram-bg',
+            initialViewState={
+                'longitude': TARGET_CENTRES[INITIAL_TARGET][1],
+                'latitude': TARGET_CENTRES[INITIAL_TARGET][0],
+                'zoom': 11,
+                'pitch': 0,
+                'bearing': 0,
+            },
+            basemaps=MAPLIBRE_BASEMAPS,
+            activeBasemap=MAPLIBRE_DEFAULT_BASEMAP,
+            interferogramTileUrl=_interferogram_tile_url(
+                SITE_INI, BEAM_INI, '20220821', '20220914'
             ),
-            # maxZoom=30,
-            # minZoom=1,
-            # attribution='&copy; Open Street Map Contributors',
-            tms=True,
-            # opacity=0.7
+            demTiles=DEM_TILE_URL,
+            demEncoding=DEM_ENCODING,
+            terrainExaggeration=DEM_TERRAIN_EXAGGERATION,
+            earthquakeData=epicenters_df_to_geojson(epicenters_df),
+            wmsOverlay=get_glacier_wms_overlay(),
+            style={'height': '100%'},
         ),
-        # generate_legend(overview=False),
-    ],
-    id='interferogram-bg',
-    center=TARGET_CENTRES[INITIAL_TARGET],
-    zoom=11,
-    # style={'height': '98%', 'width': '98%', 'margin': '0 auto'}
-    style={'height': '100%'}
+        generate_basemap_switcher(active=MAPLIBRE_DEFAULT_BASEMAP),
+        generate_legend_visibility_control(overview=False),
+    ]
 )
 
 temporal_view = html.Div(
@@ -317,17 +309,15 @@ layout = html.Div(
 
 
 @callback(
-    Output(component_id='tiles',
-           component_property='url',
+    Output(component_id='interferogram-bg',
+           component_property='interferogramTileUrl',
            allow_duplicate=True),
     Output('curr-info-text', 'children', allow_duplicate=True),
     Input(component_id='coherence-matrix', component_property='clickData'),
     Input('site-dropdown', 'value'),
-    Input('tiles', 'zoom'),
-    Input('tiles', 'bounds'),
     prevent_initial_call=True
 )
-def update_interferogram(click_data, target_id, zoom, bounds):
+def update_interferogram(click_data, target_id):
     """
     Update interferogram display and information text
     based on click data and site selection.
@@ -339,33 +329,24 @@ def update_interferogram(click_data, target_id, zoom, bounds):
 
     Returns:
     - tuple: A tuple containing:
-        - str: Updated URL for the 'tiles' component to
-            display the interferogram.
+        - str: Updated tile URL template for the 'interferogram-bg'
+            MapLibreMap component.
         - dash.html.P: HTML paragraph with information about the interferogram.
     """
     if not target_id:
         raise PreventUpdate
     site, beam = target_id.rsplit('_', 1)
     if not click_data:
-        url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
-                       f"site={SITE_INI}&",
-                       f"beam={BEAM_INI}&",
-                       "startdate=20220821&",
-                       "enddate=20220914&",
-                       "x={x}&y={y}&z={z}"))
-        return url, ""
+        return _interferogram_tile_url(
+            SITE_INI, BEAM_INI, '20220821', '20220914'
+        ), ""
 
     second = pd.to_datetime(click_data['points'][0]['x'])
     delta = pd.Timedelta(click_data['points'][0]['y'], 'days')
     first = second - delta
     first_str = first.strftime('%Y%m%d')
     second_str = second.strftime('%Y%m%d')
-    url = "".join((f"/getTileUrl?bucket={TILES_BUCKET}&",
-                   f"site={site}&",
-                   f"beam={beam}&",
-                   f"startdate={first_str}&",
-                   f"enddate={second_str}&",
-                   "x={x}&y={y}&z={z}"))
+    url = _interferogram_tile_url(site, beam, first_str, second_str)
     test_url = "".join((f"http://{HOST}:{PORT}",
                         f"/getTileUrl?bucket={TILES_BUCKET}&",
                         f"site={site}&",
@@ -534,54 +515,39 @@ def switch_temporal_view(tab, site):
 
 
 @callback(
-    # Output(component_id='interferogram-bg',
-    #        component_property='viewport',
-    #        allow_duplicate=True),
-    [
-        Output(
-            component_id='interferogram-bg',
-            component_property='center',
-            # allow_duplicate=True
-        ),
-        Output(
-            component_id='interferogram-bg',
-            component_property='zoom',
-            # allow_duplicate=True
-        ),
-        Output(
-            component_id='interferogram-bg',
-            component_property='viewport',
-            # allow_duplicate=True
-        )
-    ],
-    # Output('ifg-info', 'children', allow_duplicate=True),
+    Output(
+        component_id='interferogram-bg',
+        component_property='flyTo',
+    ),
     Input(component_id='site-dropdown', component_property='value'),
-    # prevent_initial_call=True
 )
 def recenter_map(target_id):
     """
-    Recenter the map on a new site and update information text.
+    Fly the map to the newly selected site's centre.
 
     Parameters:
     - target_id (str or None): Selected site ID from 'site-dropdown'.
 
     Returns:
-    - dict: Updated viewport parameters for the 'interferogram-bg' component.
-    - dash.html.P: HTML paragraph with information about the new site.
+    - dict: {longitude, latitude, zoom, duration} for the 'interferogram-bg'
+        MapLibreMap component's flyTo trigger.
     """
-    print('RECENTER MAP')
     coords = TARGET_CENTRES[target_id]
     logger.info('Recentering: %s',
                 coords)
-    # info_text = html.P([''], style={
-    #     'margin': 0,
-    #     'color': 'rgba(255, 255, 255, 0.9)'
-    #     })
-    return coords, 10, {'transition': 'flyTo'}
+    # TARGET_CENTRES stores [latitude, longitude]; MapLibre wants
+    # {longitude, latitude} -- swap explicitly or the map flies to the
+    # wrong hemisphere.
+    return {
+        'longitude': coords[1],
+        'latitude': coords[0],
+        'zoom': 10,
+        'duration': 2000,
+    }
 
 
 @callback(
-    Output('interferogram-bg', 'children'),
+    Output('interferogram-bg', 'earthquakeData'),
     Input('site-dropdown', 'value'),
     prevent_initial_call=True
 )
@@ -593,58 +559,37 @@ def update_earthquake_markers(target_id):
     - target_id (str or None): Selected site ID from 'site-dropdown'.
 
     Returns:
-    - list: Updated layers including earthquake markers for
-        the 'interferogram-bg' component.
+    - dict: GeoJSON FeatureCollection of earthquake epicenters for the
+        'interferogram-bg' MapLibreMap component's earthquakeData prop.
     """
     if not target_id:
         raise PreventUpdate
     new_epicenters_df = get_latest_quakes_chis_fsdn_site(
         target_id, TARGET_CENTRES
     )
-    if '#EventID' in new_epicenters_df.columns:
-        new_markers = [
-            CircleMarker(
-                center=[row['Latitude'], row['Longitude']],
-                radius=3 * row['Magnitude'],
-                fillColor=row['quake_colour'],
-                fillOpacity=0.6,
-                color='black',
-                weight=1,
-                children=Popup(
-                    html.P([
-                        f"Magnitude: {row['Magnitude']} {row['MagType']}",
-                        html.Br(),
-                        f"Date: {row['Time'][0:10]}",
-                        html.Br(),
-                        f"Depth: {row['Depth/km']} km",
-                        html.Br(),
-                        f"EventID: {row['#EventID']}",
-                        html.Br(),
-                    ])
-                ),
-            )
-            for index, row in new_epicenters_df.sort_values(
-                by='#EventID'
-            ).iterrows()
-        ]
-    else:
-        new_markers = []
-        logger.info('Note: No earthquakes found')
+    return epicenters_df_to_geojson(new_epicenters_df)
 
-    base_layers = [
-        TileLayer(),
-        generate_controls(overview=False),
-        TileLayer(
-            id='tiles',
-            url=(''),
-            maxZoom=30,
-            minZoom=1,
-            attribution='&copy; Open Street Map Contributors',
-            tms=True,
-            opacity=0.7)
-    ]
-    all_layers = base_layers + new_markers
-    return all_layers
+
+@callback(
+    Output('interferogram-bg', 'activeBasemap'),
+    Input('basemap-switcher', 'value'),
+    prevent_initial_call=True
+)
+def update_basemap(active_basemap):
+    """
+    Switch the MapLibre map's visible basemap layer.
+
+    Parameters:
+    - active_basemap (str or None): Selected basemap key from
+        'basemap-switcher'.
+
+    Returns:
+    - str: The basemap key to pass through to the 'interferogram-bg'
+        MapLibreMap component's activeBasemap prop.
+    """
+    if not active_basemap:
+        raise PreventUpdate
+    return active_basemap
 
 
 @callback(
