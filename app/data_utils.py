@@ -257,6 +257,46 @@ def get_latest_quakes_chis_fsdn_site(initial_target, target_centres):
     return df
 
 
+def epicenters_df_to_geojson(epicenters_df):
+    """
+    Convert an earthquake epicenters dataframe (as returned by
+    get_latest_quakes_chis_fsdn[_site]) into a GeoJSON FeatureCollection
+    for the MapLibreMap 'earthquakeData' prop.
+
+    Parameters:
+    - epicenters_df (pandas.DataFrame): Earthquake epicenters, expected
+        to have Latitude/Longitude/Magnitude/MagType/Time/Depth/km/
+        #EventID/quake_colour columns. May be empty or missing
+        '#EventID' (e.g. on a failed/empty query).
+
+    Returns:
+    - dict: GeoJSON FeatureCollection; empty 'features' list if there's
+        no usable earthquake data.
+    """
+    if '#EventID' not in epicenters_df.columns:
+        return {'type': 'FeatureCollection', 'features': []}
+
+    features = [
+        {
+            'type': 'Feature',
+            'geometry': {
+                'type': 'Point',
+                'coordinates': [row['Longitude'], row['Latitude']],
+            },
+            'properties': {
+                'magnitude': row['Magnitude'],
+                'magType': row['MagType'],
+                'time': row['Time'],
+                'depthKm': row['Depth/km'],
+                'eventId': row['#EventID'],
+                'quakeColour': row['quake_colour'],
+            },
+        }
+        for _, row in epicenters_df.sort_values(by='#EventID').iterrows()
+    ]
+    return {'type': 'FeatureCollection', 'features': features}
+
+
 def read_targets_geojson():
     """Query VRRC API for All Targets FootPrints"""
     try:
