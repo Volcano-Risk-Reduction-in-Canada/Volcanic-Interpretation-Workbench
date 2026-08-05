@@ -9,11 +9,27 @@ environment). Verifies the component itself: basemap rendering, DEM terrain,
 and (using an existing public XYZ tile source's tiling scheme as a stand-in
 raster overlay, since the real interferogram tiles require AWS credentials).
 """
+from flask import Response, request
+import requests
 import dash
 from dash import html
 import dash_maplibre_gl as dml
 
 app = dash.Dash(__name__)
+
+
+@app.server.route('/getDemTileUrl')
+def get_dem_tile_url():
+    """Same-origin DEM proxy, mirroring app/routes.py's real route --
+    see the CORS note there for why this can't just point at S3 directly."""
+    x = int(request.args.get('x'))
+    y = int(request.args.get('y'))
+    z = int(request.args.get('z'))
+    upstream_url = (
+        f'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+    )
+    response = requests.get(upstream_url, timeout=10)
+    return Response(response.content, mimetype='image/png')
 
 BASEMAPS = {
     'topo': {
@@ -73,7 +89,7 @@ app.layout = html.Div(
             initialViewState=MEAGER,
             basemaps=BASEMAPS,
             activeBasemap='topo',
-            demTiles='https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+            demTiles='/getDemTileUrl?z={z}&x={x}&y={y}',
             demEncoding='terrarium',
             terrainExaggeration=1.5,
             earthquakeData=EARTHQUAKES,

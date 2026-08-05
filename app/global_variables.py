@@ -59,11 +59,13 @@ MAPLIBRE_DEFAULT_BASEMAP = 'topo'
 
 # DEM terrain configuration for the MapLibre 3D map. Uses AWS Open Data's
 # free, global, token-free Terrarium-encoded elevation tiles (SRTM/GMTED/
-# ETOPO1 sourced) -- no per-site generation pipeline needed.
-DEM_TILE_URL = (
-    'https://s3.amazonaws.com/elevation-tiles-prod'
-    '/terrarium/{z}/{x}/{y}.png'
-)
+# ETOPO1 sourced) -- no per-site generation pipeline needed. Routed
+# through the /getDemTileUrl same-origin proxy (see routes.py) because
+# the upstream bucket only advertises CORS on OPTIONS preflight
+# requests, not on the actual GET responses -- MapLibre needs to decode
+# DEM tile pixels client-side, so a CORS-tainted image silently yields
+# flat (zero-elevation) terrain instead of an error.
+DEM_TILE_URL = '/getDemTileUrl?z={z}&x={x}&y={y}'
 DEM_ENCODING = 'terrarium'
 DEM_TERRAIN_EXAGGERATION = 1.5
 

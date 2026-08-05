@@ -46,3 +46,27 @@ def add_routes(server):
         signed_url = get_signed_url(bucket, key)
         response = requests.get(signed_url, timeout=10)
         return Response(response.content, mimetype='image/png')
+
+    @server.route('/getDemTileUrl')
+    def get_dem_tile_url():
+        """
+        Same-origin proxy for the public AWS Open Data elevation-tiles-prod
+        Terrarium DEM tiles. MapLibre's raster-dem terrain has to decode
+        pixel values client-side (unlike the opaque basemap/interferogram
+        raster layers), which requires non-CORS-tainted images -- and the
+        bucket only advertises CORS on OPTIONS preflight requests, not on
+        the actual GET responses. Proxying same-origin sidesteps that.
+        """
+        x = int(request.args.get('x'))
+        y = int(request.args.get('y'))
+        z = int(request.args.get('z'))
+        upstream_url = (
+            'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/'
+            f'{z}/{x}/{y}.png'
+        )
+        response = requests.get(upstream_url, timeout=10)
+        return Response(
+            response.content,
+            mimetype='image/png',
+            headers={'Cache-Control': 'public, max-age=604800'},
+        )
