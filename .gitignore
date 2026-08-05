@@ -7,3 +7,7 @@ venv*
 **/bperp_all
 .env
 *.log
+components/dash-maplibre-gl/node_modules
+components/dash-maplibre-gl/dash_maplibre_gl.egg-info
+components/dash-maplibre-gl/dash_maplibre_gl/*.js.map
+.*
