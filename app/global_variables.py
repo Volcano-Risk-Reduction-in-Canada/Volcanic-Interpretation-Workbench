@@ -13,7 +13,7 @@ import boto3
 
 s3 = boto3.client('s3')
 
-# basemap configuration
+# basemap configuration (used by the Leaflet map on the overview page)
 BASEMAP_URL = (
     'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer'
     '/tile/{z}/{y}/{x}')
@@ -21,6 +21,51 @@ BASEMAP_ATTRIBUTION = (
     'Tiles courtesy of the '
     '<a href="https://usgs.gov/">U.S. Geological Survey</a>')
 BASEMAP_NAME = 'USGS Topo'
+
+# basemap configuration for the MapLibre 3D map on the site page.
+# Esri's ArcGIS Online basemaps are free/token-free and, unlike
+# BASEMAP_URL above, have true global coverage (the site page covers
+# volcanoes in BC, Alaska, Iceland, Italy, Russia, and Indonesia).
+ESRI_ATTRIBUTION = (
+    'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+)
+MAPLIBRE_BASEMAPS = {
+    'topo': {
+        'url': (
+            'https://server.arcgisonline.com/ArcGIS/rest/services/'
+            'World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+        ),
+        'attribution': ESRI_ATTRIBUTION,
+        'label': 'Topography',
+    },
+    'streets': {
+        'url': (
+            'https://server.arcgisonline.com/ArcGIS/rest/services/'
+            'World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+        ),
+        'attribution': ESRI_ATTRIBUTION,
+        'label': 'Streets',
+    },
+    'imagery': {
+        'url': (
+            'https://server.arcgisonline.com/ArcGIS/rest/services/'
+            'World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        ),
+        'attribution': ESRI_ATTRIBUTION,
+        'label': 'Imagery',
+    },
+}
+MAPLIBRE_DEFAULT_BASEMAP = 'topo'
+
+# DEM terrain configuration for the MapLibre 3D map. Uses AWS Open Data's
+# free, global, token-free Terrarium-encoded elevation tiles (SRTM/GMTED/
+# ETOPO1 sourced) -- no per-site generation pipeline needed.
+DEM_TILE_URL = (
+    'https://s3.amazonaws.com/elevation-tiles-prod'
+    '/terrarium/{z}/{x}/{y}.png'
+)
+DEM_ENCODING = 'terrarium'
+DEM_TERRAIN_EXAGGERATION = 1.5
 
 # coherence plotting configuration
 YEAR_AXES_COUNT = 1

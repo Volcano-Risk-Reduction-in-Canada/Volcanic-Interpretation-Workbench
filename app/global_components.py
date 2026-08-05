@@ -15,6 +15,7 @@ Authors:
 
 import dash
 from dash import html, callback
+import dash_bootstrap_components as dbc
 from dash_leaflet import (
     TileLayer,
     WMSTileLayer,
@@ -30,7 +31,8 @@ from global_variables import (
     BASEMAP_URL,
     LEGEND_BUTTON_STYLING,
     LEGEND_PLACEMENT_STYLING,
-    LEGEND_TEXT_STYLING
+    LEGEND_TEXT_STYLING,
+    MAPLIBRE_BASEMAPS
 )
 
 
@@ -172,6 +174,67 @@ def generate_layers_control(opacity=0.5):
         ]
     )
     return layers_control
+
+
+def generate_basemap_switcher(active='topo'):
+    """
+    Generates a floating control that lets the user switch the MapLibre
+    site map's basemap between topography, streets, and imagery.
+
+    Parameters:
+    - active (str, optional): The initially selected basemap key
+        (must be a key in MAPLIBRE_BASEMAPS). Defaults to 'topo'.
+
+    Returns:
+    - dash.html.Div: HTML div containing a radio-button basemap switcher.
+    """
+    return html.Div(
+        dbc.RadioItems(
+            id='basemap-switcher',
+            options=[
+                {'label': basemap['label'], 'value': key}
+                for key, basemap in MAPLIBRE_BASEMAPS.items()
+            ],
+            value=active,
+            inline=True,
+            style=LEGEND_TEXT_STYLING,
+        ),
+        style={
+            **LEGEND_BUTTON_STYLING,
+            'left': '10px',
+            'right': 'auto',
+        }
+    )
+
+
+def get_glacier_wms_overlay(opacity=0.5, visible=True):
+    """
+    Generates the WMS overlay config for the MapLibre map's glacier
+    footprints layer, matching the CanVec WMSTileLayer used on the
+    Leaflet overview map.
+
+    Parameters:
+    - opacity (float, optional): Opacity level of the overlay. Defaults
+        to 0.5.
+    - visible (bool, optional): Whether the overlay starts visible.
+        Defaults to True.
+
+    Returns:
+    - dict: wmsOverlay prop value for the MapLibreMap Dash component.
+    """
+    return {
+        'url': 'https://maps.geogratis.gc.ca/wms/canvec_en',
+        'layers': (
+            'snow_and_ice_50k,'
+            'snow_and_ice_small,'
+            'snow_and_ice_mid,'
+            'snow_and_ice_large,'
+            'snow_and_ice_250k'
+        ),
+        'format': 'image/png',
+        'opacity': opacity,
+        'visible': visible,
+    }
 
 
 def generate_legend(overview=True):
