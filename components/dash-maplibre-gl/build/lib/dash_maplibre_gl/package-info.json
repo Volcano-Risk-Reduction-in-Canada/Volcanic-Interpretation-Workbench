@@ -1,0 +1,35 @@
+{
+  "name": "dash_maplibre_gl",
+  "version": "0.1.0",
+  "description": "A Dash component wrapping MapLibre GL JS for 3D interferogram/terrain visualization.",
+  "main": "build/index.js",
+  "scripts": {
+    "build:js": "webpack --mode production",
+    "build:js-dev": "webpack --mode development --watch",
+    "build:py_and_r": "dash-generate-components ./src/lib/components dash_maplibre_gl -p package-info.json",
+    "build": "npm run build:js && npm run build:py_and_r"
+  },
+  "author": "VRRC InSAR Workbench",
+  "license": "MIT",
+  "dependencies": {
+    "maplibre-gl": "^3.6.2",
+    "prop-types": "^15.8.1"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@babel/preset-react": "^7.22.15",
+    "babel-loader": "^9.1.3",
+    "css-loader": "^6.8.1",
+    "react": "^16.14.0",
+    "react-docgen": "^5.4.3",
+    "react-dom": "^16.14.0",
+    "style-loader": "^3.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

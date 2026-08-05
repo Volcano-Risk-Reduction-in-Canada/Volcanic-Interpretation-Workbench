@@ -1,0 +1,2 @@
+recursive-include dash_maplibre_gl *.js *.js.map
+include dash_maplibre_gl/package-info.json

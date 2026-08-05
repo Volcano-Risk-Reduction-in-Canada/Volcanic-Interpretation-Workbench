@@ -1,0 +1,332 @@
+{
+  "src/lib/components/MapLibreMap.react.js": {
+    "description": "MapLibreMap wraps MapLibre GL JS as a Dash component: a token-free, WebGL\n3D map that starts flat (pitch/bearing 0) and lets the user drag to tilt\nand rotate in 3D, switch between raster basemaps, drape the interferogram\nraster overlay, and displace the surface with DEM terrain relief.",
+    "displayName": "MapLibreMap",
+    "methods": [
+      {
+        "name": "addOverlayLayers",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "addInterferogramLayer",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "updateInterferogramSource",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "addEarthquakesLayer",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "updateEarthquakes",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "addWmsLayer",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "updateWmsOverlay",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "setActiveBasemap",
+        "docblock": null,
+        "modifiers": [],
+        "params": [
+          {
+            "name": "activeBasemap",
+            "type": null
+          }
+        ],
+        "returns": null
+      },
+      {
+        "name": "updateTerrain",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      }
+    ],
+    "props": {
+      "id": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "The ID used to identify this component in Dash callbacks."
+      },
+      "initialViewState": {
+        "type": {
+          "name": "shape",
+          "value": {
+            "longitude": {
+              "name": "number",
+              "required": false
+            },
+            "latitude": {
+              "name": "number",
+              "required": false
+            },
+            "zoom": {
+              "name": "number",
+              "required": false
+            },
+            "pitch": {
+              "name": "number",
+              "required": false
+            },
+            "bearing": {
+              "name": "number",
+              "required": false
+            }
+          }
+        },
+        "required": false,
+        "description": "Camera at construction time: {longitude, latitude, zoom, pitch,\nbearing}. Pitch/bearing default to 0 so the map starts flat/top-down\nlike a 2D map; the user can then drag to tilt and rotate in 3D.",
+        "defaultValue": {
+          "value": "{\n    longitude: -123.6, latitude: 54.64, zoom: 6, pitch: 0, bearing: 0,\n}",
+          "computed": false
+        }
+      },
+      "flyTo": {
+        "type": {
+          "name": "shape",
+          "value": {
+            "longitude": {
+              "name": "number",
+              "required": false
+            },
+            "latitude": {
+              "name": "number",
+              "required": false
+            },
+            "zoom": {
+              "name": "number",
+              "required": false
+            },
+            "duration": {
+              "name": "number",
+              "required": false
+            }
+          }
+        },
+        "required": false,
+        "description": "Write-only camera animation trigger: {longitude, latitude, zoom,\nduration}. Set a new object to fly the camera, mirroring Leaflet's\nflyTo transition.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "basemaps": {
+        "type": {
+          "name": "objectOf",
+          "value": {
+            "name": "shape",
+            "value": {
+              "url": {
+                "name": "string",
+                "required": false
+              },
+              "attribution": {
+                "name": "string",
+                "required": false
+              },
+              "tileSize": {
+                "name": "number",
+                "required": false
+              }
+            }
+          }
+        },
+        "required": false,
+        "description": "Map of basemap id -> {url, attribution, tileSize}. Each entry becomes\na raster source/layer; visibility is toggled by activeBasemap instead\nof swapping the whole style.",
+        "defaultValue": {
+          "value": "{}",
+          "computed": false
+        }
+      },
+      "activeBasemap": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Key into `basemaps` for the currently visible basemap layer.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "interferogramTileUrl": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "XYZ tile URL template ({x}/{y}/{z}) for the interferogram raster\noverlay, fetched TMS-scheme from the existing /getTileUrl proxy.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "interferogramOpacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Opacity of the interferogram raster layer.",
+        "defaultValue": {
+          "value": "0.85",
+          "computed": false
+        }
+      },
+      "demTiles": {
+        "type": {
+          "name": "union",
+          "value": [
+            {
+              "name": "string"
+            },
+            {
+              "name": "arrayOf",
+              "value": {
+                "name": "string"
+              }
+            }
+          ]
+        },
+        "required": false,
+        "description": "Raster-DEM tile URL template(s) (Mapbox terrain-RGB encoding) used to\ndisplace the terrain surface. Null disables terrain.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "demEncoding": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "'terrarium'",
+              "computed": false
+            },
+            {
+              "value": "'mapbox'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Encoding used by the raster-DEM tiles: 'terrarium' (e.g. AWS Open\nData's elevation-tiles-prod) or 'mapbox' (Mapbox Terrain-RGB).",
+        "defaultValue": {
+          "value": "'mapbox'",
+          "computed": false
+        }
+      },
+      "terrainExaggeration": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Vertical exaggeration factor applied to the DEM terrain.",
+        "defaultValue": {
+          "value": "1.5",
+          "computed": false
+        }
+      },
+      "earthquakeData": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "GeoJSON FeatureCollection of earthquake epicenters; each feature's\nproperties should include magnitude, quakeColour, time, depthKm,\neventId.",
+        "defaultValue": {
+          "value": "{type: 'FeatureCollection', features: []}",
+          "computed": false
+        }
+      },
+      "wmsOverlay": {
+        "type": {
+          "name": "shape",
+          "value": {
+            "url": {
+              "name": "string",
+              "required": false
+            },
+            "layers": {
+              "name": "string",
+              "required": false
+            },
+            "styles": {
+              "name": "string",
+              "required": false
+            },
+            "format": {
+              "name": "string",
+              "required": false
+            },
+            "opacity": {
+              "name": "number",
+              "required": false
+            },
+            "visible": {
+              "name": "bool",
+              "required": false
+            }
+          }
+        },
+        "required": false,
+        "description": "Optional WMS raster overlay (e.g. glacier footprints): {url, layers,\nstyles, format, opacity, visible}.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "style": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "CSS style applied to the map container div.",
+        "defaultValue": {
+          "value": "{}",
+          "computed": false
+        }
+      },
+      "className": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "CSS class applied to the map container div.",
+        "defaultValue": {
+          "value": "''",
+          "computed": false
+        }
+      }
+    }
+  }
+}
