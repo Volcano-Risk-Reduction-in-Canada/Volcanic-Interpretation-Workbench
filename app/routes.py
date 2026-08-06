@@ -55,6 +55,17 @@ def add_routes(server):
                 'Failed to fetch interferogram tile %s: %s', key, exception
             )
             return Response(status=204)
+        if response.status_code != 200:
+            # S3 errors (missing key, expired signature, etc.) come back
+            # as a 200-from-Flask's-perspective XML body -- if forwarded
+            # as-is with an image/png content type, the browser can't
+            # decode it and MapLibre throws mid-render instead of just
+            # skipping the tile.
+            logger.warning(
+                'Interferogram tile %s returned status %s',
+                key, response.status_code
+            )
+            return Response(status=204)
         return Response(response.content, mimetype='image/png')
 
     @server.route('/getDemTileUrl')
@@ -79,6 +90,12 @@ def add_routes(server):
         except requests.exceptions.RequestException as exception:
             logger.warning(
                 'Failed to fetch DEM tile %s/%s/%s: %s', z, x, y, exception
+            )
+            return Response(status=204)
+        if response.status_code != 200:
+            logger.warning(
+                'DEM tile %s/%s/%s returned status %s',
+                z, x, y, response.status_code
             )
             return Response(status=204)
         return Response(
