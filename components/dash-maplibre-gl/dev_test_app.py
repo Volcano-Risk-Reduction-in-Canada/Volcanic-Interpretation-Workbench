@@ -2,20 +2,34 @@
 """
 Standalone smoke-test harness for the MapLibreMap Dash component.
 
-Mounts MapLibreMap directly with representative props, bypassing the
+Mounts MapLibreMap with the same Darkly Bootstrap theme, basemap switcher,
+and earthquake popup wiring as the real site page, bypassing only the
 Volcanic-Interpretation-Workbench app's dependencies on the external VRRC
 metadata API and AWS S3 (neither is reachable in this dev/verification
-environment). Verifies the component itself: basemap rendering, DEM terrain,
-and (using an existing public XYZ tile source's tiling scheme as a stand-in
-raster overlay, since the real interferogram tiles require AWS credentials).
+environment). Useful for reproducing page-theme-related rendering bugs
+(e.g. Darkly CSS bleeding into MapLibre's native controls/popups) without
+needing the live backend.
 """
-from flask import Response, request
-import requests
-import dash
-from dash import html
-import dash_maplibre_gl as dml
+import os
+import sys
 
-app = dash.Dash(__name__)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'app'))
+
+from flask import Response, request  # noqa: E402
+import requests  # noqa: E402
+import dash  # noqa: E402
+from dash import html  # noqa: E402
+import dash_bootstrap_components as dbc  # noqa: E402
+import dash_maplibre_gl as dml  # noqa: E402
+from global_components import generate_basemap_switcher  # noqa: E402
+from global_variables import (  # noqa: E402
+    MAPLIBRE_BASEMAPS,
+    MAPLIBRE_DEFAULT_BASEMAP,
+    DEM_ENCODING,
+    DEM_TERRAIN_EXAGGERATION,
+)
+
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
 
 @app.server.route('/getDemTileUrl')
@@ -31,29 +45,6 @@ def get_dem_tile_url():
     response = requests.get(upstream_url, timeout=10)
     return Response(response.content, mimetype='image/png')
 
-BASEMAPS = {
-    'topo': {
-        'url': (
-            'https://server.arcgisonline.com/ArcGIS/rest/services/'
-            'World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
-        ),
-        'attribution': 'Esri',
-    },
-    'streets': {
-        'url': (
-            'https://server.arcgisonline.com/ArcGIS/rest/services/'
-            'World_Street_Map/MapServer/tile/{z}/{y}/{x}'
-        ),
-        'attribution': 'Esri',
-    },
-    'imagery': {
-        'url': (
-            'https://server.arcgisonline.com/ArcGIS/rest/services/'
-            'World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        ),
-        'attribution': 'Esri',
-    },
-}
 
 # Meager Creek volcanic complex, BC -- steep terrain, good for verifying
 # DEM relief.
@@ -72,9 +63,9 @@ EARTHQUAKES = {
         },
         {
             'type': 'Feature',
-            'geometry': {'type': 'Point', 'coordinates': [-123.62, 50.61]},
+            'geometry': {'type': 'Point', 'coordinates': [-123.60, 50.64]},
             'properties': {
-                'magnitude': 1.8, 'magType': 'ML', 'time': '2023-06-01T00:00:00',
+                'magnitude': 4.5, 'magType': 'ML', 'time': '2023-06-01T00:00:00',
                 'depthKm': 2.3, 'eventId': 'TEST2', 'quakeColour': 'yellow',
             },
         },
@@ -82,19 +73,20 @@ EARTHQUAKES = {
 }
 
 app.layout = html.Div(
-    style={'height': '100vh', 'width': '100vw'},
+    style={'height': '100vh', 'width': '100vw', 'position': 'relative'},
     children=[
         dml.MapLibreMap(
             id='test-map',
             initialViewState=MEAGER,
-            basemaps=BASEMAPS,
-            activeBasemap='topo',
+            basemaps=MAPLIBRE_BASEMAPS,
+            activeBasemap=MAPLIBRE_DEFAULT_BASEMAP,
             demTiles='/getDemTileUrl?z={z}&x={x}&y={y}',
-            demEncoding='terrarium',
-            terrainExaggeration=1.5,
+            demEncoding=DEM_ENCODING,
+            terrainExaggeration=DEM_TERRAIN_EXAGGERATION,
             earthquakeData=EARTHQUAKES,
             style={'height': '100%', 'width': '100%'},
         ),
+        generate_basemap_switcher(active=MAPLIBRE_DEFAULT_BASEMAP),
     ],
 )
 

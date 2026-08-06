@@ -13,6 +13,40 @@ const WMS_LAYER_ID = 'wms-overlay-layer';
 
 const EMPTY_FC = {type: 'FeatureCollection', features: []};
 
+// MapLibre's built-in NavigationControl compass is a small, easy-to-miss
+// icon. This is a plain-text "N" indicator that always stays legible
+// (independent of whatever Bootstrap theme the host page applies) and
+// rotates to keep pointing at true north as the map's bearing changes.
+class NorthArrowControl {
+    onAdd(map) {
+        this._map = map;
+        this._container = document.createElement('div');
+        this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+        this._container.style.cssText = (
+            'background:#fff; width:29px; height:29px; display:flex;'
+            + 'align-items:center; justify-content:center;'
+        );
+        this._arrow = document.createElement('div');
+        this._arrow.style.cssText = (
+            'font-weight:700; font-size:13px; color:#1a1a1a; line-height:1;'
+        );
+        this._arrow.textContent = 'N';
+        this._container.appendChild(this._arrow);
+        this._onRotate = () => {
+            this._arrow.style.transform = `rotate(${-map.getBearing()}deg)`;
+        };
+        map.on('rotate', this._onRotate);
+        this._onRotate();
+        return this._container;
+    }
+
+    onRemove() {
+        this._container.parentNode.removeChild(this._container);
+        this._map.off('rotate', this._onRotate);
+        this._map = undefined;
+    }
+}
+
 function buildBaseStyle(basemaps, activeBasemap) {
     const sources = {};
     const layers = [];
@@ -57,6 +91,12 @@ export default class MapLibreMap extends React.Component {
             zoom: initialViewState.zoom,
             pitch: initialViewState.pitch || 0,
             bearing: initialViewState.bearing || 0,
+            // 85 is MapLibre's hard-coded upper bound (it throws above
+            // this). Note terrain here is a 2.5D heightmap drape, not a
+            // volumetric model, so there's no literal subsurface geometry
+            // to reveal -- this just allows a near-horizontal, more
+            // dramatic viewing angle than the library's 60 degree default.
+            maxPitch: 85,
         });
         this.map = map;
 
@@ -64,6 +104,7 @@ export default class MapLibreMap extends React.Component {
             new maplibregl.NavigationControl({visualizePitch: true}),
             'top-right',
         );
+        map.addControl(new NorthArrowControl(), 'top-right');
 
         map.on('load', () => this.addOverlayLayers());
     }
@@ -175,10 +216,16 @@ export default class MapLibreMap extends React.Component {
                 return;
             }
             const p = feature.properties;
-            const html = `Magnitude: ${p.magnitude} ${p.magType || ''}<br/>`
+            // Inline-styled: the host page's Bootstrap theme (e.g. Darkly)
+            // sets a global text color that otherwise bleeds into
+            // MapLibre's un-namespaced popup DOM, making white text land
+            // on the popup's own white background.
+            const html = '<div style="color:#1a1a1a; font-size:13px; line-height:1.5;">'
+                + `Magnitude: ${p.magnitude} ${p.magType || ''}<br/>`
                 + `Date: ${p.time ? String(p.time).slice(0, 10) : ''}<br/>`
                 + `Depth: ${p.depthKm} km<br/>`
-                + `EventID: ${p.eventId}`;
+                + `EventID: ${p.eventId}`
+                + '</div>';
             new maplibregl.Popup()
                 .setLngLat(feature.geometry.coordinates)
                 .setHTML(html)
