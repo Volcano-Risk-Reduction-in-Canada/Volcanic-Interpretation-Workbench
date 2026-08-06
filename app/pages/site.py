@@ -148,7 +148,11 @@ spatial_view = html.Div(
             demEncoding=DEM_ENCODING,
             terrainExaggeration=DEM_TERRAIN_EXAGGERATION,
             earthquakeData=epicenters_df_to_geojson(epicenters_df),
-            wmsOverlay=get_glacier_wms_overlay(),
+            # TEMPORARY: disabled to isolate whether the glacier WMS
+            # overlay (an external, third-party service) is what's
+            # preventing DEM terrain tiles from loading. Revert once
+            # confirmed either way.
+            # wmsOverlay=get_glacier_wms_overlay(),
             style={'height': '100%'},
         ),
         generate_basemap_switcher(active=MAPLIBRE_DEFAULT_BASEMAP),
