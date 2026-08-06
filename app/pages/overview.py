@@ -43,10 +43,11 @@ on_each_feature = assign("""function(feature, layer, context){
 }""")
 
 
-markers_red = get_red_volcanoes()
-markers_green = get_green_volcanoes()
+targets_geojson = read_targets_geojson()
+summary_table_df = build_summary_table(targets_geojson)
+markers_red = get_red_volcanoes(targets_geojson, summary_table_df)
+markers_green = get_green_volcanoes(targets_geojson, summary_table_df)
 epicenters_df = get_latest_quakes_chis_fsdn()
-summary_table_df = build_summary_table(read_targets_geojson())
 
 # LAYOUT
 layout = html.Div(

@@ -342,11 +342,9 @@ def _is_summary_site(site_id, site_name):
     return bool(re.match(r'^A\d', site_id))
 
 
-def get_green_volcanoes():
+def get_green_volcanoes(targets_geojson, summary_table_df):
     """Return a list of green volcano points"""
     logger.info("GET green volc")
-    targets_geojson = read_targets_geojson()
-    summary_table_df = build_summary_table(targets_geojson)
     try:
         green_point_features = []
         green_icon = {
@@ -382,11 +380,9 @@ def get_green_volcanoes():
     return green_markers
 
 
-def get_red_volcanoes():
+def get_red_volcanoes(targets_geojson, summary_table_df):
     """Return a list of red volcano points"""
     logger.info("GET red volc")
-    targets_geojson = read_targets_geojson()
-    summary_table_df = build_summary_table(targets_geojson)
     try:
         red_point_features = []
         red_icon = {
