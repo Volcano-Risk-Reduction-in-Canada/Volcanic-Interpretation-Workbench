@@ -151,10 +151,24 @@ export default class MapLibreMap extends React.Component {
     }
 
     addOverlayLayers() {
-        this.addInterferogramLayer();
-        this.addWmsLayer();
-        this.addEarthquakesLayer();
-        this.addTerrain();
+        // Each layer touches a different, independently-flaky external
+        // source (S3, a third-party WMS service). Isolate them so one
+        // throwing (e.g. a WMS error response MapLibre can't decode as an
+        // image) can't stop the others -- terrain goes first since it's
+        // core to every site view, unlike the decorative overlays.
+        const steps = [
+            () => this.addTerrain(),
+            () => this.addInterferogramLayer(),
+            () => this.addWmsLayer(),
+            () => this.addEarthquakesLayer(),
+        ];
+        steps.forEach((step) => {
+            try {
+                step();
+            } catch (error) {
+                console.error('MapLibreMap: failed to add overlay layer', error);
+            }
+        });
     }
 
     addInterferogramLayer() {
