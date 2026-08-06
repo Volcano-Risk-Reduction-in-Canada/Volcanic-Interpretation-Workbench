@@ -198,6 +198,12 @@ def generate_basemap_switcher(active='topo'):
             value=active,
             inline=True,
             style=LEGEND_TEXT_STYLING,
+            # The page's Bootstrap Darkly theme styles unchecked radio
+            # inputs with a white border/fill (meant to sit on Darkly's
+            # own dark background), which disappears against this
+            # control's white floating box -- force a visible border.
+            input_style={'border': '1px solid #495057'},
+            label_style=LEGEND_TEXT_STYLING,
         ),
         style={
             **LEGEND_BUTTON_STYLING,
