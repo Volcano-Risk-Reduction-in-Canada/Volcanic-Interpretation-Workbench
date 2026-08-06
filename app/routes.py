@@ -44,7 +44,17 @@ def add_routes(server):
         bucket = request.args.get('bucket')
         key = f"{site}/{beam}/{startdate}_{enddate}/{z}/{x}/{y}.png"
         signed_url = get_signed_url(bucket, key)
-        response = requests.get(signed_url, timeout=10)
+        try:
+            response = requests.get(signed_url, timeout=10)
+        except requests.exceptions.RequestException as exception:
+            # A single flaky/slow tile (e.g. an S3 SSL hiccup) shouldn't
+            # take down the whole map -- fail that one tile and let the
+            # map keep rendering the rest, instead of raising and
+            # returning a slow/uncaught error for this request.
+            logger.warning(
+                'Failed to fetch interferogram tile %s: %s', key, exception
+            )
+            return Response(status=204)
         return Response(response.content, mimetype='image/png')
 
     @server.route('/getDemTileUrl')
@@ -64,7 +74,13 @@ def add_routes(server):
             'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/'
             f'{z}/{x}/{y}.png'
         )
-        response = requests.get(upstream_url, timeout=10)
+        try:
+            response = requests.get(upstream_url, timeout=10)
+        except requests.exceptions.RequestException as exception:
+            logger.warning(
+                'Failed to fetch DEM tile %s/%s/%s: %s', z, x, y, exception
+            )
+            return Response(status=204)
         return Response(
             response.content,
             mimetype='image/png',
