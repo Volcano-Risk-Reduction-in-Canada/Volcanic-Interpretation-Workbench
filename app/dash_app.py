@@ -77,4 +77,10 @@ if __name__ == '__main__':
         args.host,
         args.port)
     # app.run(debug=True, host=args.host, port=args.port)
-    app.run(debug=False, host=args.host, port=args.port)
+    # threaded=True: the map issues many concurrent tile requests (to
+    # /getTileUrl and /getDemTileUrl) per pan/zoom. Werkzeug's dev server
+    # is single-threaded by default, so one slow/erroring upstream tile
+    # fetch (e.g. an S3 SSL hiccup) would otherwise serialize and block
+    # every other request on this origin -- including unrelated tiles --
+    # until it times out.
+    app.run(debug=False, host=args.host, port=args.port, threaded=True)
