@@ -113,7 +113,7 @@ export default class MapLibreMap extends React.Component {
         this.addInterferogramLayer();
         this.addWmsLayer();
         this.addEarthquakesLayer();
-        this.updateTerrain();
+        this.addTerrain();
     }
 
     addInterferogramLayer() {
@@ -273,9 +273,25 @@ export default class MapLibreMap extends React.Component {
         });
     }
 
-    updateTerrain() {
+    addTerrain() {
         const {map} = this;
         const {demTiles, demEncoding, terrainExaggeration} = this.props;
+        if (!demTiles || map.getSource(DEM_SOURCE_ID)) {
+            return;
+        }
+        map.addSource(DEM_SOURCE_ID, {
+            type: 'raster-dem',
+            tiles: Array.isArray(demTiles) ? demTiles : [demTiles],
+            tileSize: 256,
+            encoding: demEncoding || 'mapbox',
+            maxzoom: 14,
+        });
+        map.setTerrain({source: DEM_SOURCE_ID, exaggeration: terrainExaggeration || 1});
+    }
+
+    updateTerrain() {
+        const {map} = this;
+        const {demTiles} = this.props;
         if (!map || !map.isStyleLoaded()) {
             return;
         }
@@ -289,14 +305,7 @@ export default class MapLibreMap extends React.Component {
         if (map.getSource(DEM_SOURCE_ID)) {
             map.removeSource(DEM_SOURCE_ID);
         }
-        map.addSource(DEM_SOURCE_ID, {
-            type: 'raster-dem',
-            tiles: Array.isArray(demTiles) ? demTiles : [demTiles],
-            tileSize: 256,
-            encoding: demEncoding || 'mapbox',
-            maxzoom: 14,
-        });
-        map.setTerrain({source: DEM_SOURCE_ID, exaggeration: terrainExaggeration || 1});
+        this.addTerrain();
     }
 
     render() {
