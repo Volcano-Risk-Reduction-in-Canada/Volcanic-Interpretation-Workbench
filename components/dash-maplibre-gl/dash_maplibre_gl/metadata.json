@@ -65,6 +65,13 @@
         "returns": null
       },
       {
+        "name": "addTerrain",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
         "name": "updateTerrain",
         "docblock": null,
         "modifiers": [],
