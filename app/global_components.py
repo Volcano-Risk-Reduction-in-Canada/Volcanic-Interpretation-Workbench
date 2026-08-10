@@ -14,7 +14,7 @@ Authors:
 """
 
 import dash
-from dash import html, callback
+from dash import dcc, html, callback
 import dash_bootstrap_components as dbc
 from dash_leaflet import (
     TileLayer,
@@ -209,6 +209,41 @@ def generate_basemap_switcher(active='topo'):
             **LEGEND_BUTTON_STYLING,
             'left': '10px',
             'right': 'auto',
+        }
+    )
+
+
+def generate_interferogram_opacity_control(initial_opacity=0.85):
+    """
+    Generates a floating slider control that lets the user adjust the
+    MapLibre site map's interferogram raster layer opacity.
+
+    Parameters:
+    - initial_opacity (float, optional): Starting slider value. Defaults
+        to 0.85, matching MapLibreMap's own interferogramOpacity default.
+
+    Returns:
+    - dash.html.Div: HTML div containing the opacity slider.
+    """
+    return html.Div(
+        [
+            html.Div('Interferogram Opacity', style=LEGEND_TEXT_STYLING),
+            dcc.Slider(
+                id='interferogram-opacity-slider',
+                min=0,
+                max=1,
+                step=0.05,
+                value=initial_opacity,
+                marks=None,
+                tooltip={'placement': 'bottom', 'always_visible': False},
+            ),
+        ],
+        style={
+            **LEGEND_BUTTON_STYLING,
+            'left': '10px',
+            'right': 'auto',
+            'top': '70px',
+            'width': '180px',
         }
     )
 

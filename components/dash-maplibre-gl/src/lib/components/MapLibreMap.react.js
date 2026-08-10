@@ -120,6 +120,8 @@ export default class MapLibreMap extends React.Component {
         }
         if (prevProps.interferogramTileUrl !== this.props.interferogramTileUrl) {
             this.updateInterferogramSource();
+        } else if (prevProps.interferogramOpacity !== this.props.interferogramOpacity) {
+            this.updateInterferogramOpacity();
         }
         if (
             prevProps.demTiles !== this.props.demTiles
@@ -203,6 +205,16 @@ export default class MapLibreMap extends React.Component {
             map.removeSource(INTERFEROGRAM_SOURCE_ID);
         }
         this.addInterferogramLayer();
+    }
+
+    updateInterferogramOpacity() {
+        const {map} = this;
+        if (!map || !map.isStyleLoaded() || !map.getLayer(INTERFEROGRAM_LAYER_ID)) {
+            return;
+        }
+        map.setPaintProperty(
+            INTERFEROGRAM_LAYER_ID, 'raster-opacity', this.props.interferogramOpacity
+        );
     }
 
     addEarthquakesLayer() {

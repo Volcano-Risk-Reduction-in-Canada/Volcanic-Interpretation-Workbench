@@ -32,6 +32,7 @@ from dash_extensions.enrich import (
 from pages.components.gc_header import gc_header, gc_line
 from global_components import (
     generate_basemap_switcher,
+    generate_interferogram_opacity_control,
     generate_legend_visibility_control,
     get_glacier_wms_overlay,
 )
@@ -156,6 +157,7 @@ spatial_view = html.Div(
             style={'height': '100%'},
         ),
         generate_basemap_switcher(active=MAPLIBRE_DEFAULT_BASEMAP),
+        generate_interferogram_opacity_control(),
         generate_legend_visibility_control(overview=False),
     ]
 )
@@ -594,6 +596,28 @@ def update_basemap(active_basemap):
     if not active_basemap:
         raise PreventUpdate
     return active_basemap
+
+
+@callback(
+    Output('interferogram-bg', 'interferogramOpacity'),
+    Input('interferogram-opacity-slider', 'value'),
+    prevent_initial_call=True
+)
+def update_interferogram_opacity(opacity):
+    """
+    Adjust the MapLibre map's interferogram raster layer opacity.
+
+    Parameters:
+    - opacity (float or None): Selected value from
+        'interferogram-opacity-slider'.
+
+    Returns:
+    - float: The opacity to pass through to the 'interferogram-bg'
+        MapLibreMap component's interferogramOpacity prop.
+    """
+    if opacity is None:
+        raise PreventUpdate
+    return opacity
 
 
 @callback(
