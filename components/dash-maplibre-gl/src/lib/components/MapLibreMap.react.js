@@ -5,7 +5,16 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 const INTERFEROGRAM_SOURCE_ID = 'interferogram';
 const INTERFEROGRAM_LAYER_ID = 'interferogram-layer';
+const INTERFEROGRAM_MAX_ZOOM = 15;
 const DEM_SOURCE_ID = 'dem-terrain';
+// Terrain only needs to look plausible, not sharp -- capping it well below
+// the interferogram's native max zoom (15) keeps fewer/coarser DEM tile
+// requests in flight, freeing up the browser's ~6-concurrent-connections-
+// per-origin cap for interferogram tile fetches instead. Raise this if
+// terrain looks too blocky up close, lower it if terrain still competes
+// for bandwidth against the interferogram layer.
+const DEM_MAX_ZOOM = 10;
+const HILLSHADE_LAYER_ID = 'hillshade-layer';
 const EARTHQUAKES_SOURCE_ID = 'earthquakes';
 const EARTHQUAKES_LAYER_ID = 'earthquakes-layer';
 const WMS_SOURCE_ID = 'wms-overlay';
@@ -47,11 +56,19 @@ class NorthArrowControl {
     }
 }
 
-function buildBaseStyle(basemaps, activeBasemap) {
+function buildBaseStyle(basemaps, activeBasemap, monochrome) {
     const sources = {};
     const layers = [];
+    const activeEntry = basemaps[activeBasemap] || {};
     Object.keys(basemaps).forEach((key) => {
         const basemap = basemaps[key];
+        if (basemap.hillshade) {
+            // Virtual entry (e.g. "Topography (Hillshade)") -- no raster
+            // source/layer of its own, it reuses an existing basemap's
+            // tiles (via baseKey) plus the hillshade layer added
+            // separately in addHillshadeLayer().
+            return;
+        }
         sources[key] = {
             type: 'raster',
             tiles: [basemap.url],
@@ -62,7 +79,12 @@ function buildBaseStyle(basemaps, activeBasemap) {
             id: `basemap-${key}`,
             type: 'raster',
             source: key,
-            layout: {visibility: key === activeBasemap ? 'visible' : 'none'},
+            layout: {
+                visibility: (
+                    key === activeBasemap || activeEntry.baseKey === key
+                ) ? 'visible' : 'none',
+            },
+            paint: {'raster-saturation': monochrome ? -1 : 0},
         });
     });
     return {version: 8, sources, layers};
@@ -82,11 +104,11 @@ export default class MapLibreMap extends React.Component {
     }
 
     componentDidMount() {
-        const {initialViewState, basemaps, activeBasemap} = this.props;
+        const {initialViewState, basemaps, activeBasemap, basemapMonochrome} = this.props;
 
         const map = new maplibregl.Map({
             container: this.containerRef.current,
-            style: buildBaseStyle(basemaps, activeBasemap),
+            style: buildBaseStyle(basemaps, activeBasemap, basemapMonochrome),
             center: [initialViewState.longitude, initialViewState.latitude],
             zoom: initialViewState.zoom,
             pitch: initialViewState.pitch || 0,
@@ -117,6 +139,9 @@ export default class MapLibreMap extends React.Component {
 
         if (prevProps.activeBasemap !== this.props.activeBasemap) {
             this.setActiveBasemap(this.props.activeBasemap);
+        }
+        if (prevProps.basemapMonochrome !== this.props.basemapMonochrome) {
+            this.updateBasemapMonochrome();
         }
         if (prevProps.interferogramTileUrl !== this.props.interferogramTileUrl) {
             this.updateInterferogramSource();
@@ -160,6 +185,7 @@ export default class MapLibreMap extends React.Component {
         // core to every site view, unlike the decorative overlays.
         const steps = [
             () => this.addTerrain(),
+            () => this.addHillshadeLayer(),
             () => this.addInterferogramLayer(),
             () => this.addWmsLayer(),
             () => this.addEarthquakesLayer(),
@@ -184,12 +210,17 @@ export default class MapLibreMap extends React.Component {
             tiles: [interferogramTileUrl],
             tileSize: 256,
             scheme: 'tms',
+            maxzoom: INTERFEROGRAM_MAX_ZOOM,
         });
         map.addLayer({
             id: INTERFEROGRAM_LAYER_ID,
             type: 'raster',
             source: INTERFEROGRAM_SOURCE_ID,
-            paint: {'raster-opacity': interferogramOpacity},
+            // fade-duration 0: snap newly-loaded, correct-resolution tiles
+            // in immediately instead of cross-fading over the 300ms
+            // default, so the layer looks sharp again as soon as data
+            // arrives rather than lingering blurry through a fade.
+            paint: {'raster-opacity': interferogramOpacity, 'raster-fade-duration': 0},
         });
     }
 
@@ -334,13 +365,39 @@ export default class MapLibreMap extends React.Component {
         if (!map || !map.isStyleLoaded()) {
             return;
         }
+        const activeEntry = basemaps[activeBasemap] || {};
+        Object.keys(basemaps).forEach((key) => {
+            const entry = basemaps[key];
+            if (entry.hillshade) {
+                return;
+            }
+            const layerId = `basemap-${key}`;
+            if (map.getLayer(layerId)) {
+                const visible = key === activeBasemap || activeEntry.baseKey === key;
+                map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+            }
+        });
+        if (map.getLayer(HILLSHADE_LAYER_ID)) {
+            map.setLayoutProperty(
+                HILLSHADE_LAYER_ID, 'visibility', activeEntry.hillshade ? 'visible' : 'none'
+            );
+        }
+    }
+
+    updateBasemapMonochrome() {
+        const {map} = this;
+        const {basemaps, basemapMonochrome} = this.props;
+        if (!map || !map.isStyleLoaded()) {
+            return;
+        }
+        // Applied to every basemap layer unconditionally (not just the
+        // active one) -- MapLibre retains paint properties on hidden
+        // layers, so switching basemaps later needs no extra hook here.
         Object.keys(basemaps).forEach((key) => {
             const layerId = `basemap-${key}`;
             if (map.getLayer(layerId)) {
-                map.setLayoutProperty(
-                    layerId,
-                    'visibility',
-                    key === activeBasemap ? 'visible' : 'none',
+                map.setPaintProperty(
+                    layerId, 'raster-saturation', basemapMonochrome ? -1 : 0
                 );
             }
         });
@@ -357,9 +414,31 @@ export default class MapLibreMap extends React.Component {
             tiles: Array.isArray(demTiles) ? demTiles : [demTiles],
             tileSize: 256,
             encoding: demEncoding || 'mapbox',
-            maxzoom: 14,
+            maxzoom: DEM_MAX_ZOOM,
         });
         map.setTerrain({source: DEM_SOURCE_ID, exaggeration: terrainExaggeration || 1});
+    }
+
+    addHillshadeLayer() {
+        const {map} = this;
+        const {basemaps, activeBasemap} = this.props;
+        if (!map.getSource(DEM_SOURCE_ID) || map.getLayer(HILLSHADE_LAYER_ID)) {
+            return;
+        }
+        const activeEntry = (basemaps && basemaps[activeBasemap]) || {};
+        map.addLayer({
+            id: HILLSHADE_LAYER_ID,
+            type: 'hillshade',
+            source: DEM_SOURCE_ID,
+            layout: {visibility: activeEntry.hillshade ? 'visible' : 'none'},
+            paint: {
+                'hillshade-illumination-direction': 335,
+                'hillshade-exaggeration': 0.6,
+                'hillshade-shadow-color': '#3a3a3a',
+                'hillshade-highlight-color': '#ffffff',
+                'hillshade-accent-color': '#5a5a5a',
+            },
+        });
     }
 
     updateTerrain() {
@@ -367,6 +446,12 @@ export default class MapLibreMap extends React.Component {
         const {demTiles} = this.props;
         if (!map || !map.isStyleLoaded()) {
             return;
+        }
+        // The hillshade layer (if present) references DEM_SOURCE_ID, and
+        // MapLibre refuses to remove a source still in use by a layer --
+        // tear it down here and re-add it below, alongside the source.
+        if (map.getLayer(HILLSHADE_LAYER_ID)) {
+            map.removeLayer(HILLSHADE_LAYER_ID);
         }
         if (!demTiles) {
             map.setTerrain(null);
@@ -379,6 +464,7 @@ export default class MapLibreMap extends React.Component {
             map.removeSource(DEM_SOURCE_ID);
         }
         this.addTerrain();
+        this.addHillshadeLayer();
     }
 
     render() {
@@ -399,6 +485,7 @@ MapLibreMap.defaultProps = {
     },
     basemaps: {},
     activeBasemap: null,
+    basemapMonochrome: false,
     interferogramTileUrl: null,
     interferogramOpacity: 0.85,
     demTiles: null,
@@ -443,20 +530,31 @@ MapLibreMap.propTypes = {
     }),
 
     /**
-     * Map of basemap id -> {url, attribution, tileSize}. Each entry becomes
-     * a raster source/layer; visibility is toggled by activeBasemap instead
-     * of swapping the whole style.
+     * Map of basemap id -> {url, attribution, tileSize} for a normal raster
+     * basemap entry, or {label, hillshade: true, baseKey} for a virtual
+     * entry that reuses another basemap's tiles (baseKey) with a hillshade
+     * layer draped on top instead of fetching tiles of its own. Each normal
+     * entry becomes a raster source/layer; visibility is toggled by
+     * activeBasemap instead of swapping the whole style.
      */
     basemaps: PropTypes.objectOf(PropTypes.shape({
         url: PropTypes.string,
         attribution: PropTypes.string,
         tileSize: PropTypes.number,
+        hillshade: PropTypes.bool,
+        baseKey: PropTypes.string,
     })),
 
     /**
      * Key into `basemaps` for the currently visible basemap layer.
      */
     activeBasemap: PropTypes.string,
+
+    /**
+     * Desaturate the currently-active basemap raster layer(s) to grayscale
+     * (uses MapLibre's raster-saturation paint property).
+     */
+    basemapMonochrome: PropTypes.bool,
 
     /**
      * XYZ tile URL template ({x}/{y}/{z}) for the interferogram raster

@@ -9,7 +9,7 @@ dash-core-components==2.0.0
 dash-extensions==0.1.13
 dash-html-components==2.0.0
 dash-leaflet==0.1.23
-./components/dash-maplibre-gl
+-e ./components/dash-maplibre-gl
 dash-renderer==1.9.1
 dash-table==5.0.0
 EditorConfig==0.12.3
