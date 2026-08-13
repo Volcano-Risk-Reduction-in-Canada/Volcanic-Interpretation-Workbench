@@ -54,6 +54,16 @@ MAPLIBRE_BASEMAPS = {
         'attribution': ESRI_ATTRIBUTION,
         'label': 'Imagery',
     },
+    # Virtual entry: no tiles of its own -- reuses 'topo's raster layer
+    # with a hillshade layer (from the same DEM source used for terrain)
+    # draped on top. See MapLibreMap.react.js's buildBaseStyle/
+    # addHillshadeLayer/setActiveBasemap for how 'hillshade'/'baseKey'
+    # are handled.
+    'topoHillshade': {
+        'label': 'Topography (Hillshade)',
+        'baseKey': 'topo',
+        'hillshade': True,
+    },
 }
 MAPLIBRE_DEFAULT_BASEMAP = 'topo'
 

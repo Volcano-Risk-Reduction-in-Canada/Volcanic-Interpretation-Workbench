@@ -248,6 +248,34 @@ def generate_interferogram_opacity_control(initial_opacity=0.85):
     )
 
 
+def generate_basemap_monochrome_control(initial=False):
+    """
+    Generates a floating switch control that toggles the MapLibre site
+    map's active basemap between full color and monochrome (grayscale).
+
+    Parameters:
+    - initial (bool, optional): Starting toggle state. Defaults to False.
+
+    Returns:
+    - dash.html.Div: HTML div containing the monochrome toggle switch.
+    """
+    return html.Div(
+        dbc.Switch(
+            id='basemap-monochrome-toggle',
+            label='Monochrome Basemap',
+            value=initial,
+            style=LEGEND_TEXT_STYLING,
+        ),
+        style={
+            **LEGEND_BUTTON_STYLING,
+            'left': '10px',
+            'right': 'auto',
+            'top': '150px',
+            'width': '180px',
+        }
+    )
+
+
 def get_glacier_wms_overlay(opacity=0.5, visible=True):
     """
     Generates the WMS overlay config for the MapLibre map's glacier
