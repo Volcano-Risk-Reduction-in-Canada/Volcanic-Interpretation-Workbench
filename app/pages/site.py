@@ -31,6 +31,7 @@ from dash_extensions.enrich import (
 )
 from pages.components.gc_header import gc_header, gc_line
 from global_components import (
+    generate_basemap_monochrome_control,
     generate_basemap_switcher,
     generate_interferogram_opacity_control,
     generate_legend_visibility_control,
@@ -158,6 +159,7 @@ spatial_view = html.Div(
         ),
         generate_basemap_switcher(active=MAPLIBRE_DEFAULT_BASEMAP),
         generate_interferogram_opacity_control(),
+        generate_basemap_monochrome_control(),
         generate_legend_visibility_control(overview=False),
     ]
 )
@@ -618,6 +620,26 @@ def update_interferogram_opacity(opacity):
     if opacity is None:
         raise PreventUpdate
     return opacity
+
+
+@callback(
+    Output('interferogram-bg', 'basemapMonochrome'),
+    Input('basemap-monochrome-toggle', 'value'),
+    prevent_initial_call=True
+)
+def update_basemap_monochrome(monochrome):
+    """
+    Toggle the MapLibre map's active basemap between full color and
+    monochrome.
+
+    Parameters:
+    - monochrome (bool): Checked state of 'basemap-monochrome-toggle'.
+
+    Returns:
+    - bool: The value to pass through to the 'interferogram-bg'
+        MapLibreMap component's basemapMonochrome prop.
+    """
+    return bool(monochrome)
 
 
 @callback(
