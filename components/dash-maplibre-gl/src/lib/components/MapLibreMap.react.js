@@ -19,8 +19,65 @@ const EARTHQUAKES_SOURCE_ID = 'earthquakes';
 const EARTHQUAKES_LAYER_ID = 'earthquakes-layer';
 const WMS_SOURCE_ID = 'wms-overlay';
 const WMS_LAYER_ID = 'wms-overlay-layer';
+const POINTS_SOURCE_ID = 'ts-points';
+const POINTS_LAYER_ID = 'ts-points-layer';
+// Layer name inside the vector tiles (tippecanoe --layer, see
+// scripts/build_point_tiles.py).
+const POINTS_SOURCE_LAYER = 'points';
+const SELECTED_POINT_SOURCE_ID = 'ts-selected-point';
+const SELECTED_POINT_LAYER_ID = 'ts-selected-point-layer';
+// Half-width (px) of the box searched around a click: dots are only 1-3px
+// across at mid zooms, so an exact-pixel hit test would be frustrating.
+const POINT_CLICK_TOLERANCE = 5;
+
+// Bottom-to-top stacking of overlay layers (basemaps sit beneath them all).
+// Layers are removed/re-added at runtime (new interferogram URL, new DEM,
+// points toggled with the Timeseries tab) and MapLibre appends a re-added
+// layer on top by default -- see beforeIdFor().
+const OVERLAY_ORDER = [
+    HILLSHADE_LAYER_ID,
+    INTERFEROGRAM_LAYER_ID,
+    POINTS_LAYER_ID,
+    SELECTED_POINT_LAYER_ID,
+    WMS_LAYER_ID,
+    EARTHQUAKES_LAYER_ID,
+];
 
 const EMPTY_FC = {type: 'FeatureCollection', features: []};
+
+const DEFAULT_POINT_STYLE = {
+    property: 'rate',
+    min: -15,
+    max: 15,
+    colors: ['#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'],
+};
+
+/**
+ * MapLibre 'circle-color' expression for pointStyle. With an odd number of
+ * colours and a range spanning zero, the middle colour is pinned to 0 and
+ * each half of the palette spreads evenly over its side of the range (so an
+ * asymmetric range like [-10, 20] still diverges at zero); otherwise the
+ * colours are spread evenly from min to max.
+ */
+function pointColorExpression(pointStyle) {
+    const {property, min, max, colors} = {...DEFAULT_POINT_STYLE, ...pointStyle};
+    const lo = Math.min(min, max);
+    const hi = max > min ? max : lo + 1;
+    const n = colors.length;
+    const mid = (n - 1) / 2;
+    const diverging = n % 2 === 1 && lo < 0 && hi > 0;
+    const stops = colors.map((_, i) => {
+        if (diverging) {
+            return i <= mid ? lo * (1 - i / mid) : hi * ((i - mid) / mid);
+        }
+        return lo + ((hi - lo) * i) / (n - 1);
+    });
+    const expression = [
+        'interpolate-lab', ['linear'], ['to-number', ['get', property], 0],
+    ];
+    stops.forEach((stop, i) => expression.push(stop, colors[i]));
+    return expression;
+}
 
 // MapLibre's built-in NavigationControl compass is a small, easy-to-miss
 // icon. This is a plain-text "N" indicator that always stays legible
@@ -75,6 +132,11 @@ function buildBaseStyle(basemaps, activeBasemap, monochrome) {
             tileSize: basemap.tileSize || 256,
             attribution: basemap.attribution || '',
         };
+        if (basemap.maxzoom) {
+            // Overzoom past the provider's deepest tiles instead of
+            // requesting (blank/"no data") tiles that don't exist.
+            sources[key].maxzoom = basemap.maxzoom;
+        }
         layers.push({
             id: `basemap-${key}`,
             type: 'raster',
@@ -101,6 +163,16 @@ export default class MapLibreMap extends React.Component {
         super(props);
         this.containerRef = React.createRef();
         this.map = null;
+        // Set once the 'load' handler has added the overlay layers. Prop
+        // updates gate on this rather than map.isStyleLoaded(), which is
+        // false whenever *any* source still has tiles in flight -- with
+        // basemap/DEM/point tiles streaming in, that silently dropped
+        // updates (e.g. a basemap switch) made mid-load.
+        this.overlaysReady = false;
+    }
+
+    isReady() {
+        return Boolean(this.map && this.overlaysReady);
     }
 
     componentDidMount() {
@@ -129,6 +201,17 @@ export default class MapLibreMap extends React.Component {
         map.addControl(new NorthArrowControl(), 'top-right');
 
         map.on('load', () => this.addOverlayLayers());
+        // Registered once here, not in addPointsLayers(), since the points
+        // layer is added/removed every time the Timeseries tab toggles.
+        // MapLibre's layer-delegated mouseenter/mouseleave skip a missing
+        // layer, and handlePointClick checks for it itself.
+        map.on('click', (e) => this.handlePointClick(e));
+        map.on('mouseenter', POINTS_LAYER_ID, () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', POINTS_LAYER_ID, () => {
+            map.getCanvas().style.cursor = '';
+        });
     }
 
     componentDidUpdate(prevProps) {
@@ -145,8 +228,18 @@ export default class MapLibreMap extends React.Component {
         }
         if (prevProps.interferogramTileUrl !== this.props.interferogramTileUrl) {
             this.updateInterferogramSource();
-        } else if (prevProps.interferogramOpacity !== this.props.interferogramOpacity) {
-            this.updateInterferogramOpacity();
+        } else {
+            if (prevProps.interferogramOpacity !== this.props.interferogramOpacity) {
+                this.updateInterferogramOpacity();
+            }
+            if (prevProps.interferogramVisible !== this.props.interferogramVisible) {
+                this.updateInterferogramVisibility();
+            }
+        }
+        if (prevProps.pointSource !== this.props.pointSource) {
+            this.updatePointsSource();
+        } else if (prevProps.pointStyle !== this.props.pointStyle) {
+            this.updatePointStyle();
         }
         if (
             prevProps.demTiles !== this.props.demTiles
@@ -187,6 +280,7 @@ export default class MapLibreMap extends React.Component {
             () => this.addTerrain(),
             () => this.addHillshadeLayer(),
             () => this.addInterferogramLayer(),
+            () => this.addPointsLayers(),
             () => this.addWmsLayer(),
             () => this.addEarthquakesLayer(),
         ];
@@ -197,11 +291,23 @@ export default class MapLibreMap extends React.Component {
                 console.error('MapLibreMap: failed to add overlay layer', error);
             }
         });
+        this.overlaysReady = true;
+    }
+
+    /**
+     * Id of the first already-present overlay layer that `layerId` should
+     * sit beneath (per OVERLAY_ORDER), for map.addLayer's beforeId; or
+     * undefined to append on top.
+     */
+    beforeIdFor(layerId) {
+        const {map} = this;
+        const above = OVERLAY_ORDER.slice(OVERLAY_ORDER.indexOf(layerId) + 1);
+        return above.find((id) => map.getLayer(id));
     }
 
     addInterferogramLayer() {
         const {map} = this;
-        const {interferogramTileUrl, interferogramOpacity} = this.props;
+        const {interferogramTileUrl, interferogramOpacity, interferogramVisible} = this.props;
         if (!interferogramTileUrl || map.getSource(INTERFEROGRAM_SOURCE_ID)) {
             return;
         }
@@ -221,12 +327,13 @@ export default class MapLibreMap extends React.Component {
             // default, so the layer looks sharp again as soon as data
             // arrives rather than lingering blurry through a fade.
             paint: {'raster-opacity': interferogramOpacity, 'raster-fade-duration': 0},
-        });
+            layout: {visibility: interferogramVisible ? 'visible' : 'none'},
+        }, this.beforeIdFor(INTERFEROGRAM_LAYER_ID));
     }
 
     updateInterferogramSource() {
         const {map} = this;
-        if (!map || !map.isStyleLoaded()) {
+        if (!this.isReady()) {
             return;
         }
         if (map.getLayer(INTERFEROGRAM_LAYER_ID)) {
@@ -240,12 +347,157 @@ export default class MapLibreMap extends React.Component {
 
     updateInterferogramOpacity() {
         const {map} = this;
-        if (!map || !map.isStyleLoaded() || !map.getLayer(INTERFEROGRAM_LAYER_ID)) {
+        if (!this.isReady() || !map.getLayer(INTERFEROGRAM_LAYER_ID)) {
             return;
         }
         map.setPaintProperty(
             INTERFEROGRAM_LAYER_ID, 'raster-opacity', this.props.interferogramOpacity
         );
+    }
+
+    updateInterferogramVisibility() {
+        const {map} = this;
+        if (!this.isReady() || !map.getLayer(INTERFEROGRAM_LAYER_ID)) {
+            return;
+        }
+        // A hidden layer's source stops requesting tiles, unlike opacity 0.
+        map.setLayoutProperty(
+            INTERFEROGRAM_LAYER_ID, 'visibility',
+            this.props.interferogramVisible ? 'visible' : 'none'
+        );
+    }
+
+    addPointsLayers() {
+        const {map} = this;
+        const {pointSource, pointStyle} = this.props;
+        if (!pointSource || !pointSource.url || map.getSource(POINTS_SOURCE_ID)) {
+            return;
+        }
+        const source = {
+            type: 'vector',
+            tiles: [pointSource.url],
+            // MBTiles rows are TMS-ordered; /getPointTile passes y through.
+            scheme: 'tms',
+            minzoom: pointSource.minzoom === undefined ? 0 : pointSource.minzoom,
+            maxzoom: pointSource.maxzoom === undefined ? 14 : pointSource.maxzoom,
+        };
+        if (pointSource.bounds) {
+            // Skip requesting tiles outside the data extent.
+            source.bounds = pointSource.bounds;
+        }
+        map.addSource(POINTS_SOURCE_ID, source);
+        map.addLayer({
+            id: POINTS_LAYER_ID,
+            type: 'circle',
+            source: POINTS_SOURCE_ID,
+            'source-layer': POINTS_SOURCE_LAYER,
+            paint: {
+                'circle-color': pointColorExpression(pointStyle),
+                'circle-radius': [
+                    'interpolate', ['linear'], ['zoom'],
+                    8, 1, 12, 1.5, 14, 3, 16, 6, 18, 10,
+                ],
+            },
+        }, this.beforeIdFor(POINTS_LAYER_ID));
+        map.addSource(SELECTED_POINT_SOURCE_ID, {type: 'geojson', data: EMPTY_FC});
+        map.addLayer({
+            id: SELECTED_POINT_LAYER_ID,
+            type: 'circle',
+            source: SELECTED_POINT_SOURCE_ID,
+            paint: {
+                'circle-radius': [
+                    'interpolate', ['linear'], ['zoom'],
+                    8, 5, 14, 7, 16, 9, 18, 13,
+                ],
+                'circle-color': 'rgba(0, 0, 0, 0)',
+                'circle-stroke-color': '#000000',
+                'circle-stroke-width': 2.5,
+            },
+        }, this.beforeIdFor(SELECTED_POINT_LAYER_ID));
+    }
+
+    removePointsLayers() {
+        const {map} = this;
+        [SELECTED_POINT_LAYER_ID, POINTS_LAYER_ID].forEach((layerId) => {
+            if (map.getLayer(layerId)) {
+                map.removeLayer(layerId);
+            }
+        });
+        [SELECTED_POINT_SOURCE_ID, POINTS_SOURCE_ID].forEach((sourceId) => {
+            if (map.getSource(sourceId)) {
+                map.removeSource(sourceId);
+            }
+        });
+    }
+
+    updatePointsSource() {
+        if (!this.isReady()) {
+            return;
+        }
+        // Also drops the selection ring: a new source means a different
+        // site/beam (or the Timeseries tab closing).
+        this.removePointsLayers();
+        this.addPointsLayers();
+    }
+
+    updatePointStyle() {
+        const {map} = this;
+        if (!this.isReady() || !map.getLayer(POINTS_LAYER_ID)) {
+            return;
+        }
+        // Paint-only change: recolours from the tiles already loaded, no
+        // refetch.
+        map.setPaintProperty(
+            POINTS_LAYER_ID, 'circle-color', pointColorExpression(this.props.pointStyle)
+        );
+    }
+
+    handlePointClick(e) {
+        const {map} = this;
+        if (!this.isReady() || !map.getLayer(POINTS_LAYER_ID)) {
+            return;
+        }
+        const {x, y} = e.point;
+        const tol = POINT_CLICK_TOLERANCE;
+        const features = map.queryRenderedFeatures(
+            [[x - tol, y - tol], [x + tol, y + tol]], {layers: [POINTS_LAYER_ID]}
+        );
+        if (!features.length) {
+            return;
+        }
+        // Several dots can fall inside the tolerance box -- take the one
+        // drawn nearest the cursor.
+        let nearest = null;
+        let nearestDist = Infinity;
+        features.forEach((feature) => {
+            const p = map.project(feature.geometry.coordinates);
+            const dist = ((p.x - x) ** 2) + ((p.y - y) ** 2);
+            if (dist < nearestDist) {
+                nearest = feature;
+                nearestDist = dist;
+            }
+        });
+        const [longitude, latitude] = nearest.geometry.coordinates;
+        map.getSource(SELECTED_POINT_SOURCE_ID).setData({
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                geometry: {type: 'Point', coordinates: [longitude, latitude]},
+                properties: {},
+            }],
+        });
+        if (this.props.setProps) {
+            this.props.setProps({
+                clickedPoint: {
+                    fid: nearest.id,
+                    longitude,
+                    latitude,
+                    // Distinguishes a re-click of the same point as a new
+                    // event for Dash.
+                    timestamp: Date.now(),
+                },
+            });
+        }
     }
 
     addEarthquakesLayer() {
@@ -266,7 +518,7 @@ export default class MapLibreMap extends React.Component {
                 'circle-stroke-color': '#000000',
                 'circle-stroke-width': 1,
             },
-        });
+        }, this.beforeIdFor(EARTHQUAKES_LAYER_ID));
         map.on('click', EARTHQUAKES_LAYER_ID, (e) => {
             const feature = e.features && e.features[0];
             if (!feature) {
@@ -298,7 +550,7 @@ export default class MapLibreMap extends React.Component {
 
     updateEarthquakes() {
         const {map} = this;
-        if (!map || !map.isStyleLoaded()) {
+        if (!this.isReady()) {
             return;
         }
         const source = map.getSource(EARTHQUAKES_SOURCE_ID);
@@ -342,12 +594,12 @@ export default class MapLibreMap extends React.Component {
                 'raster-opacity': wmsOverlay.opacity === undefined ? 0.5 : wmsOverlay.opacity,
             },
             layout: {visibility: wmsOverlay.visible === false ? 'none' : 'visible'},
-        });
+        }, this.beforeIdFor(WMS_LAYER_ID));
     }
 
     updateWmsOverlay() {
         const {map} = this;
-        if (!map || !map.isStyleLoaded()) {
+        if (!this.isReady()) {
             return;
         }
         if (map.getLayer(WMS_LAYER_ID)) {
@@ -362,7 +614,7 @@ export default class MapLibreMap extends React.Component {
     setActiveBasemap(activeBasemap) {
         const {map} = this;
         const {basemaps} = this.props;
-        if (!map || !map.isStyleLoaded()) {
+        if (!this.isReady()) {
             return;
         }
         const activeEntry = basemaps[activeBasemap] || {};
@@ -387,7 +639,7 @@ export default class MapLibreMap extends React.Component {
     updateBasemapMonochrome() {
         const {map} = this;
         const {basemaps, basemapMonochrome} = this.props;
-        if (!map || !map.isStyleLoaded()) {
+        if (!this.isReady()) {
             return;
         }
         // Applied to every basemap layer unconditionally (not just the
@@ -438,13 +690,13 @@ export default class MapLibreMap extends React.Component {
                 'hillshade-highlight-color': '#ffffff',
                 'hillshade-accent-color': '#5a5a5a',
             },
-        });
+        }, this.beforeIdFor(HILLSHADE_LAYER_ID));
     }
 
     updateTerrain() {
         const {map} = this;
         const {demTiles} = this.props;
-        if (!map || !map.isStyleLoaded()) {
+        if (!this.isReady()) {
             return;
         }
         // The hillshade layer (if present) references DEM_SOURCE_ID, and
@@ -488,6 +740,10 @@ MapLibreMap.defaultProps = {
     basemapMonochrome: false,
     interferogramTileUrl: null,
     interferogramOpacity: 0.85,
+    interferogramVisible: true,
+    pointSource: null,
+    pointStyle: DEFAULT_POINT_STYLE,
+    clickedPoint: null,
     demTiles: null,
     demEncoding: 'mapbox',
     terrainExaggeration: 1.5,
@@ -530,17 +786,19 @@ MapLibreMap.propTypes = {
     }),
 
     /**
-     * Map of basemap id -> {url, attribution, tileSize} for a normal raster
-     * basemap entry, or {label, hillshade: true, baseKey} for a virtual
-     * entry that reuses another basemap's tiles (baseKey) with a hillshade
-     * layer draped on top instead of fetching tiles of its own. Each normal
-     * entry becomes a raster source/layer; visibility is toggled by
-     * activeBasemap instead of swapping the whole style.
+     * Map of basemap id -> {url, attribution, tileSize, maxzoom} for a
+     * normal raster basemap entry, or {label, hillshade: true, baseKey} for
+     * a virtual entry that reuses another basemap's tiles (baseKey) with a
+     * hillshade layer draped on top instead of fetching tiles of its own.
+     * Each normal entry becomes a raster source/layer; visibility is
+     * toggled by activeBasemap instead of swapping the whole style.
+     * maxzoom (optional) is the deepest zoom the provider has tiles for.
      */
     basemaps: PropTypes.objectOf(PropTypes.shape({
         url: PropTypes.string,
         attribution: PropTypes.string,
         tileSize: PropTypes.number,
+        maxzoom: PropTypes.number,
         hillshade: PropTypes.bool,
         baseKey: PropTypes.string,
     })),
@@ -566,6 +824,48 @@ MapLibreMap.propTypes = {
      * Opacity of the interferogram raster layer.
      */
     interferogramOpacity: PropTypes.number,
+
+    /**
+     * Show/hide the interferogram raster layer (hidden layers stop
+     * fetching tiles).
+     */
+    interferogramVisible: PropTypes.bool,
+
+    /**
+     * Point-target vector tiles for the Timeseries tab: {url, bounds,
+     * minzoom, maxzoom}. url is an XYZ template ({x}/{y}/{z}) served
+     * TMS-scheme by the /getPointTile route; each feature's id is the
+     * GeoPackage fid. Null removes the points layer.
+     */
+    pointSource: PropTypes.shape({
+        url: PropTypes.string,
+        bounds: PropTypes.arrayOf(PropTypes.number),
+        minzoom: PropTypes.number,
+        maxzoom: PropTypes.number,
+    }),
+
+    /**
+     * Point colouring: {property, min, max, colors}. property is the tile
+     * attribute to colour by; colors (bottom to top of the range) is
+     * pinned so its middle entry falls on 0 when the range spans zero.
+     */
+    pointStyle: PropTypes.shape({
+        property: PropTypes.string,
+        min: PropTypes.number,
+        max: PropTypes.number,
+        colors: PropTypes.arrayOf(PropTypes.string),
+    }),
+
+    /**
+     * Read-only: the point nearest the user's last click on the points
+     * layer, {fid, longitude, latitude, timestamp}.
+     */
+    clickedPoint: PropTypes.shape({
+        fid: PropTypes.number,
+        longitude: PropTypes.number,
+        latitude: PropTypes.number,
+        timestamp: PropTypes.number,
+    }),
 
     /**
      * Raster-DEM tile URL template(s) (Mapbox terrain-RGB encoding) used to

@@ -18,15 +18,30 @@ Keyword arguments:
 - activeBasemap (string; optional):
     Key into `basemaps` for the currently visible basemap layer.
 
+- basemapMonochrome (boolean; default False):
+    Desaturate the currently-active basemap raster layer(s) to
+    grayscale (uses MapLibre's raster-saturation paint property).
+
 - basemaps (dict; optional):
-    Map of basemap id -> {url, attribution, tileSize}. Each entry
-    becomes a raster source/layer; visibility is toggled by
-    activeBasemap instead of swapping the whole style.
+    Map of basemap id -> {url, attribution, tileSize, maxzoom} for a
+    normal raster basemap entry, or {label, hillshade: True, baseKey}
+    for a virtual entry that reuses another basemap's tiles (baseKey)
+    with a hillshade layer draped on top instead of fetching tiles of
+    its own. Each normal entry becomes a raster source/layer;
+    visibility is toggled by activeBasemap instead of swapping the
+    whole style. maxzoom (optional) is the deepest zoom the provider
+    has tiles for.
 
     `basemaps` is a dict with strings as keys and values of type dict
     with keys:
 
     - attribution (string; optional)
+
+    - baseKey (string; optional)
+
+    - hillshade (boolean; optional)
+
+    - maxzoom (number; optional)
 
     - tileSize (number; optional)
 
@@ -34,6 +49,20 @@ Keyword arguments:
 
 - className (string; default ''):
     CSS class applied to the map container div.
+
+- clickedPoint (dict; optional):
+    Read-only: the point nearest the user's last click on the points
+    layer, {fid, longitude, latitude, timestamp}.
+
+    `clickedPoint` is a dict with keys:
+
+    - fid (number; optional)
+
+    - latitude (number; optional)
+
+    - longitude (number; optional)
+
+    - timestamp (number; optional)
 
 - demEncoding (a value equal to: 'terrarium', 'mapbox'; default 'mapbox'):
     Encoding used by the raster-DEM tiles: 'terrarium' (e.g. AWS Open
@@ -88,6 +117,42 @@ Keyword arguments:
     XYZ tile URL template ({x}/{y}/{z}) for the interferogram raster
     overlay, fetched TMS-scheme from the existing /getTileUrl proxy.
 
+- interferogramVisible (boolean; default True):
+    Show/hide the interferogram raster layer (hidden layers stop
+    fetching tiles).
+
+- pointSource (dict; optional):
+    Point-target vector tiles for the Timeseries tab: {url, bounds,
+    minzoom, maxzoom}. url is an XYZ template ({x}/{y}/{z}) served
+    TMS-scheme by the /getPointTile route; each feature's id is the
+    GeoPackage fid. Null removes the points layer.
+
+    `pointSource` is a dict with keys:
+
+    - bounds (list of numbers; optional)
+
+    - maxzoom (number; optional)
+
+    - minzoom (number; optional)
+
+    - url (string; optional)
+
+- pointStyle (dict; default {    property: 'rate',    min: -15,    max: 15,    colors: ['#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'],}):
+    Point colouring: {property, min, max, colors}. property is the
+    tile attribute to colour by; colors (bottom to top of the range)
+    is pinned so its middle entry falls on 0 when the range spans
+    zero.
+
+    `pointStyle` is a dict with keys:
+
+    - colors (list of strings; optional)
+
+    - max (number; optional)
+
+    - min (number; optional)
+
+    - property (string; optional)
+
 - style (dict; optional):
     CSS style applied to the map container div.
 
@@ -116,10 +181,10 @@ Keyword arguments:
     _namespace = 'dash_maplibre_gl'
     _type = 'MapLibreMap'
     @_explicitize_args
-    def __init__(self, id=Component.UNDEFINED, initialViewState=Component.UNDEFINED, flyTo=Component.UNDEFINED, basemaps=Component.UNDEFINED, activeBasemap=Component.UNDEFINED, interferogramTileUrl=Component.UNDEFINED, interferogramOpacity=Component.UNDEFINED, demTiles=Component.UNDEFINED, demEncoding=Component.UNDEFINED, terrainExaggeration=Component.UNDEFINED, earthquakeData=Component.UNDEFINED, wmsOverlay=Component.UNDEFINED, style=Component.UNDEFINED, className=Component.UNDEFINED, **kwargs):
-        self._prop_names = ['id', 'activeBasemap', 'basemaps', 'className', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'style', 'terrainExaggeration', 'wmsOverlay']
+    def __init__(self, id=Component.UNDEFINED, initialViewState=Component.UNDEFINED, flyTo=Component.UNDEFINED, basemaps=Component.UNDEFINED, activeBasemap=Component.UNDEFINED, basemapMonochrome=Component.UNDEFINED, interferogramTileUrl=Component.UNDEFINED, interferogramOpacity=Component.UNDEFINED, interferogramVisible=Component.UNDEFINED, pointSource=Component.UNDEFINED, pointStyle=Component.UNDEFINED, clickedPoint=Component.UNDEFINED, demTiles=Component.UNDEFINED, demEncoding=Component.UNDEFINED, terrainExaggeration=Component.UNDEFINED, earthquakeData=Component.UNDEFINED, wmsOverlay=Component.UNDEFINED, style=Component.UNDEFINED, className=Component.UNDEFINED, **kwargs):
+        self._prop_names = ['id', 'activeBasemap', 'basemapMonochrome', 'basemaps', 'className', 'clickedPoint', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'interferogramVisible', 'pointSource', 'pointStyle', 'style', 'terrainExaggeration', 'wmsOverlay']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'activeBasemap', 'basemaps', 'className', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'style', 'terrainExaggeration', 'wmsOverlay']
+        self.available_properties = ['id', 'activeBasemap', 'basemapMonochrome', 'basemaps', 'className', 'clickedPoint', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'interferogramVisible', 'pointSource', 'pointStyle', 'style', 'terrainExaggeration', 'wmsOverlay']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

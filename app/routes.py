@@ -10,12 +10,22 @@ Authors:
   - Drew Rotheram <drew.rotheram-clarke@nrcan-rncan.gc.ca>
 """
 import logging
+import os
+import re
+import sqlite3
+from contextlib import closing
+
 from flask import Response, request
 import requests
 
+from data_utils import _point_tiles
 from global_variables import s3
 
 logger = logging.getLogger(__name__)
+
+# site/beam end up in a filesystem path -- don't let them walk out of it.
+SAFE_NAME = re.compile(r'^[A-Za-z0-9_-]+$')
+GZIP_MAGIC = b'\x1f\x8b'
 
 
 def add_routes(server):
@@ -102,4 +112,41 @@ def add_routes(server):
             response.content,
             mimetype='image/png',
             headers={'Cache-Control': 'public, max-age=604800'},
+        )
+
+    @server.route('/getPointTile')
+    def get_point_tile():
+        """
+        Point-target vector tile (MVT) from the site/beam's MBTiles, built
+        by scripts/build_point_tiles.py. y is a TMS row, matching MBTiles'
+        own row order (the map source declares scheme 'tms'). The `v`
+        query arg is only a cache-buster (the MBTiles mtime).
+        """
+        site = request.args.get('site', '')
+        beam = request.args.get('beam', '')
+        if not (SAFE_NAME.match(site) and SAFE_NAME.match(beam)):
+            return Response(status=400)
+        x = int(request.args.get('x'))
+        y = int(request.args.get('y'))
+        z = int(request.args.get('z'))
+        mbtiles = _point_tiles(f'{site}_{beam}')
+        if not os.path.exists(mbtiles):
+            return Response(status=204)
+        with closing(
+            sqlite3.connect(f'file:{mbtiles}?mode=ro', uri=True)
+        ) as con:
+            row = con.execute(
+                'SELECT tile_data FROM tiles '
+                'WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?',
+                (z, x, y)
+            ).fetchone()
+        if row is None:
+            return Response(status=204)
+        tile = row[0]
+        headers = {'Cache-Control': 'public, max-age=604800'}
+        # tippecanoe stores tiles gzipped; let the browser inflate them.
+        if tile[:2] == GZIP_MAGIC:
+            headers['Content-Encoding'] = 'gzip'
+        return Response(
+            tile, mimetype='application/x-protobuf', headers=headers
         )

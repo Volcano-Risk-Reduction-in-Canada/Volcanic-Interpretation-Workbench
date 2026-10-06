@@ -4,11 +4,30 @@
     "displayName": "MapLibreMap",
     "methods": [
       {
+        "name": "isReady",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
         "name": "addOverlayLayers",
         "docblock": null,
         "modifiers": [],
         "params": [],
         "returns": null
+      },
+      {
+        "name": "beforeIdFor",
+        "docblock": "Id of the first already-present overlay layer that `layerId` should\nsit beneath (per OVERLAY_ORDER), for map.addLayer's beforeId; or\nundefined to append on top.",
+        "modifiers": [],
+        "params": [
+          {
+            "name": "layerId"
+          }
+        ],
+        "returns": null,
+        "description": "Id of the first already-present overlay layer that `layerId` should\nsit beneath (per OVERLAY_ORDER), for map.addLayer's beforeId; or\nundefined to append on top."
       },
       {
         "name": "addInterferogramLayer",
@@ -22,6 +41,60 @@
         "docblock": null,
         "modifiers": [],
         "params": [],
+        "returns": null
+      },
+      {
+        "name": "updateInterferogramOpacity",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "updateInterferogramVisibility",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "addPointsLayers",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "removePointsLayers",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "updatePointsSource",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "updatePointStyle",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "handlePointClick",
+        "docblock": null,
+        "modifiers": [],
+        "params": [
+          {
+            "name": "e",
+            "type": null
+          }
+        ],
         "returns": null
       },
       {
@@ -65,7 +138,21 @@
         "returns": null
       },
       {
+        "name": "updateBasemapMonochrome",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
         "name": "addTerrain",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
+        "name": "addHillshadeLayer",
         "docblock": null,
         "modifiers": [],
         "params": [],
@@ -166,12 +253,24 @@
               "tileSize": {
                 "name": "number",
                 "required": false
+              },
+              "maxzoom": {
+                "name": "number",
+                "required": false
+              },
+              "hillshade": {
+                "name": "bool",
+                "required": false
+              },
+              "baseKey": {
+                "name": "string",
+                "required": false
               }
             }
           }
         },
         "required": false,
-        "description": "Map of basemap id -> {url, attribution, tileSize}. Each entry becomes\na raster source/layer; visibility is toggled by activeBasemap instead\nof swapping the whole style.",
+        "description": "Map of basemap id -> {url, attribution, tileSize, maxzoom} for a\nnormal raster basemap entry, or {label, hillshade: true, baseKey} for\na virtual entry that reuses another basemap's tiles (baseKey) with a\nhillshade layer draped on top instead of fetching tiles of its own.\nEach normal entry becomes a raster source/layer; visibility is\ntoggled by activeBasemap instead of swapping the whole style.\nmaxzoom (optional) is the deepest zoom the provider has tiles for.",
         "defaultValue": {
           "value": "{}",
           "computed": false
@@ -185,6 +284,17 @@
         "description": "Key into `basemaps` for the currently visible basemap layer.",
         "defaultValue": {
           "value": "null",
+          "computed": false
+        }
+      },
+      "basemapMonochrome": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Desaturate the currently-active basemap raster layer(s) to grayscale\n(uses MapLibre's raster-saturation paint property).",
+        "defaultValue": {
+          "value": "false",
           "computed": false
         }
       },
@@ -207,6 +317,110 @@
         "description": "Opacity of the interferogram raster layer.",
         "defaultValue": {
           "value": "0.85",
+          "computed": false
+        }
+      },
+      "interferogramVisible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Show/hide the interferogram raster layer (hidden layers stop\nfetching tiles).",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "pointSource": {
+        "type": {
+          "name": "shape",
+          "value": {
+            "url": {
+              "name": "string",
+              "required": false
+            },
+            "bounds": {
+              "name": "arrayOf",
+              "value": {
+                "name": "number"
+              },
+              "required": false
+            },
+            "minzoom": {
+              "name": "number",
+              "required": false
+            },
+            "maxzoom": {
+              "name": "number",
+              "required": false
+            }
+          }
+        },
+        "required": false,
+        "description": "Point-target vector tiles for the Timeseries tab: {url, bounds,\nminzoom, maxzoom}. url is an XYZ template ({x}/{y}/{z}) served\nTMS-scheme by the /getPointTile route; each feature's id is the\nGeoPackage fid. Null removes the points layer.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "pointStyle": {
+        "type": {
+          "name": "shape",
+          "value": {
+            "property": {
+              "name": "string",
+              "required": false
+            },
+            "min": {
+              "name": "number",
+              "required": false
+            },
+            "max": {
+              "name": "number",
+              "required": false
+            },
+            "colors": {
+              "name": "arrayOf",
+              "value": {
+                "name": "string"
+              },
+              "required": false
+            }
+          }
+        },
+        "required": false,
+        "description": "Point colouring: {property, min, max, colors}. property is the tile\nattribute to colour by; colors (bottom to top of the range) is\npinned so its middle entry falls on 0 when the range spans zero.",
+        "defaultValue": {
+          "value": "{\n    property: 'rate',\n    min: -15,\n    max: 15,\n    colors: ['#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'],\n}",
+          "computed": false
+        }
+      },
+      "clickedPoint": {
+        "type": {
+          "name": "shape",
+          "value": {
+            "fid": {
+              "name": "number",
+              "required": false
+            },
+            "longitude": {
+              "name": "number",
+              "required": false
+            },
+            "latitude": {
+              "name": "number",
+              "required": false
+            },
+            "timestamp": {
+              "name": "number",
+              "required": false
+            }
+          }
+        },
+        "required": false,
+        "description": "Read-only: the point nearest the user's last click on the points\nlayer, {fid, longitude, latitude, timestamp}.",
+        "defaultValue": {
+          "value": "null",
           "computed": false
         }
       },

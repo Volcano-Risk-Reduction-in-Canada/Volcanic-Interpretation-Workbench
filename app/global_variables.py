@@ -64,8 +64,33 @@ MAPLIBRE_BASEMAPS = {
         'baseKey': 'topo',
         'hillshade': True,
     },
+    # Plain greyscale relief (no labels/contours/roads) -- the backdrop for
+    # the Timeseries tab's coloured points. A real tile source, so it must
+    # NOT carry the virtual-entry 'hillshade' flag above. Esri serves blank
+    # placeholder tiles past z16 here; maxzoom makes MapLibre overzoom.
+    'shadedRelief': {
+        'url': (
+            'https://server.arcgisonline.com/ArcGIS/rest/services/'
+            'Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}'
+        ),
+        'attribution': ESRI_ATTRIBUTION,
+        'label': 'Hillshade',
+        'maxzoom': 16,
+    },
 }
 MAPLIBRE_DEFAULT_BASEMAP = 'topo'
+
+# Timeseries tab (point-target deformation) configuration
+TIMESERIES_BASEMAP = 'shadedRelief'
+# Diverging palette, bottom to top of the colour range: subsidence
+# (negative LOS rate) red, stable grey, uplift blue. The middle colour is
+# pinned to 0 mm/yr; grey so stable points recede against the hillshade.
+POINT_DIVERGING_COLORS = [
+    '#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'
+]
+# Epochs further apart than this are on opposite sides of a winter (no
+# acquisitions Nov-Apr); the time-series line isn't drawn across the gap.
+WINTER_GAP_DAYS = 90
 
 # DEM terrain configuration for the MapLibre 3D map. Uses AWS Open Data's
 # free, global, token-free Terrarium-encoded elevation tiles (SRTM/GMTED/

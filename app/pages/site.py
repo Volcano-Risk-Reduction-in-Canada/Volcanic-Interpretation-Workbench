@@ -17,7 +17,7 @@ import dash
 import pandas as pd
 
 from dash import html, callback
-from dash.dcc import Graph, Tab, Tabs
+from dash.dcc import Graph, Store, Tab, Tabs
 from dash.exceptions import PreventUpdate
 from dash_bootstrap_templates import load_figure_template
 import dash_bootstrap_components as dbc
@@ -30,6 +30,10 @@ from dash_extensions.enrich import (
     MultiplexerTransform
 )
 from pages.components.gc_header import gc_header, gc_line
+from pages.components.timeseries_components import (
+    point_source,
+    timeseries_tab_layout,
+)
 from global_components import (
     generate_basemap_monochrome_control,
     generate_basemap_switcher,
@@ -60,7 +64,10 @@ from global_variables import (
     DEM_TILE_URL,
     DEM_ENCODING,
     DEM_TERRAIN_EXAGGERATION,
+    TIMESERIES_BASEMAP,
 )
+
+TIMESERIES_TAB = 'tab-4-timeseries'
 
 logger = logging.getLogger(__name__)
 
@@ -219,10 +226,16 @@ baseline_tab = html.Div(
                     value='tab-3-annotations',
                     style=tab_style,
                     selected_style=tab_selected_style
+                ),
+                Tab(
+                    label='Timeseries',
+                    value=TIMESERIES_TAB,
+                    style=tab_style,
+                    selected_style=tab_selected_style
                 )
             ],
             style={
-                'width': '15%',
+                'width': '22%',
                 'height': '25px',
                 'background-color': 'black'
             },
@@ -245,6 +258,9 @@ layout = html.Div(
         'bottomMargin': 5,
     },
     children=[
+        # Basemap to restore when leaving the Timeseries tab (see
+        # toggle_timeseries_mode); None while not in Timeseries mode.
+        Store(id='ts-restore', data=None),
         # HEADER
         html.Div(id='gc-header-container'),
         html.Div(
@@ -519,7 +535,54 @@ def switch_temporal_view(tab, site):
     if tab == 'tab-3-annotations':
         logger.info('annotations for %s', site)
         return plot_annotation_tab(site)
+    if tab == TIMESERIES_TAB:
+        logger.info('timeseries for %s', site)
+        return timeseries_tab_layout(site)
     return None
+
+
+@callback(
+    Output('basemap-switcher', 'value'),
+    Output('interferogram-bg', 'interferogramVisible'),
+    Output('interferogram-bg', 'pointSource'),
+    Output('ts-restore', 'data'),
+    Input('tabs-example-graph', 'value'),
+    Input('site-dropdown', 'value'),
+    State('basemap-switcher', 'value'),
+    State('ts-restore', 'data'),
+    prevent_initial_call=True
+)
+def toggle_timeseries_mode(tab, site, basemap, restore):
+    """
+    Put the map in/out of Timeseries mode as that tab is entered/left.
+
+    Entering: remember the current basemap, switch to the greyscale
+    hillshade, hide the interferogram, and show the site's points.
+    Leaving: put the basemap and interferogram back and drop the points.
+    The basemap is changed via the switcher's value (not the map prop
+    directly) so the radio buttons stay in sync, through update_basemap.
+
+    Parameters:
+    - tab (str): Selected tab from 'tabs-example-graph'.
+    - site (str): Selected site ID from 'site-dropdown'.
+    - basemap (str): Current 'basemap-switcher' value.
+    - restore (dict or None): 'ts-restore' store; set while in Timeseries
+        mode, holding the basemap to restore on leaving.
+
+    Returns:
+    - tuple: basemap-switcher value, interferogramVisible, pointSource, and
+        the new 'ts-restore' data.
+    """
+    if tab == TIMESERIES_TAB:
+        if restore:
+            # Site changed while already on the tab: swap the points only.
+            return (dash.no_update, dash.no_update, point_source(site),
+                    dash.no_update)
+        return (TIMESERIES_BASEMAP, False, point_source(site),
+                {'basemap': basemap})
+    if restore:
+        return restore['basemap'], True, None, None
+    raise PreventUpdate
 
 
 @callback(

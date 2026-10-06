@@ -15,8 +15,10 @@ import functools
 import json
 import os
 import re
+import sqlite3
 import sys
 import logging
+from contextlib import closing
 from io import StringIO
 
 import numpy as np
@@ -42,6 +44,7 @@ from global_variables import (
     COH_LIMS,
     DAYS_PER_YEAR,
     MAX_YEARS,
+    WINTER_GAP_DAYS,
     YEAR_AXES_COUNT
 )
 
@@ -51,6 +54,14 @@ from scripts.get_latest_coh_matrices import get_latest_coh_matrices
 from scripts.get_latest_insar_pairs import get_latest_insar_pairs
 
 logger = logging.getLogger(__name__)
+
+# Point-target GeoPackage columns: '2021-05-15 displacement (mm)', and
+# 'rate_2021' (stored in m/yr).
+DISPLACEMENT_COLUMN_PATTERN = re.compile(
+    r'^(\d{4}-\d{2}-\d{2}) displacement \(mm\)$'
+)
+YEARLY_RATE_COLUMN_PATTERN = re.compile(r'^rate_(\d{4})$')
+YEARLY_RATE_TO_MM = 1000
 
 
 def get_latest_csv():
@@ -1093,6 +1104,187 @@ def _baseline_csv(target_id):
         return None
     site, beam = target_id.rsplit('_', 1)
     return f'app/Data/{site}/{beam}/bperp_all'
+
+
+# Point-target time series (Timeseries tab). The GeoPackage is the analysis
+# output; the MBTiles/JSON pair is built from it by
+# scripts/build_point_tiles.py.
+def _point_gpkg(target_id):
+    if target_id == 'API Response Error':
+        return None
+    site, beam = target_id.rsplit('_', 1)
+    return f'app/Data/{site}/{beam}/{site}_{beam}.gpkg'
+
+
+def _point_tiles(target_id):
+    if target_id == 'API Response Error':
+        return None
+    site, beam = target_id.rsplit('_', 1)
+    return f'app/Data/{site}/{beam}/{site}_{beam}_points.mbtiles'
+
+
+def _point_stats_json(target_id):
+    if target_id == 'API Response Error':
+        return None
+    site, beam = target_id.rsplit('_', 1)
+    return f'app/Data/{site}/{beam}/{site}_{beam}_points.json'
+
+
+def has_point_timeseries(target_id):
+    """True if both the tiles (map) and GeoPackage (chart) exist."""
+    paths = [_point_tiles(target_id), _point_gpkg(target_id),
+             _point_stats_json(target_id)]
+    return all(path and os.path.exists(path) for path in paths)
+
+
+@functools.lru_cache(maxsize=16)
+def _read_point_stats_cached(stats_json, _mtime):
+    with open(stats_json, encoding='utf-8') as f:
+        return json.load(f)
+
+
+def read_point_stats(target_id):
+    """Stats sidecar: count, bounds, zooms, per-variable percentiles."""
+    stats_json = _point_stats_json(target_id)
+    return _read_point_stats_cached(stats_json, os.path.getmtime(stats_json))
+
+
+def _open_gpkg(gpkg):
+    # Read-only: the app never writes the analysis output.
+    return sqlite3.connect(f'file:{gpkg}?mode=ro', uri=True)
+
+
+@functools.lru_cache(maxsize=16)
+def _point_columns_cached(gpkg, _mtime):
+    """(table, [(displacement column, date)], [(rate_YYYY column, year)])."""
+    with closing(_open_gpkg(gpkg)) as con:
+        table = con.execute(
+            "SELECT table_name FROM gpkg_contents "
+            "WHERE data_type = 'features'"
+        ).fetchone()[0]
+        columns = [r[1] for r in con.execute(f'PRAGMA table_info("{table}")')]
+    displacement = []
+    yearly_rates = []
+    for column in columns:
+        match = DISPLACEMENT_COLUMN_PATTERN.match(column)
+        if match:
+            displacement.append((column, pd.Timestamp(match.group(1))))
+            continue
+        match = YEARLY_RATE_COLUMN_PATTERN.match(column)
+        if match:
+            yearly_rates.append((column, int(match.group(1))))
+    return table, displacement, yearly_rates
+
+
+def read_point_timeseries(target_id, fid):
+    """
+    Read one point's displacement time series from the site's GeoPackage.
+
+    Exact 0.0 displacements after the reference (first) epoch are treated
+    as no-data and dropped.
+
+    Parameters:
+    - target_id (str): Site/beam id, e.g. 'Meager_5M10'.
+    - fid (int): GeoPackage feature id (the vector tile feature id).
+
+    Returns:
+    - dict or None: {'fid', 'series' (pd.Series of mm indexed by date),
+      'yearly_rates' ({year: mm/yr})}, or None if fid isn't found.
+    """
+    gpkg = _point_gpkg(target_id)
+    table, displacement, yearly_rates = _point_columns_cached(
+        gpkg, os.path.getmtime(gpkg)
+    )
+    columns = [c for c, _ in displacement] + [c for c, _ in yearly_rates]
+    select = ', '.join(f'"{c}"' for c in columns)
+    with closing(_open_gpkg(gpkg)) as con:
+        row = con.execute(
+            f'SELECT {select} FROM "{table}" WHERE fid = ?', (int(fid),)
+        ).fetchone()
+    if row is None:
+        return None
+    n_epochs = len(displacement)
+    series = pd.Series(
+        row[:n_epochs], index=[d for _, d in displacement], dtype=float
+    )
+    no_data = series == 0
+    no_data.iloc[0] = False
+    rates = {
+        year: value * YEARLY_RATE_TO_MM
+        for (_, year), value in zip(yearly_rates, row[n_epochs:])
+        if value is not None
+    }
+    return {
+        'fid': int(fid),
+        'series': series[~no_data].dropna(),
+        'yearly_rates': rates,
+    }
+
+
+def placeholder_timeseries_figure(message):
+    """Empty chart carrying a centred message (no point selected yet)."""
+    fig = go.Figure()
+    fig.add_annotation(text=message, showarrow=False,
+                       xref='paper', yref='paper', x=0.5, y=0.5,
+                       font={'size': 14})
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    fig.update_layout(margin={'l': 65, 'r': 0, 't': 5, 'b': 5})
+    return fig
+
+
+def plot_point_timeseries(timeseries):
+    """
+    Plot a point's displacement time series with per-year rate segments.
+
+    The line is broken across winter acquisition gaps (markers stay).
+    Each year's rate is drawn as a dashed segment spanning that year's
+    epochs, anchored at the mean (time, displacement) of those epochs.
+    """
+    series = timeseries['series']
+    dates = series.index
+    gap = dates.to_series().diff() > pd.Timedelta(days=WINTER_GAP_DAYS)
+    line_x, line_y = [], []
+    for date, value, breaks in zip(dates, series.values, gap.values):
+        if breaks:
+            line_x.append(None)
+            line_y.append(None)
+        line_x.append(date)
+        line_y.append(value)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=line_x, y=line_y, mode='lines+markers', name='Displacement',
+        marker={'size': 5}, line={'width': 1},
+        hovertemplate='%{x|%Y-%m-%d}: %{y:.1f} mm<extra></extra>',
+    ))
+    first_segment = True
+    for year, rate in sorted(timeseries['yearly_rates'].items()):
+        in_year = series[dates.year == year]
+        if len(in_year) < 2:
+            continue
+        t_years = (in_year.index - in_year.index[0]).days / DAYS_PER_YEAR
+        t_mid = t_years.values.mean()
+        d_mid = in_year.values.mean()
+        ends = np.array([t_years[0], t_years[-1]])
+        fig.add_trace(go.Scatter(
+            x=[in_year.index[0], in_year.index[-1]],
+            y=d_mid + rate * (ends - t_mid),
+            mode='lines', name='Per-year rate', legendgroup='yearly',
+            showlegend=first_segment,
+            line={'dash': 'dash', 'width': 2, 'color': '#f39c12'},
+            hovertemplate=f'{year}: {rate:+.1f} mm/yr<extra></extra>',
+        ))
+        first_segment = False
+    fig.update_layout(
+        xaxis_title=None,
+        yaxis_title='LOS displacement (mm)',
+        margin={'l': 65, 'r': 0, 't': 5, 'b': 5},
+        legend={'orientation': 'h', 'x': 0, 'y': 1.02,
+                'yanchor': 'bottom'},
+        hovermode='closest',
+    )
+    return fig
 
 
 config = get_config_params()
