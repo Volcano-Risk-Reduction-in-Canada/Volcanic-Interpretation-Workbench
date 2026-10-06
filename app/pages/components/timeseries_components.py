@@ -32,7 +32,8 @@ from data_utils import (
     read_point_timeseries,
 )
 from global_variables import (
-    POINT_DIVERGING_COLORS,
+    POINT_COLOR_STOPS,
+    POINT_DEFAULT_RANGE,
     TEMPORAL_HEIGHT,
     TIMESERIES_BASEMAP,
 )
@@ -67,17 +68,15 @@ def point_source(target_id):
     }
 
 
-def _color_stops(lo, hi):
+def _stop_value(position, lo, hi):
     """
-    Value at each of POINT_DIVERGING_COLORS; mirrors pointColorExpression
-    in MapLibreMap.react.js so the colourbar matches the map.
+    Data value of a POINT_COLOR_STOPS position (-1..1) for range [lo, hi];
+    mirrors stopValue in MapLibreMap.react.js so the colourbar matches the
+    map.
     """
-    n = len(POINT_DIVERGING_COLORS)
-    mid = (n - 1) / 2
-    if n % 2 == 1 and lo < 0 < hi:
-        return [lo * (1 - i / mid) if i <= mid else hi * ((i - mid) / mid)
-                for i in range(n)]
-    return [lo + (hi - lo) * i / (n - 1) for i in range(n)]
+    if lo < 0 < hi:
+        return -position * lo if position < 0 else position * hi
+    return lo + (hi - lo) * (position + 1) / 2
 
 
 def _colorbar(lo, hi):
@@ -85,8 +84,8 @@ def _colorbar(lo, hi):
         return 100 * (value - lo) / (hi - lo)
 
     gradient = ', '.join(
-        f'{color} {pct(stop):.1f}%'
-        for color, stop in zip(POINT_DIVERGING_COLORS, _color_stops(lo, hi))
+        f'{color} {pct(_stop_value(position, lo, hi)):.1f}%'
+        for position, color in POINT_COLOR_STOPS
     )
     tick_style = {'position': 'absolute', 'top': 0, 'font-size': '11px',
                   'color': 'black'}
@@ -137,7 +136,7 @@ def timeseries_tab_layout(target_id):
                    'height': TEMPORAL_HEIGHT}
         )
     stats = read_point_stats(target_id)
-    lo, hi = stats['variables'][DEFAULT_COLOR_VARIABLE]['default_range']
+    lo, hi = -POINT_DEFAULT_RANGE, POINT_DEFAULT_RANGE
     controls = html.Div(
         [
             html.Div('Colour by', style=LABEL_STYLE),
@@ -242,25 +241,9 @@ def update_point_style(variable, lo, hi):
         'property': variable,
         'min': lo,
         'max': hi,
-        'colors': POINT_DIVERGING_COLORS,
+        'stops': POINT_COLOR_STOPS,
     }
     return style, _colorbar(lo, hi)
-
-
-@callback(
-    Output('ts-range-min', 'value'),
-    Output('ts-range-max', 'value'),
-    Input('ts-color-var', 'value'),
-    State('site-dropdown', 'value'),
-    prevent_initial_call=True
-)
-def reset_range_on_variable_change(variable, target_id):
-    """Reset the colour range to the newly chosen variable's default."""
-    if not variable or not has_point_timeseries(target_id):
-        raise PreventUpdate
-    variables = read_point_stats(target_id)['variables']
-    lo, hi = variables[variable]['default_range']
-    return lo, hi
 
 
 @callback(

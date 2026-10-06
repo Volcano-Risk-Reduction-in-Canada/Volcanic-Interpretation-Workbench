@@ -157,15 +157,8 @@ def _variable_stats(con, table, variables):
             'label': label,
             'units': 'mm/yr',
             **{f'p{p}': round(float(v), 2) for p, v in zip(PERCENTILES, pcts)},
-            'default_range': _default_range(pcts[1], pcts[3]),
         }
     return stats
-
-
-def _default_range(p5, p95):
-    """Symmetric +/-R, R = max(|p5|, |p95|) rounded to the nearest 5."""
-    half = max(5, 5 * round(max(abs(p5), abs(p95)) / 5))
-    return [-half, half]
 
 
 def _mbtiles_bounds(mbtiles):

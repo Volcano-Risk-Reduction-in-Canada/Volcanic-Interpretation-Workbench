@@ -47,9 +47,9 @@ const EMPTY_FC = {type: 'FeatureCollection', features: []};
 
 const DEFAULT_POINT_STYLE = {
     property: 'rate',
-    min: -15,
-    max: 15,
-    colors: ['#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'],
+    min: -25,
+    max: 25,
+    stops: [[-1, '#d7191c'], [0, '#ffffbf'], [1, '#2b83ba']],
 };
 
 /**
@@ -66,29 +66,34 @@ function absoluteUrl(url) {
 }
 
 /**
- * MapLibre 'circle-color' expression for pointStyle. With an odd number of
- * colours and a range spanning zero, the middle colour is pinned to 0 and
- * each half of the palette spreads evenly over its side of the range (so an
- * asymmetric range like [-10, 20] still diverges at zero); otherwise the
- * colours are spread evenly from min to max.
+ * Data value of a colour-stop position (-1..1) for the range [lo, hi].
+ * When the range spans zero, position 0 is pinned to 0 and each side
+ * scales to its own half of the range (so an asymmetric range like
+ * [-10, 20] still diverges at zero); otherwise -1..1 spreads linearly over
+ * lo..hi. Mirrored by _stop_value in timeseries_components.py (colourbar).
+ */
+function stopValue(position, lo, hi) {
+    if (lo < 0 && hi > 0) {
+        return position < 0 ? -position * lo : position * hi;
+    }
+    return lo + ((hi - lo) * (position + 1)) / 2;
+}
+
+/**
+ * MapLibre 'circle-color' expression for pointStyle: its [position, colour]
+ * stops placed on the [min, max] range by stopValue(), interpolated in Lab
+ * space for an even perceptual gradient between them.
  */
 function pointColorExpression(pointStyle) {
-    const {property, min, max, colors} = {...DEFAULT_POINT_STYLE, ...pointStyle};
+    const {property, min, max, stops} = {...DEFAULT_POINT_STYLE, ...pointStyle};
     const lo = Math.min(min, max);
     const hi = max > min ? max : lo + 1;
-    const n = colors.length;
-    const mid = (n - 1) / 2;
-    const diverging = n % 2 === 1 && lo < 0 && hi > 0;
-    const stops = colors.map((_, i) => {
-        if (diverging) {
-            return i <= mid ? lo * (1 - i / mid) : hi * ((i - mid) / mid);
-        }
-        return lo + ((hi - lo) * i) / (n - 1);
-    });
     const expression = [
         'interpolate-lab', ['linear'], ['to-number', ['get', property], 0],
     ];
-    stops.forEach((stop, i) => expression.push(stop, colors[i]));
+    [...stops].sort((a, b) => a[0] - b[0]).forEach(([position, color]) => {
+        expression.push(stopValue(position, lo, hi), color);
+    });
     return expression;
 }
 
@@ -429,6 +434,15 @@ export default class MapLibreMap extends React.Component {
                 'circle-radius': [
                     'interpolate', ['linear'], ['zoom'],
                     8, 1, 12, 1.5, 14, 3, 16, 6, 18, 10,
+                ],
+                // Faint outline once dots are big enough to separate, so
+                // pale (near-zero, cream) dots stay visible on light
+                // hillshade; none when zoomed out, where it would only
+                // darken the dot field.
+                'circle-stroke-color': 'rgba(0, 0, 0, 0.35)',
+                'circle-stroke-width': [
+                    'interpolate', ['linear'], ['zoom'],
+                    13, 0, 15, 0.6, 18, 1,
                 ],
             },
         }, this.beforeIdFor(POINTS_LAYER_ID));
@@ -882,15 +896,16 @@ MapLibreMap.propTypes = {
     }),
 
     /**
-     * Point colouring: {property, min, max, colors}. property is the tile
-     * attribute to colour by; colors (bottom to top of the range) is
-     * pinned so its middle entry falls on 0 when the range spans zero.
+     * Point colouring: {property, min, max, stops}. property is the tile
+     * attribute to colour by; stops is a list of [position, colour] with
+     * position from -1 (min) through 0 (pinned to 0 when the range spans
+     * zero) to 1 (max).
      */
     pointStyle: PropTypes.shape({
         property: PropTypes.string,
         min: PropTypes.number,
         max: PropTypes.number,
-        colors: PropTypes.arrayOf(PropTypes.string),
+        stops: PropTypes.arrayOf(PropTypes.array),
     }),
 
     /**

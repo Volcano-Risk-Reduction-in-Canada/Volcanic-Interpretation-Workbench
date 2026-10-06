@@ -44,6 +44,7 @@ from global_variables import (
     COH_LIMS,
     DAYS_PER_YEAR,
     MAX_YEARS,
+    TIMESERIES_Y_RANGE,
     WINTER_GAP_DAYS,
     YEAR_AXES_COUNT
 )
@@ -62,6 +63,8 @@ DISPLACEMENT_COLUMN_PATTERN = re.compile(
 )
 YEARLY_RATE_COLUMN_PATTERN = re.compile(r'^rate_(\d{4})$')
 YEARLY_RATE_TO_MM = 1000
+# The time-series chart is white, unlike the page's other (darkly) charts.
+TIMESERIES_TEMPLATE = 'plotly_white'
 
 
 def get_latest_csv():
@@ -1229,7 +1232,8 @@ def placeholder_timeseries_figure(message):
                        font={'size': 14})
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
-    fig.update_layout(margin={'l': 65, 'r': 0, 't': 5, 'b': 5})
+    fig.update_layout(template=TIMESERIES_TEMPLATE,
+                      margin={'l': 65, 'r': 0, 't': 5, 'b': 5})
     return fig
 
 
@@ -1279,6 +1283,12 @@ def plot_point_timeseries(timeseries):
     fig.update_layout(
         xaxis_title=None,
         yaxis_title='LOS displacement (mm)',
+        # Same symmetric range for every point so clicked points compare
+        # directly; Plotly's autoscale fits any that run off it.
+        yaxis={'range': [-TIMESERIES_Y_RANGE, TIMESERIES_Y_RANGE],
+               'zeroline': True, 'zerolinecolor': '#888888',
+               'zerolinewidth': 1},
+        template=TIMESERIES_TEMPLATE,
         margin={'l': 65, 'r': 0, 't': 5, 'b': 5},
         legend={'orientation': 'h', 'x': 0, 'y': 1.02,
                 'yanchor': 'bottom'},

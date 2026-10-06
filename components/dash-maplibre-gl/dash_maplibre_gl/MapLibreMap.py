@@ -137,21 +137,21 @@ Keyword arguments:
 
     - url (string; optional)
 
-- pointStyle (dict; default {    property: 'rate',    min: -15,    max: 15,    colors: ['#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'],}):
-    Point colouring: {property, min, max, colors}. property is the
-    tile attribute to colour by; colors (bottom to top of the range)
-    is pinned so its middle entry falls on 0 when the range spans
-    zero.
+- pointStyle (dict; default {    property: 'rate',    min: -25,    max: 25,    stops: [[-1, '#d7191c'], [0, '#ffffbf'], [1, '#2b83ba']],}):
+    Point colouring: {property, min, max, stops}. property is the tile
+    attribute to colour by; stops is a list of [position, colour] with
+    position from -1 (min) through 0 (pinned to 0 when the range spans
+    zero) to 1 (max).
 
     `pointStyle` is a dict with keys:
-
-    - colors (list of strings; optional)
 
     - max (number; optional)
 
     - min (number; optional)
 
     - property (string; optional)
+
+    - stops (list of lists; optional)
 
 - style (dict; optional):
     CSS style applied to the map container div.

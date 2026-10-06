@@ -82,12 +82,26 @@ MAPLIBRE_DEFAULT_BASEMAP = 'topo'
 
 # Timeseries tab (point-target deformation) configuration
 TIMESERIES_BASEMAP = 'shadedRelief'
-# Diverging palette, bottom to top of the colour range: subsidence
-# (negative LOS rate) red, stable grey, uplift blue. The middle colour is
-# pinned to 0 mm/yr; grey so stable points recede against the hillshade.
-POINT_DIVERGING_COLORS = [
-    '#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'
+# Point colour ramp: QGIS's "Spectral" (red, orange, cream, pale green,
+# blue) with its cream centre widened into a flat band, so noise around
+# 0 mm/yr reads as uniform cream and colour only builds up towards the ends
+# of the range (subsidence, i.e. negative LOS rate, red; uplift blue).
+# [position, colour] pairs; position runs -1 (range min) .. 0 (0 mm/yr) ..
+# +1 (range max), each side scaled to its own half of the range.
+POINT_COLOR_STOPS = [
+    [-1.0, '#d7191c'],
+    [-0.7, '#fdae61'],
+    [-0.4, '#ffffbf'],
+    [0.4, '#ffffbf'],
+    [0.7, '#abdda4'],
+    [1.0, '#2b83ba'],
 ]
+# Default colour range, +/- mm/yr, for every colour-by variable. Roughly
+# the noise floor sits within +/-15-20 mm/yr, which the ramp keeps pale.
+POINT_DEFAULT_RANGE = 25
+# Default time-series chart y-axis, +/- mm, kept the same for every point
+# so clicked points are directly comparable.
+TIMESERIES_Y_RANGE = 50
 # Epochs further apart than this are on opposite sides of a winter (no
 # acquisitions Nov-Apr); the time-series line isn't drawn across the gap.
 WINTER_GAP_DAYS = 90

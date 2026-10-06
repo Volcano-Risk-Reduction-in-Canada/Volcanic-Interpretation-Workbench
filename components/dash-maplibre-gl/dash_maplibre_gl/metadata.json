@@ -391,19 +391,19 @@
               "name": "number",
               "required": false
             },
-            "colors": {
+            "stops": {
               "name": "arrayOf",
               "value": {
-                "name": "string"
+                "name": "array"
               },
               "required": false
             }
           }
         },
         "required": false,
-        "description": "Point colouring: {property, min, max, colors}. property is the tile\nattribute to colour by; colors (bottom to top of the range) is\npinned so its middle entry falls on 0 when the range spans zero.",
+        "description": "Point colouring: {property, min, max, stops}. property is the tile\nattribute to colour by; stops is a list of [position, colour] with\nposition from -1 (min) through 0 (pinned to 0 when the range spans\nzero) to 1 (max).",
         "defaultValue": {
-          "value": "{\n    property: 'rate',\n    min: -15,\n    max: 15,\n    colors: ['#b2182b', '#e08a73', '#a3a3a3', '#79a6d2', '#2166ac'],\n}",
+          "value": "{\n    property: 'rate',\n    min: -25,\n    max: 25,\n    stops: [[-1, '#d7191c'], [0, '#ffffbf'], [1, '#2b83ba']],\n}",
           "computed": false
         }
       },
