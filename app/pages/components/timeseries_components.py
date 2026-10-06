@@ -17,6 +17,7 @@ from it by scripts/build_point_tiles.py.
 import logging
 import os
 
+import dash
 from dash import html, callback, Input, Output, State
 from dash.dcc import Graph
 from dash.exceptions import PreventUpdate
@@ -30,10 +31,16 @@ from data_utils import (
     read_point_stats,
     read_point_timeseries,
 )
-from global_variables import POINT_DIVERGING_COLORS, TEMPORAL_HEIGHT
+from global_variables import (
+    POINT_DIVERGING_COLORS,
+    TEMPORAL_HEIGHT,
+    TIMESERIES_BASEMAP,
+)
 
 logger = logging.getLogger(__name__)
 
+# 'tabs-example-graph' value for the Timeseries tab.
+TIMESERIES_TAB = 'tab-4-timeseries'
 DEFAULT_COLOR_VARIABLE = 'rate'
 LABEL_STYLE = {'color': 'black', 'font-size': '12px', 'margin': '6px 0 2px'}
 CLICK_PROMPT = 'Click a point on the map to plot its displacement time series'
@@ -167,6 +174,51 @@ def timeseries_tab_layout(target_id):
         style={'height': TEMPORAL_HEIGHT},
     )
     return dbc.Row([dbc.Col(controls, width=2), dbc.Col(graph, width=10)])
+
+
+@callback(
+    Output('basemap-switcher', 'value'),
+    Output('interferogram-bg', 'interferogramVisible'),
+    Output('interferogram-bg', 'pointSource'),
+    Output('ts-restore', 'data'),
+    Input('tabs-example-graph', 'value'),
+    Input('site-dropdown', 'value'),
+    State('basemap-switcher', 'value'),
+    State('ts-restore', 'data'),
+    prevent_initial_call=True
+)
+def toggle_timeseries_mode(tab, site, basemap, restore):
+    """
+    Put the map in/out of Timeseries mode as that tab is entered/left.
+
+    Entering: remember the current basemap, switch to the greyscale
+    hillshade, hide the interferogram, and show the site's points.
+    Leaving: put the basemap and interferogram back and drop the points.
+    The basemap is changed via the switcher's value (not the map prop
+    directly) so the radio buttons stay in sync, through the page's
+    basemap-switcher -> activeBasemap callback.
+
+    Parameters:
+    - tab (str): Selected tab from 'tabs-example-graph'.
+    - site (str): Selected site ID from 'site-dropdown'.
+    - basemap (str): Current 'basemap-switcher' value.
+    - restore (dict or None): 'ts-restore' store; set while in Timeseries
+        mode, holding the basemap to restore on leaving.
+
+    Returns:
+    - tuple: basemap-switcher value, interferogramVisible, pointSource, and
+        the new 'ts-restore' data.
+    """
+    if tab == TIMESERIES_TAB:
+        if restore:
+            # Site changed while already on the tab: swap the points only.
+            return (dash.no_update, dash.no_update, point_source(site),
+                    dash.no_update)
+        return (TIMESERIES_BASEMAP, False, point_source(site),
+                {'basemap': basemap})
+    if restore:
+        return restore['basemap'], True, None, None
+    raise PreventUpdate
 
 
 @callback(

@@ -53,6 +53,19 @@ const DEFAULT_POINT_STYLE = {
 };
 
 /**
+ * Resolve a (possibly relative) tile URL template against the page.
+ * MapLibre fetches vector tiles from a Web Worker, whose base URL is a
+ * blob: URL that a relative path like '/getPointTile?...' can't resolve
+ * against -- the tiles then sit in 'loading' forever with no error. (Raster
+ * and DEM tiles load on the main thread, so their relative URLs are fine.)
+ */
+function absoluteUrl(url) {
+    // Undo any escaping of the {z}/{x}/{y} placeholders.
+    return new URL(url, window.location.href).href
+        .replace(/%7B/gi, '{').replace(/%7D/gi, '}');
+}
+
+/**
  * MapLibre 'circle-color' expression for pointStyle. With an odd number of
  * colours and a range spanning zero, the middle colour is pinned to 0 and
  * each half of the palette spreads evenly over its side of the range (so an
@@ -169,6 +182,8 @@ export default class MapLibreMap extends React.Component {
         // basemap/DEM/point tiles streaming in, that silently dropped
         // updates (e.g. a basemap switch) made mid-load.
         this.overlaysReady = false;
+        // flyTo received before the overlays were ready; see flyCamera().
+        this.pendingFlyTo = null;
     }
 
     isReady() {
@@ -254,13 +269,26 @@ export default class MapLibreMap extends React.Component {
             this.updateWmsOverlay();
         }
         if (prevProps.flyTo !== this.props.flyTo && this.props.flyTo) {
-            const {longitude, latitude, zoom, duration} = this.props.flyTo;
-            map.flyTo({
-                center: [longitude, latitude],
-                zoom,
-                duration: duration === undefined ? 2000 : duration,
-            });
+            this.flyCamera(this.props.flyTo);
         }
+    }
+
+    flyCamera(flyTo) {
+        // MapLibre (3.6) crashes its render loop -- freezing the map -- if
+        // terrain is attached mid-animation: each frame reads a terrain
+        // elevation centre that's only set when terrain existed as the
+        // animation began. Dash fires flyTo callbacks on page load, before
+        // 'load' has attached terrain, so hold the flight until then.
+        if (!this.isReady()) {
+            this.pendingFlyTo = flyTo;
+            return;
+        }
+        const {longitude, latitude, zoom, duration} = flyTo;
+        this.map.flyTo({
+            center: [longitude, latitude],
+            zoom,
+            duration: duration === undefined ? 2000 : duration,
+        });
     }
 
     componentWillUnmount() {
@@ -292,6 +320,11 @@ export default class MapLibreMap extends React.Component {
             }
         });
         this.overlaysReady = true;
+        if (this.pendingFlyTo) {
+            const flyTo = this.pendingFlyTo;
+            this.pendingFlyTo = null;
+            this.flyCamera(flyTo);
+        }
     }
 
     /**
@@ -375,7 +408,7 @@ export default class MapLibreMap extends React.Component {
         }
         const source = {
             type: 'vector',
-            tiles: [pointSource.url],
+            tiles: [absoluteUrl(pointSource.url)],
             // MBTiles rows are TMS-ordered; /getPointTile passes y through.
             scheme: 'tms',
             minzoom: pointSource.minzoom === undefined ? 0 : pointSource.minzoom,
@@ -668,6 +701,10 @@ export default class MapLibreMap extends React.Component {
             encoding: demEncoding || 'mapbox',
             maxzoom: DEM_MAX_ZOOM,
         });
+        // Same render-loop crash as in flyCamera() for any other camera
+        // animation in flight (e.g. drag inertia from panning while the
+        // page loads) -- end it before terrain goes on.
+        map.stop();
         map.setTerrain({source: DEM_SOURCE_ID, exaggeration: terrainExaggeration || 1});
     }
 

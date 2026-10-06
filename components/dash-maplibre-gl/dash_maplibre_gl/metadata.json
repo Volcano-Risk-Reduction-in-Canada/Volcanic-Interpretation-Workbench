@@ -11,6 +11,18 @@
         "returns": null
       },
       {
+        "name": "flyCamera",
+        "docblock": null,
+        "modifiers": [],
+        "params": [
+          {
+            "name": "flyTo",
+            "type": null
+          }
+        ],
+        "returns": null
+      },
+      {
         "name": "addOverlayLayers",
         "docblock": null,
         "modifiers": [],
