@@ -110,6 +110,21 @@
         "returns": null
       },
       {
+        "name": "updateSelectedLabel",
+        "docblock": "Floating label beside the clicked point: Dash's name for it\n(selectedPointLabel.text, e.g. 'Point 1234') plus the value it's\ncoloured by. Only shown once that name is for the current selection.",
+        "modifiers": [],
+        "params": [],
+        "returns": null,
+        "description": "Floating label beside the clicked point: Dash's name for it\n(selectedPointLabel.text, e.g. 'Point 1234') plus the value it's\ncoloured by. Only shown once that name is for the current selection."
+      },
+      {
+        "name": "removeSelectedLabel",
+        "docblock": null,
+        "modifiers": [],
+        "params": [],
+        "returns": null
+      },
+      {
         "name": "addEarthquakesLayer",
         "docblock": null,
         "modifiers": [],
@@ -431,6 +446,27 @@
         },
         "required": false,
         "description": "Read-only: the point nearest the user's last click on the points\nlayer, {fid, longitude, latitude, timestamp}.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "selectedPointLabel": {
+        "type": {
+          "name": "shape",
+          "value": {
+            "fid": {
+              "name": "number",
+              "required": false
+            },
+            "text": {
+              "name": "string",
+              "required": false
+            }
+          }
+        },
+        "required": false,
+        "description": "Name for the clicked point's floating map label: {fid, text}, e.g.\n{fid: 1235, text: 'Point 1234'}. Shown (with the point's colour-by\nvalue appended) only while fid matches the current clickedPoint.",
         "defaultValue": {
           "value": "null",
           "computed": false

@@ -28,6 +28,7 @@ from data_utils import (
     has_point_timeseries,
     placeholder_timeseries_figure,
     plot_point_timeseries,
+    point_display_name,
     read_point_stats,
     read_point_timeseries,
 )
@@ -248,22 +249,29 @@ def update_point_style(variable, lo, hi):
 
 @callback(
     Output('timeseries-graph', 'figure'),
+    Output('interferogram-bg', 'selectedPointLabel'),
     Input('interferogram-bg', 'clickedPoint'),
     State('site-dropdown', 'value'),
     prevent_initial_call=True
 )
 def show_point_timeseries(clicked_point, target_id):
-    """Plot the time series of the point clicked on the map."""
+    """
+    Plot the time series of the point clicked on the map, and name it in
+    the map's floating label for that point.
+    """
     if not clicked_point or clicked_point.get('fid') is None:
         raise PreventUpdate
     fid = clicked_point['fid']
     timeseries = read_point_timeseries(target_id, fid)
     if timeseries is None:
         logger.warning('Point fid %s not found for %s', fid, target_id)
-        return placeholder_timeseries_figure(f'Point {fid} not found')
+        return (placeholder_timeseries_figure(f'fid {fid} not found'),
+                {'fid': fid, 'text': f'fid {fid}'})
+    name = point_display_name(timeseries)
+    label = {'fid': fid, 'text': name}
     if len(timeseries['series']) < 2:
         # A few points are 0.0 (i.e. no-data) at every epoch.
-        return placeholder_timeseries_figure(
-            f'Point {fid} has no valid displacement data'
-        )
-    return plot_point_timeseries(timeseries)
+        return (placeholder_timeseries_figure(
+            f'{name} has no valid displacement data'
+        ), label)
+    return plot_point_timeseries(timeseries), label

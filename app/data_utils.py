@@ -63,6 +63,8 @@ DISPLACEMENT_COLUMN_PATTERN = re.compile(
 )
 YEARLY_RATE_COLUMN_PATTERN = re.compile(r'^rate_(\d{4})$')
 YEARLY_RATE_TO_MM = 1000
+# The processing software's own point id (fid is just the GeoPackage key).
+POINT_NUMBER_COLUMN = 'point number'
 # The time-series chart is white, unlike the page's other (darkly) charts.
 TIMESERIES_TEMPLATE = 'plotly_white'
 
@@ -1159,7 +1161,10 @@ def _open_gpkg(gpkg):
 
 @functools.lru_cache(maxsize=16)
 def _point_columns_cached(gpkg, _mtime):
-    """(table, [(displacement column, date)], [(rate_YYYY column, year)])."""
+    """
+    (table, [(displacement column, date)], [(rate_YYYY column, year)],
+    whether the table has a POINT_NUMBER_COLUMN).
+    """
     with closing(_open_gpkg(gpkg)) as con:
         table = con.execute(
             "SELECT table_name FROM gpkg_contents "
@@ -1176,7 +1181,7 @@ def _point_columns_cached(gpkg, _mtime):
         match = YEARLY_RATE_COLUMN_PATTERN.match(column)
         if match:
             yearly_rates.append((column, int(match.group(1))))
-    return table, displacement, yearly_rates
+    return table, displacement, yearly_rates, POINT_NUMBER_COLUMN in columns
 
 
 def read_point_timeseries(target_id, fid):
@@ -1191,21 +1196,26 @@ def read_point_timeseries(target_id, fid):
     - fid (int): GeoPackage feature id (the vector tile feature id).
 
     Returns:
-    - dict or None: {'fid', 'series' (pd.Series of mm indexed by date),
-      'yearly_rates' ({year: mm/yr})}, or None if fid isn't found.
+    - dict or None: {'fid', 'point_number' (the processing software's id,
+      or None if the GeoPackage has none), 'series' (pd.Series of mm
+      indexed by date), 'yearly_rates' ({year: mm/yr})}, or None if fid
+      isn't found.
     """
     gpkg = _point_gpkg(target_id)
-    table, displacement, yearly_rates = _point_columns_cached(
-        gpkg, os.path.getmtime(gpkg)
+    table, displacement, yearly_rates, has_point_number = (
+        _point_columns_cached(gpkg, os.path.getmtime(gpkg))
     )
     columns = [c for c, _ in displacement] + [c for c, _ in yearly_rates]
     select = ', '.join(f'"{c}"' for c in columns)
+    point_number = f'"{POINT_NUMBER_COLUMN}"' if has_point_number else 'NULL'
     with closing(_open_gpkg(gpkg)) as con:
         row = con.execute(
-            f'SELECT {select} FROM "{table}" WHERE fid = ?', (int(fid),)
+            f'SELECT {point_number}, {select} FROM "{table}" WHERE fid = ?',
+            (int(fid),)
         ).fetchone()
     if row is None:
         return None
+    point_number, row = row[0], row[1:]
     n_epochs = len(displacement)
     series = pd.Series(
         row[:n_epochs], index=[d for _, d in displacement], dtype=float
@@ -1219,9 +1229,17 @@ def read_point_timeseries(target_id, fid):
     }
     return {
         'fid': int(fid),
+        'point_number': point_number,
         'series': series[~no_data].dropna(),
         'yearly_rates': rates,
     }
+
+
+def point_display_name(timeseries):
+    """'Point 1234' (processing software's number), else 'fid 1235'."""
+    if timeseries.get('point_number') is not None:
+        return f"Point {timeseries['point_number']}"
+    return f"fid {timeseries['fid']}"
 
 
 def placeholder_timeseries_figure(message):
@@ -1280,6 +1298,13 @@ def plot_point_timeseries(timeseries):
             hovertemplate=f'{year}: {rate:+.1f} mm/yr<extra></extra>',
         ))
         first_segment = False
+    # Point id on the legend row, so screenshots identify the point.
+    name = point_display_name(timeseries)
+    if timeseries.get('point_number') is not None:
+        name += f" (fid {timeseries['fid']})"
+    fig.add_annotation(text=name, showarrow=False, xref='paper',
+                       yref='paper', x=1, y=1.02, xanchor='right',
+                       yanchor='bottom', font={'size': 13})
     fig.update_layout(
         xaxis_title=None,
         yaxis_title='LOS displacement (mm)',

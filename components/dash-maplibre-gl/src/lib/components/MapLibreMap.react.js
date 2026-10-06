@@ -199,6 +199,10 @@ export default class MapLibreMap extends React.Component {
         this.overlaysReady = false;
         // flyTo received before the overlays were ready; see flyCamera().
         this.pendingFlyTo = null;
+        // Last clicked point {fid, coordinates, properties}, and the
+        // floating label marker naming it (see updateSelectedLabel()).
+        this.selectedPoint = null;
+        this.selectedLabelMarker = null;
     }
 
     isReady() {
@@ -270,6 +274,11 @@ export default class MapLibreMap extends React.Component {
             this.updatePointsSource();
         } else if (prevProps.pointStyle !== this.props.pointStyle) {
             this.updatePointStyle();
+            // The label shows the colour-by value, which may have changed.
+            this.updateSelectedLabel();
+        }
+        if (prevProps.selectedPointLabel !== this.props.selectedPointLabel) {
+            this.updateSelectedLabel();
         }
         if (
             prevProps.demTiles !== this.props.demTiles
@@ -476,6 +485,8 @@ export default class MapLibreMap extends React.Component {
 
     removePointsLayers() {
         const {map} = this;
+        this.removeSelectedLabel();
+        this.selectedPoint = null;
         [SELECTED_POINT_LAYER_ID, POINTS_LAYER_ID].forEach((layerId) => {
             if (map.getLayer(layerId)) {
                 map.removeLayer(layerId);
@@ -546,6 +557,14 @@ export default class MapLibreMap extends React.Component {
                 properties: {},
             }],
         });
+        // The label for this point appears once Dash names it (via
+        // selectedPointLabel); drop the previous point's meanwhile.
+        this.removeSelectedLabel();
+        this.selectedPoint = {
+            fid: nearest.id,
+            coordinates: [longitude, latitude],
+            properties: nearest.properties,
+        };
         if (this.props.setProps) {
             this.props.setProps({
                 clickedPoint: {
@@ -557,6 +576,47 @@ export default class MapLibreMap extends React.Component {
                     timestamp: Date.now(),
                 },
             });
+        }
+    }
+
+    /**
+     * Floating label beside the clicked point: Dash's name for it
+     * (selectedPointLabel.text, e.g. 'Point 1234') plus the value it's
+     * coloured by. Only shown once that name is for the current selection.
+     */
+    updateSelectedLabel() {
+        const {map, selectedPoint} = this;
+        const label = this.props.selectedPointLabel;
+        if (!this.isReady() || !selectedPoint || !label || label.fid !== selectedPoint.fid) {
+            return;
+        }
+        const {property} = {...DEFAULT_POINT_STYLE, ...this.props.pointStyle};
+        const value = Number(selectedPoint.properties[property]);
+        const text = Number.isFinite(value)
+            ? `${label.text}: ${value > 0 ? '+' : ''}${value.toFixed(1)} mm/yr`
+            : label.text;
+        if (!this.selectedLabelMarker) {
+            const element = document.createElement('div');
+            // Inline-styled for the same reason as the earthquake popup
+            // (the page theme's text colour bleeds into map DOM); no
+            // pointer events, so it never blocks clicks on points beneath.
+            element.style.cssText = (
+                'background:rgba(255,255,255,0.92); color:#1a1a1a;'
+                + 'border:1px solid #555; border-radius:3px; padding:1px 6px;'
+                + 'font-size:12px; line-height:1.4; white-space:nowrap;'
+                + 'pointer-events:none; box-shadow:0 1px 3px rgba(0,0,0,0.3);'
+            );
+            this.selectedLabelMarker = new maplibregl.Marker({
+                element, anchor: 'left', offset: [14, 0],
+            }).setLngLat(selectedPoint.coordinates).addTo(map);
+        }
+        this.selectedLabelMarker.getElement().textContent = text;
+    }
+
+    removeSelectedLabel() {
+        if (this.selectedLabelMarker) {
+            this.selectedLabelMarker.remove();
+            this.selectedLabelMarker = null;
         }
     }
 
@@ -808,6 +868,7 @@ MapLibreMap.defaultProps = {
     pointSource: null,
     pointStyle: DEFAULT_POINT_STYLE,
     clickedPoint: null,
+    selectedPointLabel: null,
     demTiles: null,
     demEncoding: 'mapbox',
     terrainExaggeration: 1.5,
@@ -930,6 +991,16 @@ MapLibreMap.propTypes = {
         longitude: PropTypes.number,
         latitude: PropTypes.number,
         timestamp: PropTypes.number,
+    }),
+
+    /**
+     * Name for the clicked point's floating map label: {fid, text}, e.g.
+     * {fid: 1235, text: 'Point 1234'}. Shown (with the point's colour-by
+     * value appended) only while fid matches the current clickedPoint.
+     */
+    selectedPointLabel: PropTypes.shape({
+        fid: PropTypes.number,
+        text: PropTypes.string,
     }),
 
     /**

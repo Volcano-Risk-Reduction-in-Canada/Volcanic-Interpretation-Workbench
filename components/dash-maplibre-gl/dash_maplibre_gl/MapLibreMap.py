@@ -153,6 +153,17 @@ Keyword arguments:
 
     - stops (list of lists; optional)
 
+- selectedPointLabel (dict; optional):
+    Name for the clicked point's floating map label: {fid, text}, e.g.
+    {fid: 1235, text: 'Point 1234'}. Shown (with the point's colour-by
+    value appended) only while fid matches the current clickedPoint.
+
+    `selectedPointLabel` is a dict with keys:
+
+    - fid (number; optional)
+
+    - text (string; optional)
+
 - style (dict; optional):
     CSS style applied to the map container div.
 
@@ -181,10 +192,10 @@ Keyword arguments:
     _namespace = 'dash_maplibre_gl'
     _type = 'MapLibreMap'
     @_explicitize_args
-    def __init__(self, id=Component.UNDEFINED, initialViewState=Component.UNDEFINED, flyTo=Component.UNDEFINED, basemaps=Component.UNDEFINED, activeBasemap=Component.UNDEFINED, basemapMonochrome=Component.UNDEFINED, interferogramTileUrl=Component.UNDEFINED, interferogramOpacity=Component.UNDEFINED, interferogramVisible=Component.UNDEFINED, pointSource=Component.UNDEFINED, pointStyle=Component.UNDEFINED, clickedPoint=Component.UNDEFINED, demTiles=Component.UNDEFINED, demEncoding=Component.UNDEFINED, terrainExaggeration=Component.UNDEFINED, earthquakeData=Component.UNDEFINED, wmsOverlay=Component.UNDEFINED, style=Component.UNDEFINED, className=Component.UNDEFINED, **kwargs):
-        self._prop_names = ['id', 'activeBasemap', 'basemapMonochrome', 'basemaps', 'className', 'clickedPoint', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'interferogramVisible', 'pointSource', 'pointStyle', 'style', 'terrainExaggeration', 'wmsOverlay']
+    def __init__(self, id=Component.UNDEFINED, initialViewState=Component.UNDEFINED, flyTo=Component.UNDEFINED, basemaps=Component.UNDEFINED, activeBasemap=Component.UNDEFINED, basemapMonochrome=Component.UNDEFINED, interferogramTileUrl=Component.UNDEFINED, interferogramOpacity=Component.UNDEFINED, interferogramVisible=Component.UNDEFINED, pointSource=Component.UNDEFINED, pointStyle=Component.UNDEFINED, clickedPoint=Component.UNDEFINED, selectedPointLabel=Component.UNDEFINED, demTiles=Component.UNDEFINED, demEncoding=Component.UNDEFINED, terrainExaggeration=Component.UNDEFINED, earthquakeData=Component.UNDEFINED, wmsOverlay=Component.UNDEFINED, style=Component.UNDEFINED, className=Component.UNDEFINED, **kwargs):
+        self._prop_names = ['id', 'activeBasemap', 'basemapMonochrome', 'basemaps', 'className', 'clickedPoint', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'interferogramVisible', 'pointSource', 'pointStyle', 'selectedPointLabel', 'style', 'terrainExaggeration', 'wmsOverlay']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'activeBasemap', 'basemapMonochrome', 'basemaps', 'className', 'clickedPoint', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'interferogramVisible', 'pointSource', 'pointStyle', 'style', 'terrainExaggeration', 'wmsOverlay']
+        self.available_properties = ['id', 'activeBasemap', 'basemapMonochrome', 'basemaps', 'className', 'clickedPoint', 'demEncoding', 'demTiles', 'earthquakeData', 'flyTo', 'initialViewState', 'interferogramOpacity', 'interferogramTileUrl', 'interferogramVisible', 'pointSource', 'pointStyle', 'selectedPointLabel', 'style', 'terrainExaggeration', 'wmsOverlay']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
