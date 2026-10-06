@@ -97,6 +97,16 @@ function pointColorExpression(pointStyle) {
     return expression;
 }
 
+/**
+ * MapLibre 'circle-sort-key' for pointStyle: draw the largest |value| on
+ * top, so where zoomed-out dots overlap, deforming points aren't buried
+ * under near-zero ones.
+ */
+function pointSortKey(pointStyle) {
+    const {property} = {...DEFAULT_POINT_STYLE, ...pointStyle};
+    return ['abs', ['to-number', ['get', property], 0]];
+}
+
 // MapLibre's built-in NavigationControl compass is a small, easy-to-miss
 // icon. This is a plain-text "N" indicator that always stays legible
 // (independent of whatever Bootstrap theme the host page applies) and
@@ -429,11 +439,12 @@ export default class MapLibreMap extends React.Component {
             type: 'circle',
             source: POINTS_SOURCE_ID,
             'source-layer': POINTS_SOURCE_LAYER,
+            layout: {'circle-sort-key': pointSortKey(pointStyle)},
             paint: {
                 'circle-color': pointColorExpression(pointStyle),
                 'circle-radius': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 1, 12, 1.5, 14, 3, 16, 6, 18, 10,
+                    8, 1.5, 10, 2, 12, 2.5, 14, 3, 16, 6, 18, 10,
                 ],
                 // Faint outline once dots are big enough to separate, so
                 // pale (near-zero, cream) dots stay visible on light
@@ -492,10 +503,12 @@ export default class MapLibreMap extends React.Component {
         if (!this.isReady() || !map.getLayer(POINTS_LAYER_ID)) {
             return;
         }
-        // Paint-only change: recolours from the tiles already loaded, no
-        // refetch.
+        // Restyles the tiles already loaded, no refetch.
         map.setPaintProperty(
             POINTS_LAYER_ID, 'circle-color', pointColorExpression(this.props.pointStyle)
+        );
+        map.setLayoutProperty(
+            POINTS_LAYER_ID, 'circle-sort-key', pointSortKey(this.props.pointStyle)
         );
     }
 
